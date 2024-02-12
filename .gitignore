@@ -1,0 +1,9 @@
+.vscode/
+*.pdf
+__pycache__/
+*.pkl
+*.log
+*.joblib
+*.csv
+*.zip
+merge
