@@ -292,34 +292,21 @@ class DTMSQL(object):
 
             # internal node
             op = '<='
-            feature = features[node]
+            feature = dbms_util.get_delimited_col(dbms, features[node])
             thr = thresholds[node]
 
-            delimited_flag = False
-            imputation_flag = False
             ###### merge imputation ######
             if imputation_features is not None:
                 if feature in imputation_features:
-                    imputation_flag = True
-                if not imputation_flag:
-                    feature = f"COALESCE({dbms_util.get_delimited_col(dbms, feature)}, {imputation_features[feature]})"
-                    delimited_flag = True
-                if merge_ohe_features is not None:
-                    for one_feature in merge_ohe_features.values():
-                        if feature == one_feature['alias']:
-                            imputation_flag = True
-                            break
-                
-
+                    feature = f"COALESCE({feature}, {imputation_features[feature]})"
+                    
             ###### merge onehot ######
             if merge_ohe_features is not None:
                 #   feature_after_ohe > 0.5 becomes original_cat_feature = val
                 #   feature_after_ohe <= 0.5 becomes original_cat_feature <> val
                 for one_feature in merge_ohe_features.values():
-                    if feature == one_feature['alias']:
-                        feature = one_feature['feature_before_ohe']
-                        feature = dbms_util.get_delimited_col(dbms, feature)
-                        delimited_flag = True
+                    if features[node] == one_feature['alias']:
+                        feature = dbms_util.get_delimited_col(dbms, one_feature['feature_before_ohe'])
                         thr = "'{}'".format(one_feature['value'])
                         op = '<>'
                         break
@@ -329,19 +316,13 @@ class DTMSQL(object):
                 if feature in merge_scaler_features['norm_features']:
                     i = merge_scaler_features['norm_features'].index(feature)
                     thr = thr * merge_scaler_features['stds'][i] + merge_scaler_features['avgs'][i]
-                    feature = dbms_util.get_delimited_col(dbms, feature)
-                    delimited_flag = True
             
             ###### merge udf ######
             if merge_udf_features is not None:
                 udf_infos = merge_udf_features['udf_infos']
                 if feature in udf_infos and udf_infos[feature]['is_merge']:
-                    feature = f'{udf_infos[feature]["udf_name"]}({dbms_util.get_delimited_col(dbms, feature)})'
-                    delimited_flag = True
+                    feature = f'{udf_infos[feature]["udf_name"]}({feature})'           
             
-            
-            if not delimited_flag:
-                feature = dbms_util.get_delimited_col(dbms, feature)
             sql_dtm_rule = f" CASE WHEN {feature} {op} {thr} THEN"
 
             # check if current node has a left child

@@ -18,7 +18,7 @@ if __name__ == '__main__':
     #             'Temperature(F)', 'Wind_Chill(F)','Humidity(%)', 'Pressure(in)', 
     #             'Visibility(mi)', 'Description','Start_Time', 'Weather_Condition']
     dbms = DBMSUtils.get_dbms_from_str_connection('postgresql://postgres:@localhost/postgres')
-    one_hot_optimization = False
+    one_hot_optimization = True
     scaler_optimization = True
     preprocessors = {}
     preprocessors['Imputation'] = {
