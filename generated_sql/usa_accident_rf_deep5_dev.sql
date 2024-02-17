@@ -80,116 +80,184 @@ FROM
       (
         SELECT
           CASE
-            WHEN "Source" <> 'Source2' THEN CASE
-              WHEN "Source" <> 'Source3' THEN CASE
-                WHEN "Description" <= 8.5 THEN CASE
-                  WHEN "Pressure(in)" <= 24.756160736083984 THEN CASE
-                    WHEN "Zipcode" <= 146.0 THEN 1.0
-                    ELSE 2.0
+            WHEN "Timezone_1" <= 0.5 THEN CASE
+              WHEN "Country_0" <= 0.5 THEN CASE
+                WHEN "Airport_Code_6" <= 0.5 THEN CASE
+                  WHEN "Description" <= 11.5 THEN CASE
+                    WHEN "Source_1" <= 3.5644114017486572 THEN 1.0
+                    ELSE 1.0
                   END
                   ELSE CASE
-                    WHEN "Timezone" <> 'US/Eastern' THEN 1.0
-                    ELSE 1.0
+                    WHEN "Visibility(mi)" <= 0.5 THEN 1.0
+                    ELSE 2.0
                   END
                 END
                 ELSE CASE
-                  WHEN "Description" <= 15.5 THEN CASE
-                    WHEN "Start_Time" <= 24248.5 THEN 1.0
-                    ELSE 1.0
+                  WHEN "Airport_Code_9" <= 0.5 THEN CASE
+                    WHEN "Start_Time" <= 24268.5 THEN 1.0
+                    ELSE 2.0
                   END
                   ELSE CASE
-                    WHEN "Timezone" <> 'US/Eastern' THEN 1.0
+                    WHEN "Timezone_0" <= 25.958158493041992 THEN 2.0
                     ELSE 1.0
                   END
                 END
               END
               ELSE CASE
-                WHEN "Zipcode" <= 63.5 THEN CASE
-                  WHEN "Weather_Condition" <= 0.5 THEN CASE
-                    WHEN "Start_Time" <= 24268.5 THEN 1.0
-                    ELSE 0.0
+                WHEN "Description" <= 10.5 THEN CASE
+                  WHEN "Airport_Code_0" <= 0.5 THEN CASE
+                    WHEN "Description" <= 8.5 THEN 1.0
+                    ELSE 1.0
                   END
                   ELSE CASE
-                    WHEN "Visibility(mi)" <= 0.7136021256446838 THEN 1.0
+                    WHEN "Zipcode" <= 7.5 THEN 1.0
                     ELSE 1.0
                   END
                 END
                 ELSE CASE
-                  WHEN "Pressure(in)" <= 29.644287109375 THEN CASE
-                    WHEN "Description" <= 10.5 THEN 1.0
-                    ELSE 1.0
+                  WHEN "Airport_Code_0" <= 0.5 THEN CASE
+                    WHEN "Airport_Code_5" <= 0.5 THEN 2.0
+                    ELSE 2.0
                   END
                   ELSE CASE
-                    WHEN "Zipcode" <= 583.0 THEN 1.0
+                    WHEN "Airport_Code_5" <= 0.5 THEN 2.0
                     ELSE 2.0
                   END
                 END
               END
             END
             ELSE CASE
-              WHEN "Humidity(%)" <= 4.075697660446167 THEN CASE
-                WHEN "Description" <= 11.5 THEN CASE
-                  WHEN "Timezone" <> 'US/Eastern' THEN CASE
-                    WHEN "Timezone" <> 'US/Central' THEN 1.0
+              WHEN "Wind_Chill(F)" <= 0.5 THEN CASE
+                WHEN "Airport_Code_0" <= 0.5 THEN CASE
+                  WHEN "Description" <= 8.5 THEN CASE
+                    WHEN "Source_1" <= 3.6135756969451904 THEN 1.0
                     ELSE 1.0
                   END
                   ELSE CASE
-                    WHEN "Airport_Code_2" <= 0.5 THEN 1.0
+                    WHEN "Timezone_0" <= 30.27533721923828 THEN 1.0
                     ELSE 1.0
                   END
                 END
                 ELSE CASE
-                  WHEN "Start_Time" <= 24225.5 THEN CASE
-                    WHEN "Timezone" <> 'US/Eastern' THEN 2.0
-                    ELSE 2.0
+                  WHEN "Start_Time" <= 24248.5 THEN CASE
+                    WHEN "Start_Time" <= 24233.5 THEN 3.0
+                    ELSE 1.0
                   END
                   ELSE CASE
-                    WHEN "Airport_Code_7" <= 0.5 THEN 2.0
-                    ELSE 2.0
+                    WHEN "Airport_Code_1" <= 0.5 THEN 1.0
+                    ELSE 1.0
                   END
                 END
               END
               ELSE CASE
-                WHEN "Description" <= 11.5 THEN CASE
-                  WHEN "Weather_Condition" <= 0.5 THEN CASE
-                    WHEN "Humidity(%)" <= 4.337239742279053 THEN 1.0
+                WHEN "Start_Time" <= 24235.5 THEN CASE
+                  WHEN "Source_2" <= 3.2474809885025024 THEN CASE
+                    WHEN "Description" <= 9.5 THEN 1.0
                     ELSE 1.0
                   END
                   ELSE CASE
-                    WHEN "Description" <= 9.5 THEN 1.0
+                    WHEN "Airport_Code_5" <= 0.5 THEN 1.0
                     ELSE 1.0
                   END
                 END
                 ELSE CASE
-                  WHEN "Timezone" <> 'US/Central' THEN CASE
-                    WHEN "Start_Time" <= 24229.5 THEN 2.0
-                    ELSE 2.0
+                  WHEN "Pressure(in)" <= 0.06785714626312256 THEN CASE
+                    WHEN "Source_0" <= 8.628458023071289 THEN 1.0
+                    ELSE 3.0
                   END
                   ELSE CASE
-                    WHEN "Zipcode" <= 5.5 THEN 1.0
-                    ELSE 2.0
+                    WHEN "Start_Time" <= 24248.5 THEN 1.0
+                    ELSE 1.0
                   END
                 END
               END
             END
           END AS tree_0,
           CASE
-            WHEN "Source" <> 'Source2' THEN CASE
-              WHEN "Start_Time" <= 24248.5 THEN CASE
-                WHEN "Airport_Code_0" <= 0.5 THEN CASE
-                  WHEN "Start_Time" <= 24243.5 THEN CASE
-                    WHEN "Timezone" <> 'US/Central' THEN 1.0
+            WHEN "Timezone_1" <= 0.5 THEN CASE
+              WHEN "Description" <= 11.5 THEN CASE
+                WHEN "Airport_Code_8" <= 0.5 THEN CASE
+                  WHEN "Start_Time" <= 24268.5 THEN CASE
+                    WHEN "Source_1" <= 3.5644114017486572 THEN 1.0
                     ELSE 1.0
                   END
                   ELSE CASE
-                    WHEN "Timezone" <> 'US/Pacific' THEN 1.0
+                    WHEN "Wind_Chill(F)" <= 0.5 THEN 0.0
+                    ELSE 0.0
+                  END
+                END
+                ELSE CASE
+                  WHEN "Start_Time" <= 24268.5 THEN CASE
+                    WHEN "Country_0" <= 0.5 THEN 1.0
+                    ELSE 1.0
+                  END
+                  ELSE CASE
+                    WHEN "Pressure(in)" <= 0.00042857142398133874 THEN 1.0
+                    ELSE 0.0
+                  END
+                END
+              END
+              ELSE CASE
+                WHEN "Country_0" <= 0.5 THEN CASE
+                  WHEN "Source_1" <= 3.5644114017486572 THEN CASE
+                    WHEN "Zipcode" <= 11.5 THEN 1.0
+                    ELSE 2.0
+                  END
+                  ELSE CASE
+                    WHEN "Timezone_2" <= 0.5 THEN 2.0
+                    ELSE 2.0
+                  END
+                END
+                ELSE CASE
+                  WHEN "Airport_Code_1" <= 0.5 THEN CASE
+                    WHEN "Source_2" <= 2.8115774393081665 THEN 2.0
+                    ELSE 2.0
+                  END
+                  ELSE CASE
+                    WHEN "Description" <= 14.5 THEN 2.0
+                    ELSE 2.0
+                  END
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "Start_Time" <= 24248.5 THEN CASE
+                WHEN "Airport_Code_4" <= 0.5 THEN CASE
+                  WHEN "Start_Time" <= 24236.5 THEN CASE
+                    WHEN "Visibility(mi)" <= 0.5 THEN 1.0
+                    ELSE 1.0
+                  END
+                  ELSE CASE
+                    WHEN "Description" <= 8.5 THEN 1.0
                     ELSE 1.0
                   END
                 END
                 ELSE CASE
-                  WHEN "Start_Time" <= 24237.5 THEN CASE
-                    WHEN "Airport_Code_4" <= 0.5 THEN 1.0
-                    ELSE 3.0
+                  WHEN "Airport_Code_0" <= 0.5 THEN CASE
+                    WHEN "Airport_Code_6" <= 0.5 THEN 1.0
+                    ELSE 1.0
+                  END
+                  ELSE CASE
+                    WHEN "Wind_Chill(F)" <= 0.5 THEN 1.0
+                    ELSE 1.0
+                  END
+                END
+              END
+              ELSE CASE
+                WHEN "Visibility(mi)" <= 0.5 THEN CASE
+                  WHEN "Temperature(F)" <= 0.5 THEN CASE
+                    WHEN "Airport_Code_1" <= 0.5 THEN 1.0
+                    ELSE 1.0
+                  END
+                  ELSE CASE
+                    WHEN "Description" <= 39.5 THEN 1.0
+                    ELSE 1.0
+                  END
+                END
+                ELSE CASE
+                  WHEN "Airport_Code_1" <= 0.5 THEN CASE
+                    WHEN "Description" <= 31.5 THEN 1.0
+                    ELSE 1.0
                   END
                   ELSE CASE
                     WHEN "Airport_Code_9" <= 0.5 THEN 1.0
@@ -197,66 +265,186 @@ FROM
                   END
                 END
               END
-              ELSE CASE
-                WHEN "Source" <> 'Source1' THEN CASE
-                  WHEN "Temperature(F)" <= 3.5622074604034424 THEN CASE
-                    WHEN "Temperature(F)" <= 2.9816997051239014 THEN 1.0
+            END
+          END AS tree_1,
+          CASE
+            WHEN "Timezone_2" <= 0.5 THEN CASE
+              WHEN "Description" <= 8.5 THEN CASE
+                WHEN "Country_0" <= 0.5 THEN CASE
+                  WHEN "Source_1" <= 3.5644114017486572 THEN CASE
+                    WHEN "Start_Time" <= 24235.5 THEN 1.0
                     ELSE 1.0
                   END
                   ELSE CASE
-                    WHEN "Temperature(F)" <= 4.406582832336426 THEN 1.0
+                    WHEN "Timezone_0" <= 28.792871475219727 THEN 1.0
                     ELSE 1.0
                   END
                 END
                 ELSE CASE
-                  WHEN "Timezone" <> 'US/Eastern' THEN CASE
-                    WHEN "Airport_Code_0" <= 0.5 THEN 1.0
+                  WHEN "Timezone_0" <= 29.1033878326416 THEN CASE
+                    WHEN "Airport_Code_10" <= 0.5 THEN 1.0
                     ELSE 1.0
                   END
                   ELSE CASE
-                    WHEN "Description" <= 33.5 THEN 1.0
+                    WHEN "Description" <= 1.5 THEN 1.0
+                    ELSE 1.0
+                  END
+                END
+              END
+              ELSE CASE
+                WHEN "Timezone_1" <= 0.5 THEN CASE
+                  WHEN "Zipcode" <= 57.5 THEN CASE
+                    WHEN "Description" <= 12.5 THEN 1.0
+                    ELSE 1.0
+                  END
+                  ELSE CASE
+                    WHEN "Start_Time" <= 24234.5 THEN 2.0
+                    ELSE 1.0
+                  END
+                END
+                ELSE CASE
+                  WHEN "Airport_Code_1" <= 0.5 THEN CASE
+                    WHEN "Source_2" <= 3.944926619529724 THEN 1.0
+                    ELSE 1.0
+                  END
+                  ELSE CASE
+                    WHEN "Start_Time" <= 24248.5 THEN 3.0
                     ELSE 1.0
                   END
                 END
               END
             END
             ELSE CASE
-              WHEN "Timezone" <> 'US/Central' THEN CASE
-                WHEN "Zipcode" <= 33.5 THEN CASE
-                  WHEN "Start_Time" <= 24268.5 THEN CASE
-                    WHEN "Wind_Chill(F)" <= 1.2856463193893433 THEN 1.0
+              WHEN "Start_Time" <= 24268.5 THEN CASE
+                WHEN "Description" <= 11.5 THEN CASE
+                  WHEN "Airport_Code_7" <= 0.5 THEN CASE
+                    WHEN "Description" <= 8.5 THEN 1.0
                     ELSE 1.0
                   END
                   ELSE CASE
-                    WHEN "Description" <= 11.5 THEN 0.0
+                    WHEN "Start_Time" <= 24231.5 THEN 1.0
                     ELSE 1.0
                   END
                 END
                 ELSE CASE
-                  WHEN "Start_Time" <= 24230.5 THEN CASE
-                    WHEN "Wind_Chill(F)" <= 1.5511335134506226 THEN 2.0
+                  WHEN "Visibility(mi)" <= 0.5 THEN CASE
+                    WHEN "Description" <= 13.5 THEN 1.0
                     ELSE 2.0
                   END
                   ELSE CASE
-                    WHEN "Zipcode" <= 135.5 THEN 1.0
+                    WHEN "Description" <= 13.5 THEN 1.0
+                    ELSE 2.0
+                  END
+                END
+              END
+              ELSE CASE
+                WHEN "Source_2" <= 3.2038906812667847 THEN CASE
+                  WHEN "Wind_Chill(F)" <= 0.5 THEN CASE
+                    WHEN "Timezone_0" <= 29.62425422668457 THEN 2.0
+                    ELSE 2.0
+                  END
+                  ELSE CASE
+                    WHEN "Start_Time" <= 24271.5 THEN 1.0
+                    ELSE 2.0
+                  END
+                END
+                ELSE CASE
+                  WHEN "Airport_Code_0" <= 0.5 THEN CASE
+                    WHEN "Zipcode" <= 12.5 THEN 0.0
+                    ELSE 2.0
+                  END
+                  ELSE CASE
+                    WHEN "Source_2" <= 3.857745885848999 THEN 2.0
+                    ELSE 1.0
+                  END
+                END
+              END
+            END
+          END AS tree_2,
+          CASE
+            WHEN "Zipcode" <= 37.5 THEN CASE
+              WHEN "Start_Time" <= 24248.5 THEN CASE
+                WHEN "Wind_Chill(F)" <= 0.5 THEN CASE
+                  WHEN "Timezone_2" <= 0.5 THEN CASE
+                    WHEN "Start_Time" <= 24237.5 THEN 1.0
+                    ELSE 1.0
+                  END
+                  ELSE CASE
+                    WHEN "Airport_Code_1" <= 0.5 THEN 1.0
+                    ELSE 1.0
+                  END
+                END
+                ELSE CASE
+                  WHEN "Start_Time" <= 24243.5 THEN CASE
+                    WHEN "Source_0" <= 1.789019763469696 THEN 1.0
+                    ELSE 1.0
+                  END
+                  ELSE CASE
+                    WHEN "Description" <= 12.5 THEN 1.0
                     ELSE 1.0
                   END
                 END
               END
               ELSE CASE
-                WHEN "Temperature(F)" <= 1.744162380695343 THEN CASE
-                  WHEN "Airport_Code_0" <= 0.5 THEN CASE
-                    WHEN "Zipcode" <= 14.5 THEN 1.0
+                WHEN "Timezone_2" <= 0.5 THEN CASE
+                  WHEN "Description" <= 30.5 THEN CASE
+                    WHEN "Start_Time" <= 24269.5 THEN 1.0
                     ELSE 1.0
                   END
                   ELSE CASE
-                    WHEN "Airport_Code_5" <= 0.5 THEN 1.0
-                    ELSE 2.0
+                    WHEN "Wind_Chill(F)" <= 0.5 THEN 1.0
+                    ELSE 1.0
                   END
                 END
                 ELSE CASE
-                  WHEN "Zipcode" <= 16.5 THEN CASE
-                    WHEN "Pressure(in)" <= 29.704387664794922 THEN 1.0
+                  WHEN "Zipcode" <= 8.5 THEN CASE
+                    WHEN "Weather_Condition" <= 0.5 THEN 1.0
+                    ELSE 1.0
+                  END
+                  ELSE CASE
+                    WHEN "Visibility(mi)" <= 0.5 THEN 1.0
+                    ELSE 1.0
+                  END
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "Timezone_2" <= 0.5 THEN CASE
+                WHEN "Timezone_0" <= 30.034936904907227 THEN CASE
+                  WHEN "Description" <= 15.5 THEN CASE
+                    WHEN "Pressure(in)" <= 0.07321428880095482 THEN 1.0
+                    ELSE 1.0
+                  END
+                  ELSE CASE
+                    WHEN "Zipcode" <= 208.5 THEN 1.0
+                    ELSE 1.0
+                  END
+                END
+                ELSE CASE
+                  WHEN "Description" <= 15.5 THEN CASE
+                    WHEN "Timezone_3" <= 0.5 THEN 1.0
+                    ELSE 1.0
+                  END
+                  ELSE CASE
+                    WHEN "Timezone_1" <= 0.5 THEN 2.0
+                    ELSE 1.0
+                  END
+                END
+              END
+              ELSE CASE
+                WHEN "Temperature(F)" <= 0.5 THEN CASE
+                  WHEN "Zipcode" <= 507.5 THEN CASE
+                    WHEN "Visibility(mi)" <= 0.5 THEN 1.0
+                    ELSE 1.0
+                  END
+                  ELSE CASE
+                    WHEN "Airport_Code_6" <= 0.5 THEN 2.0
+                    ELSE 1.0
+                  END
+                END
+                ELSE CASE
+                  WHEN "Source_1" <= 1.9296985864639282 THEN CASE
+                    WHEN "Airport_Code_3" <= 0.5 THEN 1.0
                     ELSE 1.0
                   END
                   ELSE CASE
@@ -266,204 +454,23 @@ FROM
                 END
               END
             END
-          END AS tree_1,
-          CASE
-            WHEN "Zipcode" <= 33.5 THEN CASE
-              WHEN "Airport_Code_3" <= 0.5 THEN CASE
-                WHEN "Zipcode" <= 9.5 THEN CASE
-                  WHEN "Source" <> 'Source1' THEN CASE
-                    WHEN "Wind_Chill(F)" <= 3.6135756969451904 THEN 1.0
-                    ELSE 1.0
-                  END
-                  ELSE CASE
-                    WHEN "Timezone" <> 'US/Central' THEN 1.0
-                    ELSE 1.0
-                  END
-                END
-                ELSE CASE
-                  WHEN "Description" <= 11.5 THEN CASE
-                    WHEN "Source" <> 'Source1' THEN 1.0
-                    ELSE 1.0
-                  END
-                  ELSE CASE
-                    WHEN "Description" <= 15.5 THEN 1.0
-                    ELSE 1.0
-                  END
-                END
-              END
-              ELSE CASE
-                WHEN "Description" <= 11.5 THEN CASE
-                  WHEN "Description" <= 6.5 THEN CASE
-                    WHEN "Airport_Code_6" <= 0.5 THEN 1.0
-                    ELSE 1.0
-                  END
-                  ELSE CASE
-                    WHEN "Source" <> 'Source3' THEN 1.0
-                    ELSE 1.0
-                  END
-                END
-                ELSE CASE
-                  WHEN "Start_Time" <= 24248.5 THEN CASE
-                    WHEN "Source" <> 'Source2' THEN 3.0
-                    ELSE 1.0
-                  END
-                  ELSE CASE
-                    WHEN "Description" <= 31.5 THEN 1.0
-                    ELSE 1.0
-                  END
-                END
-              END
-            END
-            ELSE CASE
-              WHEN "Timezone" <> 'US/Pacific' THEN CASE
-                WHEN "Description" <= 11.5 THEN CASE
-                  WHEN "Source" <> 'Source2' THEN CASE
-                    WHEN "Temperature(F)" <= 1.8497092723846436 THEN 1.0
-                    ELSE 1.0
-                  END
-                  ELSE CASE
-                    WHEN "Pressure(in)" <= 29.72442054748535 THEN 1.0
-                    ELSE 1.0
-                  END
-                END
-                ELSE CASE
-                  WHEN "Wind_Chill(F)" <= 3.6135756969451904 THEN CASE
-                    WHEN "Wind_Chill(F)" <= 3.5644114017486572 THEN 1.0
-                    ELSE 2.0
-                  END
-                  ELSE CASE
-                    WHEN "Source" <> 'Source3' THEN 1.0
-                    ELSE 2.0
-                  END
-                END
-              END
-              ELSE CASE
-                WHEN "Pressure(in)" <= 29.854637145996094 THEN CASE
-                  WHEN "Source" <> 'Source1' THEN CASE
-                    WHEN "Start_Time" <= 24237.5 THEN 1.0
-                    ELSE 1.0
-                  END
-                  ELSE CASE
-                    WHEN "Zipcode" <= 453.5 THEN 1.0
-                    ELSE 1.0
-                  END
-                END
-                ELSE CASE
-                  WHEN "Source" <> 'Source3' THEN CASE
-                    WHEN "Humidity(%)" <= 3.6833845376968384 THEN 1.0
-                    ELSE 1.0
-                  END
-                  ELSE CASE
-                    WHEN "Airport_Code_6" <= 0.5 THEN 1.0
-                    ELSE 1.0
-                  END
-                END
-              END
-            END
-          END AS tree_2,
-          CASE
-            WHEN "Source" <> 'Source2' THEN CASE
-              WHEN "Start_Time" <= 24248.5 THEN CASE
-                WHEN "Description" <= 9.5 THEN CASE
-                  WHEN "Timezone" <> 'US/Central' THEN CASE
-                    WHEN "Wind_Chill(F)" <= 3.711904287338257 THEN 1.0
-                    ELSE 1.0
-                  END
-                  ELSE CASE
-                    WHEN "Wind_Chill(F)" <= 1.4773870706558228 THEN 1.0
-                    ELSE 1.0
-                  END
-                END
-                ELSE CASE
-                  WHEN "Source" <> 'Source1' THEN CASE
-                    WHEN "Airport_Code_2" <= 0.5 THEN 1.0
-                    ELSE 1.0
-                  END
-                  ELSE CASE
-                    WHEN "Description" <= 12.5 THEN 3.0
-                    ELSE 3.0
-                  END
-                END
-              END
-              ELSE CASE
-                WHEN "Pressure(in)" <= 29.744454383850098 THEN CASE
-                  WHEN "Timezone" <> 'US/Eastern' THEN CASE
-                    WHEN "Timezone" <> 'US/Pacific' THEN 1.0
-                    ELSE 1.0
-                  END
-                  ELSE CASE
-                    WHEN "Airport_Code_0" <= 0.5 THEN 1.0
-                    ELSE 1.0
-                  END
-                END
-                ELSE CASE
-                  WHEN "Description" <= 36.5 THEN CASE
-                    WHEN "Airport_Code_0" <= 0.5 THEN 1.0
-                    ELSE 1.0
-                  END
-                  ELSE CASE
-                    WHEN "Timezone" <> 'US/Pacific' THEN 1.0
-                    ELSE 1.0
-                  END
-                END
-              END
-            END
-            ELSE CASE
-              WHEN "Start_Time" <= 24268.5 THEN CASE
-                WHEN "Weather_Condition" <= 0.5 THEN CASE
-                  WHEN "Airport_Code_5" <= 0.5 THEN CASE
-                    WHEN "Zipcode" <= 33.5 THEN 1.0
-                    ELSE 1.0
-                  END
-                  ELSE CASE
-                    WHEN "Airport_Code_2" <= 0.5 THEN 1.0
-                    ELSE 1.0
-                  END
-                END
-                ELSE CASE
-                  WHEN "Zipcode" <= 18.5 THEN CASE
-                    WHEN "Description" <= 12.5 THEN 1.0
-                    ELSE 1.0
-                  END
-                  ELSE CASE
-                    WHEN "Temperature(F)" <= 1.7995744347572327 THEN 2.0
-                    ELSE 1.0
-                  END
-                END
-              END
-              ELSE CASE
-                WHEN "Timezone" <> 'US/Eastern' THEN CASE
-                  WHEN "Zipcode" <= 18.5 THEN CASE
-                    WHEN "Airport_Code_0" <= 0.5 THEN 0.0
-                    ELSE 1.0
-                  END
-                  ELSE CASE
-                    WHEN "Timezone" <> 'US/Pacific' THEN 2.0
-                    ELSE 1.0
-                  END
-                END
-                ELSE CASE
-                  WHEN "Wind_Chill(F)" <= 3.9085614681243896 THEN CASE
-                    WHEN "Temperature(F)" <= 4.037168502807617 THEN 0.0
-                    ELSE 0.0
-                  END
-                  ELSE CASE
-                    WHEN "Airport_Code_4" <= 0.5 THEN 2.0
-                    ELSE 2.0
-                  END
-                END
-              END
-            END
           END AS tree_3
         FROM
           (
             SELECT
-              CASE
-                WHEN "Visibility(mi)" <= 10 THEN 1
-                WHEN "Visibility(mi)" <= 20 THEN 2
-                WHEN "Visibility(mi)" <= 30 THEN 3
-                ELSE 4
-              END AS "Visibility(mi)",
+              ("Visibility(mi)" -0.0) * 0.007142857142857143 + 0.0 AS "Visibility(mi)",
+              "Source_0",
+              "Source_1",
+              "Source_2",
+              "Timezone_0",
+              "Timezone_1",
+              "Timezone_2",
+              "Timezone_3",
+              "Country_0",
+              "Temperature(F)",
+              "Wind_Chill(F)",
+              "Humidity(%)",
+              "Pressure(in)",
               "Airport_Code_0",
               "Airport_Code_1",
               "Airport_Code_2",
@@ -476,20 +483,48 @@ FROM
               "Airport_Code_9",
               "Airport_Code_10",
               "Zipcode",
-              "Source",
-              "Timezone",
-              "Country",
-              "Temperature(F)",
-              "Wind_Chill(F)",
-              "Humidity(%)",
-              "Pressure(in)",
               "Description",
               "Start_Time",
               "Weather_Condition"
             FROM
               (
                 SELECT
-                  split_line("Description") AS "Description",
+                  CASE
+                    WHEN "Source" = 'Source1' THEN 1
+                    ELSE 0
+                  END AS "Source_0",
+                  CASE
+                    WHEN "Source" = 'Source2' THEN 1
+                    ELSE 0
+                  END AS "Source_1",
+                  CASE
+                    WHEN "Source" = 'Source3' THEN 1
+                    ELSE 0
+                  END AS "Source_2",
+                  CASE
+                    WHEN "Timezone" = 'US/Central' THEN 1
+                    ELSE 0
+                  END AS "Timezone_0",
+                  CASE
+                    WHEN "Timezone" = 'US/Eastern' THEN 1
+                    ELSE 0
+                  END AS "Timezone_1",
+                  CASE
+                    WHEN "Timezone" = 'US/Mountain' THEN 1
+                    ELSE 0
+                  END AS "Timezone_2",
+                  CASE
+                    WHEN "Timezone" = 'US/Pacific' THEN 1
+                    ELSE 0
+                  END AS "Timezone_3",
+                  CASE
+                    WHEN "Country" = 'US' THEN 1
+                    ELSE 0
+                  END AS "Country_0",
+                  "Temperature(F)",
+                  "Wind_Chill(F)",
+                  "Humidity(%)",
+                  "Pressure(in)",
                   "Airport_Code_0",
                   "Airport_Code_1",
                   "Airport_Code_2",
@@ -502,24 +537,17 @@ FROM
                   "Airport_Code_9",
                   "Airport_Code_10",
                   "Zipcode",
-                  "Source",
-                  "Timezone",
-                  "Country",
-                  "Temperature(F)",
-                  "Wind_Chill(F)",
-                  "Humidity(%)",
-                  "Pressure(in)",
-                  "Visibility(mi)"
+                  "Visibility(mi)",
+                  "Description",
+                  "Start_Time",
+                  "Weather_Condition"
                 FROM
                   (
                     SELECT
-                      COALESCE("Timezone", 'US/Eastern') AS "Timezone",
-                      COALESCE(
-                        "Description",
-                        'A crash has occurred causing no to minimum delays. Use caution.'
-                      ) AS "Description",
-                      COALESCE("Weather_Condition", 'Fair') AS "Weather_Condition",
-                      COALESCE("Airport_Code", 'KCQT') AS "Airport_Code",
+                      ("Temperature(F)" -61.993707143960116) / (18.948923924075153) AS "Temperature(F)",
+                      ("Wind_Chill(F)" -62.073847992553816) / (20.33996354611891) AS "Wind_Chill(F)",
+                      ("Humidity(%)" -65.46917599949623) / (22.940857900228604) AS "Humidity(%)",
+                      ("Pressure(in)" -29.546277389263317) / (0.9983373681781709) AS "Pressure(in)",
                       "Airport_Code_0",
                       "Airport_Code_1",
                       "Airport_Code_2",
@@ -533,18 +561,105 @@ FROM
                       "Airport_Code_10",
                       "Zipcode",
                       "Source",
+                      "Timezone",
                       "Country",
-                      "Temperature(F)",
-                      "Wind_Chill(F)",
-                      "Humidity(%)",
-                      "Pressure(in)",
                       "Visibility(mi)",
-                      "Start_Time"
+                      "Description",
+                      "Start_Time",
+                      "Weather_Condition"
                     FROM
                       (
-                        usa_accident
-                        LEFT JOIN usa_accident_zipcode_map on COALESCE(usa_accident."Zipcode", '91761') = usa_accident_zipcode_map."Zipcode"
-                      )
+                        SELECT
+                          CASE
+                            WHEN "Visibility(mi)" <= 10 THEN 1
+                            WHEN "Visibility(mi)" <= 20 THEN 2
+                            WHEN "Visibility(mi)" <= 30 THEN 3
+                            ELSE 4
+                          END AS "Visibility(mi)",
+                          "Airport_Code_0",
+                          "Airport_Code_1",
+                          "Airport_Code_2",
+                          "Airport_Code_3",
+                          "Airport_Code_4",
+                          "Airport_Code_5",
+                          "Airport_Code_6",
+                          "Airport_Code_7",
+                          "Airport_Code_8",
+                          "Airport_Code_9",
+                          "Airport_Code_10",
+                          "Zipcode",
+                          "Source",
+                          "Timezone",
+                          "Country",
+                          "Temperature(F)",
+                          "Wind_Chill(F)",
+                          "Humidity(%)",
+                          "Pressure(in)",
+                          "Description",
+                          "Start_Time",
+                          "Weather_Condition"
+                        FROM
+                          (
+                            SELECT
+                              split_line("Description") AS "Description",
+                              "Airport_Code_0",
+                              "Airport_Code_1",
+                              "Airport_Code_2",
+                              "Airport_Code_3",
+                              "Airport_Code_4",
+                              "Airport_Code_5",
+                              "Airport_Code_6",
+                              "Airport_Code_7",
+                              "Airport_Code_8",
+                              "Airport_Code_9",
+                              "Airport_Code_10",
+                              "Zipcode",
+                              "Source",
+                              "Timezone",
+                              "Country",
+                              "Temperature(F)",
+                              "Wind_Chill(F)",
+                              "Humidity(%)",
+                              "Pressure(in)",
+                              "Visibility(mi)"
+                            FROM
+                              (
+                                SELECT
+                                  COALESCE("Timezone", 'US/Eastern') AS "Timezone",
+                                  COALESCE(
+                                    "Description",
+                                    'A crash has occurred causing no to minimum delays. Use caution.'
+                                  ) AS "Description",
+                                  COALESCE("Weather_Condition", 'Fair') AS "Weather_Condition",
+                                  COALESCE("Airport_Code", 'KCQT') AS "Airport_Code",
+                                  "Airport_Code_0",
+                                  "Airport_Code_1",
+                                  "Airport_Code_2",
+                                  "Airport_Code_3",
+                                  "Airport_Code_4",
+                                  "Airport_Code_5",
+                                  "Airport_Code_6",
+                                  "Airport_Code_7",
+                                  "Airport_Code_8",
+                                  "Airport_Code_9",
+                                  "Airport_Code_10",
+                                  "Zipcode",
+                                  "Source",
+                                  "Country",
+                                  "Temperature(F)",
+                                  "Wind_Chill(F)",
+                                  "Humidity(%)",
+                                  "Pressure(in)",
+                                  "Visibility(mi)",
+                                  "Start_Time"
+                                FROM
+                                  (
+                                    usa_accident
+                                    LEFT JOIN usa_accident_zipcode_map on COALESCE(usa_accident."Zipcode", '91761') = usa_accident_zipcode_map."Zipcode"
+                                  )
+                              ) AS data
+                          ) AS data
+                      ) AS data
                   ) AS data
               ) AS data
           ) AS data

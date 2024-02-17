@@ -1,5 +1,5 @@
 from sklearn.ensemble import GradientBoostingRegressor, GradientBoostingClassifier, RandomForestClassifier, RandomForestRegressor
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, MinMaxScaler
 from sklearn.linear_model import LogisticRegression, SGDRegressor, LinearRegression
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 # from lightning.regression import SDCARegressor
@@ -16,6 +16,7 @@ from model_transformer.preprocess.default_preprocess_transformer import DefaultP
 from model_transformer.preprocess.udf_transformer import UDFSQL
 from model_transformer.preprocess.imputatation_transformer import ImputationSQL
 from model_transformer.preprocess.equal_width_discretization_transformer import EqualWidthDiscretizationSQL
+from model_transformer.preprocess.minmax_scaler_transformer import MinMaxScalerSQL
 from model_transformer.model.decision_tree_transformer import DTMSQL
 from model_transformer.model.random_forest_transformer import RFMSQL
 from model_transformer.utility.dbms_utils import DBMSUtils
@@ -63,6 +64,7 @@ class TransformerManager(object):
     transform_types = {
         'StandardScaler': StandardScaler(with_mean=False),
         'OneHotEncoder': OneHotEncoder(handle_unknown='ignore'),
+        'MinMaxScaler': MinMaxScaler()
     }
 
     sql_model_types = {
@@ -87,7 +89,8 @@ class TransformerManager(object):
         'UDF': UDFSQL(),
         'Imputation': ImputationSQL(),
         'BinaryEncoder': BinaryEncoderSQL(),
-        'EqualWidthDiscretization': EqualWidthDiscretizationSQL()
+        'EqualWidthDiscretization': EqualWidthDiscretizationSQL(),
+        'MinMaxScaler': MinMaxScalerSQL()
     }
 
     metric_types = {

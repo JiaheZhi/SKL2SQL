@@ -5,7 +5,7 @@ from model_transformer.utility.dbms_utils import DBMSUtils
 if __name__ == '__main__':
     manager = TransformerManager()
 
-    model_file = '/root/volume/SKL2SQL/trained_model/usa_accident_rf_pipeline_deep5.joblib'
+    model_file = '/root/volume/SKL2SQL/trained_model/usa_accident_rf_pipeline_deep5_1.joblib'
     dataset_name = '(usa_accident LEFT JOIN usa_accident_zipcode_map on COALESCE(usa_accident.\"Zipcode\", \'91761\')=usa_accident_zipcode_map."Zipcode")' 
     
     features = ['Airport_Code_0', 'Airport_Code_1', 'Airport_Code_2', 'Airport_Code_3',
@@ -18,8 +18,8 @@ if __name__ == '__main__':
     #             'Temperature(F)', 'Wind_Chill(F)','Humidity(%)', 'Pressure(in)', 
     #             'Visibility(mi)', 'Description','Start_Time', 'Weather_Condition']
     dbms = DBMSUtils.get_dbms_from_str_connection('postgresql://postgres:@localhost/postgres')
-    one_hot_optimization = True
-    scaler_optimization = True
+    one_hot_optimization = False
+    scaler_optimization = False
     preprocessors = {}
     preprocessors['Imputation'] = {
         'Timezone': 'US/Eastern',
