@@ -15,7 +15,7 @@ class DefaultPreprocessSQL(object):
 
     def query(self, table_name):
         dbms_util = DBMSUtils()
-        # create the SQL query that implements the normalization in SQL
+        # create the SQL query that implements the preprocess in SQL
         query = "SELECT "
 
         # loop over the all features and insert them in the select clause

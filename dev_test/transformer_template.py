@@ -5,8 +5,11 @@ class XXXSQL(object):
     def __init__(self):
         self.dbms = None
         self.params = None
+    
+    def set_dbms(self, dbms: str):
+        self.dbms = dbms
 
-    def get_params(self, fitted_transformer, binaryencoder_infos, all_features, prev_transform_features):
+    def get_params(self, fitted_transformer, infos, all_features, prev_transform_features):
 
         self.params = {}
         return self.params

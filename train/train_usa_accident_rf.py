@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.preprocessing import StandardScaler, OneHotEncoder, MinMaxScaler
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, MinMaxScaler, LabelEncoder, OrdinalEncoder
 from sklearn.pipeline import Pipeline
 import category_encoders as ce
 from joblib import dump
@@ -14,11 +14,12 @@ X = data.drop('Severity', axis=1)
 y = data['Severity']
 binary_encoder_cols = ['Airport_Code']
 frequency_encoder_cols = ['Zipcode']
-onehot_encoder_cols = ['Source', 'Timezone', 'Country']
+onehot_encoder_cols = ['Timezone', 'Country']
+label_encoder_cols = ['Source']
 standscaler_cols = ['Temperature(F)', 'Wind_Chill(F)', 'Humidity(%)', 'Pressure(in)']
 minmaxscaler_cols = ['Visibility(mi)']
 udf_cols = ['Description', 'Start_Time', 'Weather_Condition']
-X = X[binary_encoder_cols + frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + minmaxscaler_cols + udf_cols]
+X = X[binary_encoder_cols + frequency_encoder_cols + onehot_encoder_cols + label_encoder_cols + standscaler_cols + minmaxscaler_cols + udf_cols]
 
 # clean data
 for col in X.columns:
@@ -49,10 +50,14 @@ X['Weather_Condition'] = X['Weather_Condition'].apply(lambda weather: f(str(weat
 std_scalar = StandardScaler(with_mean=False)
 minmax_scaler = MinMaxScaler()
 onehot_encoder = OneHotEncoder(handle_unknown='ignore')
+label_encoder = LabelEncoder()
+ordinal_encoder = OrdinalEncoder()
 pipeline_transforms = []
 pipeline_transforms.append(('StandardScaler', std_scalar, standscaler_cols))
 pipeline_transforms.append(('MinMaxScaler', minmax_scaler, minmaxscaler_cols))
 pipeline_transforms.append(('OneHotEncoder', onehot_encoder, onehot_encoder_cols))
+# pipeline_transforms.append(('LabelEncoder', label_encoder, label_encoder_cols))
+pipeline_transforms.append(('OrdinalEncoder', ordinal_encoder, label_encoder_cols))
 pipeline_transforms = sorted(pipeline_transforms, key=lambda x: x[0], reverse=True)
 pipeline_transforms = ('pipeline_transforms',
                         ColumnTransformer(remainder='passthrough',
@@ -65,6 +70,6 @@ pipeline = Pipeline(steps=[pipeline_transforms, pipeline_estimator])
 pipeline.fit(X, y)
 t2 = time.perf_counter()
 # save model to the file
-dump(pipeline, '/root/volume/SKL2SQL/trained_model/usa_accident_rf_pipeline_deep5_1.joblib')
+dump(pipeline, '/root/volume/SKL2SQL/trained_model/usa_accident_rf_pipeline_deep5_2.joblib')
 
 print(f'time:{t2-t1}s')
