@@ -19,6 +19,7 @@ from model_transformer.preprocess.equal_width_discretization_transformer import 
 from model_transformer.preprocess.minmax_scaler_transformer import MinMaxScalerSQL
 from model_transformer.preprocess.label_encoder_transformer import LabelEncoderSQL
 from model_transformer.preprocess.ordinal_encoder_transformer import OrdinalEncoderSQL
+from model_transformer.preprocess.freqency_encoder_transformer import FrequencyEncoderSQL
 from model_transformer.model.decision_tree_transformer import DTMSQL
 from model_transformer.model.random_forest_transformer import RFMSQL
 from model_transformer.utility.dbms_utils import DBMSUtils
@@ -96,7 +97,8 @@ class TransformerManager(object):
         'EqualWidthDiscretization': EqualWidthDiscretizationSQL(),
         'MinMaxScaler': MinMaxScalerSQL(),
         'LabelEncoder': LabelEncoderSQL(),
-        'OrdinalEncoder': OrdinalEncoderSQL()
+        'OrdinalEncoder': OrdinalEncoderSQL(),
+        'FrequencyEncoder': FrequencyEncoderSQL()
     }
 
     metric_types = {
@@ -371,7 +373,7 @@ class Optimizer(object):
                 transform_features = transform['transform_features']
                 merge_num = 0
                 for attr_name in transform_features:
-                    if transform_features[attr_name]['is_merge']:
+                    if transform_features[attr_name]['is_push']:
                         merge_num += 1
                 if merge_num == len(transform_features):
                     self.udf_need_gen_preprocess = False

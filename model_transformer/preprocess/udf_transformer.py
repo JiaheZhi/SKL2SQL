@@ -12,7 +12,7 @@ class UDFSQL(object):
     def get_params(self, fitted_transformer, udf_infos, all_features, prev_transform_features):
         not_udf_atrributes = []
         for attr_name in all_features:
-            if attr_name not in udf_infos:
+            if attr_name not in udf_infos or udf_infos[attr_name]['is_push']:
                 not_udf_atrributes.append(attr_name)
 
         self.params = {"out_all_features": all_features, 'out_transform_features': prev_transform_features,
@@ -29,7 +29,7 @@ class UDFSQL(object):
 
         # loop over the udf features and insert them in the select clause
         for attri_name in udf_info:
-            if not udf_info[attri_name]['is_merge']:
+            if not udf_info[attri_name]['is_push']:
                 udf_name = udf_info[attri_name]['udf_name']
                 attri_name = dbms_util.get_delimited_col(self.dbms, attri_name)
                 query += f"{udf_name}({attri_name}) AS {attri_name},"

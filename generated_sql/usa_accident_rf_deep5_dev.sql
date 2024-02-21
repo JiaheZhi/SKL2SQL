@@ -81,7 +81,7 @@ FROM
         SELECT
           CASE
             WHEN "Timezone_3" <= 29.904720306396484 THEN CASE
-              WHEN "Start_Time" <= 24248.5 THEN CASE
+              WHEN time_months("Start_Time") <= 24248.5 THEN CASE
                 WHEN "Wind_Chill(F)" <= 0.5 THEN CASE
                   WHEN "Zipcode" <= 22.5 THEN CASE
                     WHEN "Airport_Code_0" <= 0.5 THEN 1.0
@@ -140,7 +140,7 @@ FROM
                 END
                 ELSE CASE
                   WHEN "Timezone_1" <= 3.5644114017486572 THEN CASE
-                    WHEN "Start_Time" <= 24268.5 THEN 1.0
+                    WHEN time_months("Start_Time") <= 24268.5 THEN 1.0
                     ELSE 0.0
                   END
                   ELSE CASE
@@ -152,7 +152,7 @@ FROM
               ELSE CASE
                 WHEN "Description" <= 10.5 THEN CASE
                   WHEN "Pressure(in)" <= 0.0892857164144516 THEN CASE
-                    WHEN "Start_Time" <= 24246.5 THEN 1.0
+                    WHEN time_months("Start_Time") <= 24246.5 THEN 1.0
                     ELSE 1.0
                   END
                   ELSE CASE
@@ -161,7 +161,7 @@ FROM
                   END
                 END
                 ELSE CASE
-                  WHEN "Start_Time" <= 24248.0 THEN CASE
+                  WHEN time_months("Start_Time") <= 24248.0 THEN CASE
                     WHEN "Timezone_0" <= 0.905064582824707 THEN 2.0
                     ELSE 2.0
                   END
@@ -198,7 +198,7 @@ FROM
                 END
               END
               ELSE CASE
-                WHEN "Start_Time" <= 24235.5 THEN CASE
+                WHEN time_months("Start_Time") <= 24235.5 THEN CASE
                   WHEN "Zipcode" <= 164.5 THEN CASE
                     WHEN "Zipcode" <= 23.5 THEN 1.0
                     ELSE 1.0
@@ -224,7 +224,7 @@ FROM
               WHEN "Description" <= 17.5 THEN CASE
                 WHEN "Country_0" <= 0.5 THEN CASE
                   WHEN "Timezone_3" <= 30.29537010192871 THEN CASE
-                    WHEN "Start_Time" <= 24248.5 THEN 3.0
+                    WHEN time_months("Start_Time") <= 24248.5 THEN 3.0
                     ELSE 1.0
                   END
                   ELSE CASE
@@ -234,7 +234,7 @@ FROM
                 END
                 ELSE CASE
                   WHEN "Visibility(mi)" <= 0.5 THEN CASE
-                    WHEN "Start_Time" <= 24230.5 THEN 2.0
+                    WHEN time_months("Start_Time") <= 24230.5 THEN 2.0
                     ELSE 1.0
                   END
                   ELSE CASE
@@ -244,7 +244,7 @@ FROM
                 END
               END
               ELSE CASE
-                WHEN "Start_Time" <= 24248.5 THEN CASE
+                WHEN time_months("Start_Time") <= 24248.5 THEN CASE
                   WHEN "Source" <= 0.5 THEN CASE
                     WHEN "Wind_Chill(F)" <= 0.5 THEN 2.0
                     ELSE 2.0
@@ -270,13 +270,13 @@ FROM
           CASE
             WHEN "Timezone_3" <= 29.904720306396484 THEN CASE
               WHEN "Description" <= 11.5 THEN CASE
-                WHEN "Start_Time" <= 24246.5 THEN CASE
+                WHEN time_months("Start_Time") <= 24246.5 THEN CASE
                   WHEN "Wind_Chill(F)" <= 0.5 THEN CASE
                     WHEN "Timezone_2" <= 0.9371924996376038 THEN 1.0
                     ELSE 1.0
                   END
                   ELSE CASE
-                    WHEN "Start_Time" <= 24235.5 THEN 1.0
+                    WHEN time_months("Start_Time") <= 24235.5 THEN 1.0
                     ELSE 1.0
                   END
                 END
@@ -293,7 +293,7 @@ FROM
               END
               ELSE CASE
                 WHEN "Zipcode" <= 14.5 THEN CASE
-                  WHEN "Start_Time" <= 24249.5 THEN CASE
+                  WHEN time_months("Start_Time") <= 24249.5 THEN CASE
                     WHEN "Zipcode" <= 5.5 THEN 1.0
                     ELSE 1.0
                   END
@@ -340,7 +340,7 @@ FROM
               ELSE CASE
                 WHEN "Timezone_1" <= 3.5644114017486572 THEN CASE
                   WHEN "Zipcode" <= 24.5 THEN CASE
-                    WHEN "Start_Time" <= 24268.5 THEN 1.0
+                    WHEN time_months("Start_Time") <= 24268.5 THEN 1.0
                     ELSE 0.0
                   END
                   ELSE CASE
@@ -364,7 +364,7 @@ FROM
           CASE
             WHEN "Airport_Code_5" <= 0.5 THEN CASE
               WHEN "Country_0" <= 0.5 THEN CASE
-                WHEN "Start_Time" <= 24248.5 THEN CASE
+                WHEN time_months("Start_Time") <= 24248.5 THEN CASE
                   WHEN "Visibility(mi)" <= 0.5 THEN CASE
                     WHEN "Temperature(F)" <= 0.5 THEN 1.0
                     ELSE 1.0
@@ -375,7 +375,7 @@ FROM
                   END
                 END
                 ELSE CASE
-                  WHEN "Start_Time" <= 24269.5 THEN CASE
+                  WHEN time_months("Start_Time") <= 24269.5 THEN CASE
                     WHEN "Timezone_3" <= 29.734437942504883 THEN 1.0
                     ELSE 1.0
                   END
@@ -386,7 +386,7 @@ FROM
                 END
               END
               ELSE CASE
-                WHEN "Start_Time" <= 24268.5 THEN CASE
+                WHEN time_months("Start_Time") <= 24268.5 THEN CASE
                   WHEN "Description" <= 11.5 THEN CASE
                     WHEN "Zipcode" <= 62.5 THEN 1.0
                     ELSE 1.0
@@ -426,7 +426,7 @@ FROM
                     ELSE 1.0
                   END
                   ELSE CASE
-                    WHEN "Start_Time" <= 24248.5 THEN 1.0
+                    WHEN time_months("Start_Time") <= 24248.5 THEN 1.0
                     ELSE 1.0
                   END
                 END
@@ -444,7 +444,7 @@ FROM
                 END
                 ELSE CASE
                   WHEN "Country_0" <= 0.5 THEN CASE
-                    WHEN "Start_Time" <= 24248.5 THEN 1.0
+                    WHEN time_months("Start_Time") <= 24248.5 THEN 1.0
                     ELSE 1.0
                   END
                   ELSE CASE
@@ -638,7 +638,9 @@ FROM
                                   "Wind_Chill(F)",
                                   "Humidity(%)",
                                   "Pressure(in)",
-                                  "Visibility(mi)"
+                                  "Visibility(mi)",
+                                  "Start_Time",
+                                  "Weather_Condition"
                                 FROM
                                   (
                                     SELECT

@@ -297,8 +297,8 @@ class DTMSQL(object):
 
             ###### merge imputation ######
             if imputation_features is not None:
-                if feature in imputation_features:
-                    feature = f"COALESCE({feature}, {imputation_features[feature]})"
+                if features[node] in imputation_features:
+                    feature = f"COALESCE({feature}, {imputation_features[features[node]]})"
                     
             ###### merge onehot ######
             if merge_ohe_features is not None:
@@ -313,15 +313,15 @@ class DTMSQL(object):
             
             ###### merge standscaler ######
             if merge_scaler_features is not None:
-                if feature in merge_scaler_features['norm_features']:
-                    i = merge_scaler_features['norm_features'].index(feature)
+                if features[node] in merge_scaler_features['norm_features']:
+                    i = merge_scaler_features['norm_features'].index(features[node])
                     thr = thr * merge_scaler_features['stds'][i] + merge_scaler_features['avgs'][i]
             
             ###### merge udf ######
             if merge_udf_features is not None:
                 udf_infos = merge_udf_features['udf_infos']
-                if feature in udf_infos and udf_infos[feature]['is_merge']:
-                    feature = f'{udf_infos[feature]["udf_name"]}({feature})'           
+                if features[node] in udf_infos and udf_infos[features[node]]['is_push']:
+                    feature = f'{udf_infos[features[node]]["udf_name"]}({feature})'           
             
             sql_dtm_rule = f" CASE WHEN {feature} {op} {thr} THEN"
 

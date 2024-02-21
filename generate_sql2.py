@@ -31,15 +31,15 @@ if __name__ == '__main__':
     preprocessors['UDF'] = {
         'Description': {
             'udf_name': 'split_line',
-            'is_merge': False
+            'is_push': False
         },
         'Start_Time': {
             'udf_name': 'time_months',
-            'is_merge': True
+            'is_push': True
         },
         'Weather_Condition':{
             'udf_name': 'bad_count',
-            'is_merge': True
+            'is_push': True
         }
     }
 
@@ -52,9 +52,14 @@ if __name__ == '__main__':
         'Visibility(mi)':{
             'bins': [10, 20, 30],
             'labels':[1, 2, 3, 4],
-            'is_merge': True
+            'is_push': True
         }
     }
+
+    # preprocessors['FrequencyEncoder'] = {
+    #     'attrs': ['Timezone'],
+    #     'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv'
+    # }
 
     queries, query = manager.generate_query(model_file, dataset_name, features, dbms, one_hot_optimization, scaler_optimization
                                             , preprocessors=preprocessors)

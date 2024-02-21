@@ -21,7 +21,11 @@ class XXXSQL(object):
         # create the SQL query that implements the XXX in SQL
         query = "SELECT "
 
+        
+        # loop over the preprocess features and insert them in the select clause
 
+
+        # loop over the other features and insert them in the select clause
 
         query += " FROM {}".format(table_name)
 
