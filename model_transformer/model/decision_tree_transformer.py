@@ -19,9 +19,8 @@ class DTMSQL(object):
 
         self.classification = classification
         self.nested = True
-        self.merge_ohe_features = None
-        self.merge_scaler_features = None
-        self.merge_udf_features = None
+        self.merge_features={}
+        self.optimizations=None
         self.dbms = None
         self.mode = None
 
@@ -52,13 +51,16 @@ class DTMSQL(object):
 
     def merge_ohe_with_trees(self, merge_ohe_features: dict):
         DTMSQL._check_merge_ohe_features(merge_ohe_features)
-        self.merge_ohe_features = merge_ohe_features
+        self.merge_features['merge_ohe_features'] = merge_ohe_features
 
     def merge_scaler_with_trees(self, merge_scaler_features):
-        self.merge_scaler_features = merge_scaler_features
-    
+        self.merge_features['merge_scaler_features'] = merge_scaler_features
+
     def merge_udf_with_trees(self, merge_udf_features):
-        self.merge_udf_features = merge_udf_features 
+        self.merge_features['merge_udf_features'] = merge_udf_features
+
+    def set_optimizations(self, optimizations):
+        self.optimizations = optimizations
 
     def reset_optimization(self):
         self.merge_ohe_features = None
@@ -250,8 +252,7 @@ class DTMSQL(object):
 
     @staticmethod
     def get_sql_nested_rules(tree: BaseDecisionTree, feature_names: list, is_classification: bool, dbms: str,
-                             merge_ohe_features: dict = None, merge_scaler_features=None, imputation_features=None,
-                             merge_udf_features=None):
+                             merge_features=None, optimizations=None):
         """
         This method extracts the rules from a BaseDecisionTree object and convert them in SQL.
 
@@ -262,6 +263,11 @@ class DTMSQL(object):
         :param merge_ohe_features: (optional) ohe feature map to be merged in the decision rules
         :return: string containing the SQL query
         """
+
+        merge_ohe_features = merge_features.get('merge_ohe_features')
+        merge_scaler_features = merge_features.get('merge_scaler_features')
+        merge_udf_features = merge_features.get('merge_udf_features')
+        imputation_features = merge_features.get('imputation_features')
 
         assert isinstance(tree, BaseDecisionTree), "Only BaseDecisionTree data type is allowed for param 'tree'."
         assert isinstance(feature_names, list), "Only list data type is allowed for param 'features_names'."
@@ -313,9 +319,12 @@ class DTMSQL(object):
             
             ###### merge standscaler ######
             if merge_scaler_features is not None:
-                if features[node] in merge_scaler_features['norm_features']:
+                if features[node] in optimizations['StandardScaler']['merge_attris']:
                     i = merge_scaler_features['norm_features'].index(features[node])
                     thr = thr * merge_scaler_features['stds'][i] + merge_scaler_features['avgs'][i]
+                elif features[node] in optimizations['StandardScaler']['push_attris']:
+                    i = merge_scaler_features['norm_features'].index(features[node])
+                    feature = f'({feature}-{merge_scaler_features["avgs"][i]})/({merge_scaler_features["stds"][i]})'
             
             ###### merge udf ######
             if merge_udf_features is not None:
@@ -347,7 +356,7 @@ class DTMSQL(object):
 
     @staticmethod
     def get_params(dtm: BaseDecisionTree, features: list, is_classification: bool, nested: bool, dbms: str,
-                   merge_ohe_features: dict = None, merge_scaler_features=None, merge_udf_features=None):
+                   merge_features=None, optimizations=None):
         """
         This method extracts the tree rules from the Sklearn's Decision Tree Model and creates their SQL representation.
 
@@ -360,20 +369,19 @@ class DTMSQL(object):
         :return: Python dictionary containing the parameters extracted from the fitted DTM
         """
 
+        merge_ohe_features = merge_features.get('merge_ohe_features')
+
         assert isinstance(dtm, BaseDecisionTree), "Only BaseDecisionTree type is allowed fo param 'dtm'."
         assert isinstance(features, list), "Only list data type is allowed for param 'features'"
         for f in features:
             assert isinstance(f, str)
         assert isinstance(is_classification, bool), "Only boolean data type is allowed for param 'is_classification'."
         assert isinstance(nested, bool)
-        if merge_ohe_features is not None:
-            DTMSQL._check_merge_ohe_features(merge_ohe_features)
 
         # extract the decision rules from the Decision Tree Model
         if nested:
             sql_rules = DTMSQL.get_sql_nested_rules(dtm, features, is_classification, dbms,
-                                                    merge_ohe_features=merge_ohe_features, merge_scaler_features=merge_scaler_features,
-                                                    merge_udf_features=merge_udf_features)
+                                                    merge_features=merge_features, optimizations=optimizations)
         else:
             sql_rules = DTMSQL.get_sql_flat_rules(dtm, features, is_classification, dbms,
                                                   merge_ohe_features=merge_ohe_features)
@@ -420,9 +428,7 @@ class DTMSQL(object):
 
         # extract the parameters (i.e., the decision rules) from the fitted DTM
         dtm_params = DTMSQL.get_params(dtm, features, is_classification=self.classification, nested=self.nested,
-                                       dbms=self.dbms, merge_ohe_features=self.merge_ohe_features, 
-                                       merge_scaler_features=self.merge_scaler_features,
-                                       merge_udf_features=self.merge_udf_features)
+                                       dbms=self.dbms, merge_features=self.merge_features, optimizations=self.optimizations)
 
         # create the SQL query that implements the DTM inference
         pre_inference_query = None

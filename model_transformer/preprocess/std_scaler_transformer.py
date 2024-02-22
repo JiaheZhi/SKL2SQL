@@ -13,6 +13,7 @@ class StandardScalerSQL(object):
         self.params = None
         self.dbms = None
         self.mode = None
+        self.optimizations = None
 
     def set_mode(self, mode: str):
         assert isinstance(mode, str), "Wrong data type for param 'mode'."
@@ -20,6 +21,9 @@ class StandardScalerSQL(object):
 
     def set_dbms(self, dbms: str):
         self.dbms = dbms
+
+    def set_optimizations(self, optimizations):
+        self.optimizations = optimizations
 
     def get_params(self, scaler, norm_features, all_features, prev_transform_features=None, with_mean=True):
         """
@@ -119,6 +123,9 @@ class StandardScalerSQL(object):
         stds = self.params["stds"]
         norm_features = self.params["norm_features"]
         other_features = self.params["other_features"]
+        push_attris = self.optimizations['StandardScaler']['push_attris']
+        merge_attris = self.optimizations['StandardScaler']['merge_attris']
+        push_attris = push_attris + merge_attris
 
         dbms_util = DBMSUtils()
 
@@ -126,11 +133,15 @@ class StandardScalerSQL(object):
         query = "SELECT "
         # loop over the features to be normalized and create the portion of query that normalized each feature
         for i in range(len(norm_features)):
-            f = dbms_util.get_delimited_col(self.dbms, norm_features[i])
-            query += "({}-{})/({}) AS {},".format(f, avgs[i], stds[i], f)
+            if norm_features[i] not in push_attris:
+                f = dbms_util.get_delimited_col(self.dbms, norm_features[i])
+                query += "({}-{})/({}) AS {},".format(f, avgs[i], stds[i], f)
 
         # loop over the remaining features and insert them in the select clause
         for f in other_features:
+            f = dbms_util.get_delimited_col(self.dbms, f)
+            query += "{},".format(f)
+        for f in push_attris:
             f = dbms_util.get_delimited_col(self.dbms, f)
             query += "{},".format(f)
         query = query[:-1]  # remove the last ','

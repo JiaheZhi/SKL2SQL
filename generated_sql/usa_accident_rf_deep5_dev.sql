@@ -82,7 +82,7 @@ FROM
           CASE
             WHEN "Timezone_3" <= 29.904720306396484 THEN CASE
               WHEN time_months("Start_Time") <= 24248.5 THEN CASE
-                WHEN "Wind_Chill(F)" <= 0.5 THEN CASE
+                WHEN "Wind_Chill(F)" <= 72.24382976561327 THEN CASE
                   WHEN "Zipcode" <= 22.5 THEN CASE
                     WHEN "Airport_Code_0" <= 0.5 THEN 1.0
                     ELSE 1.0
@@ -144,7 +144,7 @@ FROM
                     ELSE 0.0
                   END
                   ELSE CASE
-                    WHEN "Wind_Chill(F)" <= 0.5 THEN 1.0
+                    WHEN "Wind_Chill(F)" <= 72.24382976561327 THEN 1.0
                     ELSE 1.0
                   END
                 END
@@ -175,7 +175,7 @@ FROM
           END AS tree_0,
           CASE
             WHEN "Description" <= 11.5 THEN CASE
-              WHEN "Wind_Chill(F)" <= 0.5 THEN CASE
+              WHEN "Wind_Chill(F)" <= 72.24382976561327 THEN CASE
                 WHEN "Description" <= 6.5 THEN CASE
                   WHEN "Timezone_1" <= 3.6135756969451904 THEN CASE
                     WHEN "Country_0" <= 0.5 THEN 1.0
@@ -246,7 +246,7 @@ FROM
               ELSE CASE
                 WHEN time_months("Start_Time") <= 24248.5 THEN CASE
                   WHEN "Source" <= 0.5 THEN CASE
-                    WHEN "Wind_Chill(F)" <= 0.5 THEN 2.0
+                    WHEN "Wind_Chill(F)" <= 72.24382976561327 THEN 2.0
                     ELSE 2.0
                   END
                   ELSE CASE
@@ -271,7 +271,7 @@ FROM
             WHEN "Timezone_3" <= 29.904720306396484 THEN CASE
               WHEN "Description" <= 11.5 THEN CASE
                 WHEN time_months("Start_Time") <= 24246.5 THEN CASE
-                  WHEN "Wind_Chill(F)" <= 0.5 THEN CASE
+                  WHEN "Wind_Chill(F)" <= 72.24382976561327 THEN CASE
                     WHEN "Timezone_2" <= 0.9371924996376038 THEN 1.0
                     ELSE 1.0
                   END
@@ -281,7 +281,7 @@ FROM
                   END
                 END
                 ELSE CASE
-                  WHEN "Wind_Chill(F)" <= 0.5 THEN CASE
+                  WHEN "Wind_Chill(F)" <= 72.24382976561327 THEN CASE
                     WHEN "Timezone_0" <= 3.4038872718811035 THEN 1.0
                     ELSE 1.0
                   END
@@ -366,7 +366,7 @@ FROM
               WHEN "Country_0" <= 0.5 THEN CASE
                 WHEN time_months("Start_Time") <= 24248.5 THEN CASE
                   WHEN "Visibility(mi)" <= 0.5 THEN CASE
-                    WHEN "Temperature(F)" <= 0.5 THEN 1.0
+                    WHEN ("Temperature(F)" -61.993707143960116) / (18.948923924075153) <= 0.5 THEN 1.0
                     ELSE 1.0
                   END
                   ELSE CASE
@@ -397,7 +397,7 @@ FROM
                   END
                 END
                 ELSE CASE
-                  WHEN "Wind_Chill(F)" <= 0.5 THEN CASE
+                  WHEN "Wind_Chill(F)" <= 72.24382976561327 THEN CASE
                     WHEN "Timezone_1" <= 4.1052186489105225 THEN 0.0
                     ELSE 2.0
                   END
@@ -416,7 +416,7 @@ FROM
                     ELSE 1.0
                   END
                   ELSE CASE
-                    WHEN "Wind_Chill(F)" <= 0.5 THEN 1.0
+                    WHEN "Wind_Chill(F)" <= 72.24382976561327 THEN 1.0
                     ELSE 1.0
                   END
                 END
@@ -561,8 +561,6 @@ FROM
                     FROM
                       (
                         SELECT
-                          ("Temperature(F)" -61.993707143960116) / (18.948923924075153) AS "Temperature(F)",
-                          ("Wind_Chill(F)" -62.073847992553816) / (20.33996354611891) AS "Wind_Chill(F)",
                           ("Humidity(%)" -65.46917599949623) / (22.940857900228604) AS "Humidity(%)",
                           ("Pressure(in)" -29.546277389263317) / (0.9983373681781709) AS "Pressure(in)",
                           "Airport_Code_0",
@@ -583,7 +581,9 @@ FROM
                           "Visibility(mi)",
                           "Description",
                           "Start_Time",
-                          "Weather_Condition"
+                          "Weather_Condition",
+                          "Temperature(F)",
+                          "Wind_Chill(F)"
                         FROM
                           (
                             SELECT

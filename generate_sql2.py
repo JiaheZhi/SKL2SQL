@@ -18,8 +18,6 @@ if __name__ == '__main__':
     #             'Temperature(F)', 'Wind_Chill(F)','Humidity(%)', 'Pressure(in)', 
     #             'Visibility(mi)', 'Description','Start_Time', 'Weather_Condition']
     dbms = DBMSUtils.get_dbms_from_str_connection('postgresql://postgres:@localhost/postgres')
-    one_hot_optimization = False
-    scaler_optimization = False
     preprocessors = {}
     preprocessors['Imputation'] = {
         'Timezone': 'US/Eastern',
@@ -61,8 +59,26 @@ if __name__ == '__main__':
     #     'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv'
     # }
 
-    queries, query = manager.generate_query(model_file, dataset_name, features, dbms, one_hot_optimization, scaler_optimization
-                                            , preprocessors=preprocessors)
+    optimizations = {
+        'StandardScaler': {
+            'push_attris': ['Temperature(F)'],
+            'merge_attris': ['Wind_Chill(F)'],
+            'other_attris': ['Humidity(%)', 'Pressure(in)']
+        },
+        'MinMaxScaler': {
+            'push_attris': ['Visibility(mi)'],
+            'merge_attris': ['Wind_Chill(F)']
+        },
+        # 'OneHotEncoder':{
+        #     'push_attris': []
+        # },
+        # 'OrdinalEncoder':{
+        #     'push_attris': []
+        # }
+    }
+
+    queries, query = manager.generate_query(model_file, dataset_name, features, dbms
+                                            , optimizations, preprocessors=preprocessors)
     with open('/root/volume/SKL2SQL/generated_sql/usa_accident_rf_deep5_dev.sql', 'w') as sql_file:
         sql_file.write(query)
 

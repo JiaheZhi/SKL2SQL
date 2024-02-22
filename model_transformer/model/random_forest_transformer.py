@@ -22,9 +22,8 @@ class RFMSQL(object):
 
         self.classification = classification
         self.nested = True
-        self.merge_ohe_features = None
-        self.merge_scaler_features = None
-        self.merge_udf_features = None
+        self.merge_features={}
+        self.optimizations = None
         self.dbms = None
         self.mode = None
 
@@ -55,20 +54,21 @@ class RFMSQL(object):
 
     def merge_ohe_with_trees(self, merge_ohe_features: dict):
         DTMSQL._check_merge_ohe_features(merge_ohe_features)
-        self.merge_ohe_features = merge_ohe_features
+        self.merge_features['merge_ohe_features'] = merge_ohe_features
 
     def merge_scaler_with_trees(self, merge_scaler_features):
-        self.merge_scaler_features = merge_scaler_features
+        self.merge_features['merge_scaler_features'] = merge_scaler_features
 
     def merge_udf_with_trees(self, merge_udf_features):
-        self.merge_udf_features = merge_udf_features 
+        self.merge_features['merge_udf_features'] = merge_udf_features
+    
+    def set_optimizations(self, optimizations):
+        self.optimizations = optimizations
 
-    def reset_optimization(self):
-        self.merge_ohe_features = None
 
     @staticmethod
     def get_params(rfm: (RandomForestClassifier, RandomForestRegressor), features: list, is_classification: bool,
-                   nested: bool, dbms: str, merge_ohe_features: dict = None, merge_scaler_features = None, merge_udf_features = None):
+                   nested: bool, dbms: str, merge_features=None, optimizations=None):
         """
         This method extracts the tree rules from the Sklearn's Random Forest Model and creates their SQL representation.
 
@@ -93,8 +93,7 @@ class RFMSQL(object):
 
             # extract the rules from the current tree
             tree_params = DTMSQL.get_params(tree, list(features), is_classification, nested, dbms=dbms,
-                                            merge_ohe_features=merge_ohe_features, merge_scaler_features=merge_scaler_features,
-                                            merge_udf_features=merge_udf_features)
+                                            merge_features=merge_features, optimizations=optimizations)
             tree_params["weight"] = 1.0/len(trees)
             trees_params.append(tree_params)
 
@@ -213,9 +212,7 @@ class RFMSQL(object):
 
         # extract the parameters (i.e., the decision rules) from the fitted RFM
         rfm_params = RFMSQL.get_params(rfm, features, is_classification=self.classification, nested=self.nested,
-                                       dbms=self.dbms, merge_ohe_features=self.merge_ohe_features, 
-                                       merge_scaler_features=self.merge_scaler_features,
-                                       merge_udf_features=self.merge_udf_features)
+                                       dbms=self.dbms, merge_features=self.merge_features, optimizations=self.optimizations)
 
         # create the SQL query that implements the RFM inference
         pre_inference_query = None

@@ -16,8 +16,8 @@ binary_encoder_cols = ['Airport_Code']
 frequency_encoder_cols = ['Zipcode']
 onehot_encoder_cols = ['Timezone', 'Country']
 label_encoder_cols = ['Source']
-standscaler_cols = ['Temperature(F)', 'Wind_Chill(F)', 'Humidity(%)', 'Pressure(in)']
-minmaxscaler_cols = ['Visibility(mi)']
+standscaler_cols = ['Temperature(F)', 'Humidity(%)', 'Pressure(in)']
+minmaxscaler_cols = ['Visibility(mi)', 'Wind_Chill(F)']
 udf_cols = ['Description', 'Start_Time', 'Weather_Condition']
 X = X[binary_encoder_cols + frequency_encoder_cols + onehot_encoder_cols + label_encoder_cols + standscaler_cols + minmaxscaler_cols + udf_cols]
 
@@ -62,7 +62,7 @@ pipeline_transforms = sorted(pipeline_transforms, key=lambda x: x[0], reverse=Tr
 pipeline_transforms = ('pipeline_transforms',
                         ColumnTransformer(remainder='passthrough',
                                             transformers=pipeline_transforms))
-rf = RandomForestClassifier(max_depth=5, n_estimators=4, random_state=24)
+rf = RandomForestClassifier(max_depth=8, n_estimators=4, random_state=24)
 pipeline_estimator = ('RandomForestClassifier', rf)
 pipeline = Pipeline(steps=[pipeline_transforms, pipeline_estimator])
 
@@ -70,6 +70,6 @@ pipeline = Pipeline(steps=[pipeline_transforms, pipeline_estimator])
 pipeline.fit(X, y)
 t2 = time.perf_counter()
 # save model to the file
-dump(pipeline, '/root/volume/SKL2SQL/trained_model/usa_accident_rf_pipeline_deep5_2.joblib')
+dump(pipeline, '/root/volume/SKL2SQL/trained_model/usa_accident_rf_pipeline_deep8.joblib')
 
 print(f'time:{t2-t1}s')
