@@ -135,7 +135,10 @@ class StandardScalerSQL(object):
         for i in range(len(norm_features)):
             if norm_features[i] not in push_attris:
                 f = dbms_util.get_delimited_col(self.dbms, norm_features[i])
-                query += "({}-{})/({}) AS {},".format(f, avgs[i], stds[i], f)
+                if avgs[i] >= 0:
+                    query += "({}-{})/({}) AS {},".format(f, avgs[i], stds[i], f)
+                else:
+                    query += "({}+{})/({}) AS {},".format(f, -avgs[i], stds[i], f)
 
         # loop over the remaining features and insert them in the select clause
         for f in other_features:

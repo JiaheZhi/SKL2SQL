@@ -56,8 +56,11 @@ class RFMSQL(object):
         DTMSQL._check_merge_ohe_features(merge_ohe_features)
         self.merge_features['merge_ohe_features'] = merge_ohe_features
 
-    def merge_scaler_with_trees(self, merge_scaler_features):
-        self.merge_features['merge_scaler_features'] = merge_scaler_features
+    def merge_standard_with_trees(self, merge_standard_features):
+        self.merge_features['merge_standard_features'] = merge_standard_features
+
+    def merge_minmax_with_trees(self, merge_minmax_features):
+        self.merge_features['merge_minmax_features'] = merge_minmax_features
 
     def merge_udf_with_trees(self, merge_udf_features):
         self.merge_features['merge_udf_features'] = merge_udf_features

@@ -5,7 +5,7 @@ from model_transformer.utility.dbms_utils import DBMSUtils
 if __name__ == '__main__':
     manager = TransformerManager()
 
-    model_file = '/root/volume/SKL2SQL/trained_model/usa_accident_rf_pipeline_deep5_2.joblib'
+    model_file = '/root/volume/SKL2SQL/trained_model/usa_accident_rf_pipeline_deep8.joblib'
     dataset_name = '(usa_accident LEFT JOIN usa_accident_zipcode_map on COALESCE(usa_accident.\"Zipcode\", \'91761\')=usa_accident_zipcode_map."Zipcode")' 
     
     features = ['Airport_Code_0', 'Airport_Code_1', 'Airport_Code_2', 'Airport_Code_3',
@@ -62,12 +62,13 @@ if __name__ == '__main__':
     optimizations = {
         'StandardScaler': {
             'push_attris': ['Temperature(F)'],
-            'merge_attris': ['Wind_Chill(F)'],
-            'other_attris': ['Humidity(%)', 'Pressure(in)']
+            'merge_attris': ['Humidity(%)'],
+            'other_attris': ['Pressure(in)']
         },
         'MinMaxScaler': {
             'push_attris': ['Visibility(mi)'],
-            'merge_attris': ['Wind_Chill(F)']
+            'merge_attris': [],
+            'other_attris': ['Wind_Chill(F)']
         },
         # 'OneHotEncoder':{
         #     'push_attris': []

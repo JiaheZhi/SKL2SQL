@@ -186,15 +186,20 @@ class Optimizer(object):
             self.one_optimization = False
 
         if 'StandardScaler' in optimizations:
-            self.scaler_optimization = True
+            self.standard_optimization = True
             if optimizations['StandardScaler'].get('other_attris'):
-                self.scaler_gen_preprocess = True
+                self.standard_gen_preprocess = True
             else:
-                self.scaler_gen_preprocess = False
+                self.standard_gen_preprocess = False
         else:
-            self.scaler_optimization = False
+            self.standard_optimization = False
 
-        
+        if 'MinMaxScaler' in optimizations:
+            self.minmax_optimization = True
+            if optimizations['MinMaxScaler'].get('other_attris'):
+                self.minmax_gen_preprocess = True
+            else:
+                self.minmax_gen_preprocess = False
 
         self.udf_need_gen_preprocess = True
         self.udf_need_merge = False
@@ -209,7 +214,7 @@ class Optimizer(object):
         else:
             print("OneHot Optimizer disabled.")
         
-        if self.scaler_optimization:
+        if self.standard_optimization:
             print("Scaler Optimizer enabled.")
         else:
             print("Scaler Optimizer disabled.")
@@ -229,13 +234,19 @@ class Optimizer(object):
                     any(key in self.model_name for key in self.tree_based_model_keys):
                 transformers_to_merge.append('OneHotEncoder')
         
-        if self.scaler_optimization:
+        if self.standard_optimization:
             # if the pipeline includes an StandardScaler and a tree-based model then apply the StandardScaler directly
             # in the decision tree rules and simplified
             if 'StandardScaler' in self.transformer_names and \
                     any(key in self.model_name for key in self.tree_based_model_keys):
                 transformers_to_merge.append('StandardScaler')
         
+        if self.minmax_optimization:
+            # if the pipeline includes an StandardScaler and a tree-based model then apply the StandardScaler directly
+            # in the decision tree rules and simplified
+            if 'MinMaxScaler' in self.transformer_names and \
+                    any(key in self.model_name for key in self.tree_based_model_keys):
+                transformers_to_merge.append('MinMaxScaler')
         
         for transform in out_pipeline['transforms']:
             if transform['transform_name'] == 'UDF':
@@ -281,7 +292,8 @@ class Optimizer(object):
 
             # transformers that have to be merged with the model are ignored in this phase
             if transformer_name not in transformers_to_merge or (transformer_name == 'UDF' and self.udf_need_gen_preprocess)\
-                or (transformer_name == 'StandardScaler' and self.scaler_gen_preprocess):
+                or (transformer_name == 'StandardScaler' and self.standard_gen_preprocess)\
+                    or (transformer_name == 'MinMaxScaler' and self.minmax_gen_preprocess):
                 transformer_sql_wrapper.set_dbms(self.dbms)
                 new_transformers.append(transformer_sql_wrapper)
 
@@ -330,11 +342,15 @@ class Optimizer(object):
                 
                 if transf_name == 'StandardScaler':
                     print("StandardScaler Operator fusion enabled.")
-                    model_sql_wrapper.merge_scaler_with_trees(transf_params)
+                    model_sql_wrapper.merge_standard_with_trees(transf_params)
                 
                 if transf_name == 'UDF':
                     print("UDF Operator fusion enabled.")
                     model_sql_wrapper.merge_udf_with_trees(transf_params)
+                
+                if transf_name == 'MinMaxScaler':
+                    print("MinMaxScaler Operator fusion enabled.")
+                    model_sql_wrapper.merge_minmax_with_trees(transf_params)
 
 
         new_model = {

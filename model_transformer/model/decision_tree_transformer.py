@@ -53,8 +53,11 @@ class DTMSQL(object):
         DTMSQL._check_merge_ohe_features(merge_ohe_features)
         self.merge_features['merge_ohe_features'] = merge_ohe_features
 
-    def merge_scaler_with_trees(self, merge_scaler_features):
-        self.merge_features['merge_scaler_features'] = merge_scaler_features
+    def merge_standard_with_trees(self, merge_standard_features):
+        self.merge_features['merge_standard_features'] = merge_standard_features
+    
+    def merge_minmax_with_trees(self, merge_minmax_features):
+        self.merge_features['merge_minmax_features'] = merge_minmax_features
 
     def merge_udf_with_trees(self, merge_udf_features):
         self.merge_features['merge_udf_features'] = merge_udf_features
@@ -62,8 +65,6 @@ class DTMSQL(object):
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations
 
-    def reset_optimization(self):
-        self.merge_ohe_features = None
 
     @staticmethod
     def get_flat_rules(tree: BaseDecisionTree, feature_names: list, is_classification: bool):
@@ -265,9 +266,10 @@ class DTMSQL(object):
         """
 
         merge_ohe_features = merge_features.get('merge_ohe_features')
-        merge_scaler_features = merge_features.get('merge_scaler_features')
+        merge_standard_features = merge_features.get('merge_standard_features')
         merge_udf_features = merge_features.get('merge_udf_features')
         imputation_features = merge_features.get('imputation_features')
+        merge_minmax_features = merge_features.get('merge_minmax_features')
 
         assert isinstance(tree, BaseDecisionTree), "Only BaseDecisionTree data type is allowed for param 'tree'."
         assert isinstance(feature_names, list), "Only list data type is allowed for param 'features_names'."
@@ -318,19 +320,34 @@ class DTMSQL(object):
                         break
             
             ###### merge standscaler ######
-            if merge_scaler_features is not None:
+            if merge_standard_features is not None:
                 if features[node] in optimizations['StandardScaler']['merge_attris']:
-                    i = merge_scaler_features['norm_features'].index(features[node])
-                    thr = thr * merge_scaler_features['stds'][i] + merge_scaler_features['avgs'][i]
+                    i = merge_standard_features['norm_features'].index(features[node])
+                    thr = thr * merge_standard_features['stds'][i] + merge_standard_features['avgs'][i]
                 elif features[node] in optimizations['StandardScaler']['push_attris']:
-                    i = merge_scaler_features['norm_features'].index(features[node])
-                    feature = f'({feature}-{merge_scaler_features["avgs"][i]})/({merge_scaler_features["stds"][i]})'
+                    i = merge_standard_features['norm_features'].index(features[node])
+                    if merge_standard_features["avgs"][i] >= 0:
+                        feature = f'({feature}-{merge_standard_features["avgs"][i]})/({merge_standard_features["stds"][i]})'
+                    else:
+                        feature = f'({feature}+{-merge_standard_features["avgs"][i]})/({merge_standard_features["stds"][i]})'
             
             ###### merge udf ######
             if merge_udf_features is not None:
                 udf_infos = merge_udf_features['udf_infos']
                 if features[node] in udf_infos and udf_infos[features[node]]['is_push']:
-                    feature = f'{udf_infos[features[node]]["udf_name"]}({feature})'           
+                    feature = f'{udf_infos[features[node]]["udf_name"]}({feature})' 
+
+            ###### merge minmaxscaler ######
+            if merge_minmax_features is not None:
+                if features[node] in optimizations['MinMaxScaler']['merge_attris']:
+                    i = merge_minmax_features['norm_features'].index(features[node])
+                    thr = (thr - merge_minmax_features['range_min'][i]) * 1.0 / merge_minmax_features['scale'][i] + merge_minmax_features['data_min'][i]
+                elif features[node] in optimizations['MinMaxScaler']['push_attris']:
+                    i = merge_minmax_features['norm_features'].index(features[node])
+                    if merge_minmax_features['data_min'][i] >= 0:
+                        feature = "({}-{}) * {} + {}".format(feature, merge_minmax_features['data_min'][i], merge_minmax_features['scale'][i], merge_minmax_features['range_min'][i])   
+                    else:
+                        feature = "({}+{}) * {} + {}".format(feature, -merge_minmax_features['data_min'][i], merge_minmax_features['scale'][i], merge_minmax_features['range_min'][i])
             
             sql_dtm_rule = f" CASE WHEN {feature} {op} {thr} THEN"
 
