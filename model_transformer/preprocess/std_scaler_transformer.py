@@ -25,7 +25,7 @@ class StandardScalerSQL(object):
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations
 
-    def get_params(self, scaler, norm_features, all_features, prev_transform_features=None, with_mean=True):
+    def get_params(self, scaler, norm_features, all_features, preprocess_all_features, prev_transform_features=None, with_mean=True):
         """
         This method extracts the scaling parameters (i.e., the means and the stds) from the fitted Sklearn
         StardardScaler object.
@@ -94,12 +94,18 @@ class StandardScalerSQL(object):
             if f in select_norm_features or f in prev_transform_features:
                 continue
             other_features.append(f)
+        
+        preprocess_other_features = []
+        for f in preprocess_all_features:
+            if f in select_norm_features or f in prev_transform_features:
+                continue
+            preprocess_other_features.append(f)
 
         features = prev_transform_features + select_norm_features + other_features
 
         self.params = {"avgs": scaler_mean, "stds": scaler_std, "out_all_features": features,
-                       "norm_features": norm_features, "other_features": prev_transform_features + other_features,
-                       'out_transform_features': norm_features}
+                       "norm_features": norm_features, "other_features": prev_transform_features + preprocess_other_features,
+                       'out_transform_features': norm_features, 'preprocess_all_features': preprocess_all_features}
 
         return self.params
 

@@ -70,12 +70,16 @@ if __name__ == '__main__':
             'merge_attris': [],
             'other_attris': ['Wind_Chill(F)']
         },
-        # 'OneHotEncoder':{
-        #     'push_attris': []
-        # },
-        # 'OrdinalEncoder':{
-        #     'push_attris': []
-        # }
+        'OneHotEncoder':{
+            'push_attris': ['Timezone'],
+            'merge_attris': [],
+            'other_attris': ['Country']
+        },
+        'OrdinalEncoder':{
+            'push_attris': ['Source'],
+            'merge_attris': [],
+            'other_attris': []
+        }
     }
 
     queries, query = manager.generate_query(model_file, dataset_name, features, dbms

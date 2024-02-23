@@ -9,16 +9,29 @@ class OrdinalEncoderSQL(object):
     def set_dbms(self, dbms: str):
         self.dbms = dbms
 
-    def get_params(self, fitted_transformer, transform_features, all_features, prev_transform_features):
+    def get_params(self, fitted_transformer, transform_features, all_features, preprocess_all_features, prev_transform_features):
         categories = fitted_transformer.categories_
         self.all_features = all_features
-        other_features = []
+
+        selected_encoder_features = []
+        for feature in transform_features:
+            if feature not in prev_transform_features:
+                selected_encoder_features.append(feature)
+
+        remain_features = []
         for feature in all_features:
+            if feature not in prev_transform_features and feature not in selected_encoder_features:
+                remain_features.append(feature)
+
+        features = prev_transform_features + selected_encoder_features + remain_features
+
+        other_features = []
+        for feature in preprocess_all_features:
             if feature not in transform_features:
                 other_features.append(feature)
 
-        self.params = {'out_all_features': all_features, 'out_transform_features': transform_features,
-                        'categories': categories, 'other_features': other_features}
+        self.params = {'out_all_features': features, 'out_transform_features': transform_features,
+                        'categories': categories, 'other_features': other_features, 'preprocess_all_features': preprocess_all_features}
 
         return self.params
 

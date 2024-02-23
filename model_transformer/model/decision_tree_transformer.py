@@ -314,17 +314,20 @@ class DTMSQL(object):
                 #   feature_after_ohe <= 0.5 becomes original_cat_feature <> val
                 for one_feature in merge_ohe_features.values():
                     if features[node] == one_feature['alias']:
-                        feature = dbms_util.get_delimited_col(dbms, one_feature['feature_before_ohe'])
-                        thr = "'{}'".format(one_feature['value'])
-                        op = '<>'
+                        if 'merge_attris' in optimizations['OneHotEncoder'] and one_feature['feature_before_ohe'] in optimizations['OneHotEncoder']['merge_attris']:
+                            feature = dbms_util.get_delimited_col(dbms, one_feature['feature_before_ohe'])
+                            thr = "'{}'".format(one_feature['value'])
+                            op = '<>'
+                        elif 'push_attris' in optimizations['OneHotEncoder'] and one_feature['feature_before_ohe'] in optimizations['OneHotEncoder']['push_attris']:
+                            feature = 'CASE WHEN {} = \'{}\' THEN 1 ELSE 0 END'.format(one_feature['feature_before_ohe'], one_feature['value'])
                         break
             
             ###### merge standscaler ######
             if merge_standard_features is not None:
-                if features[node] in optimizations['StandardScaler']['merge_attris']:
+                if 'merge_attris' in optimizations['StandardScaler'] and features[node] in optimizations['StandardScaler']['merge_attris']:
                     i = merge_standard_features['norm_features'].index(features[node])
                     thr = thr * merge_standard_features['stds'][i] + merge_standard_features['avgs'][i]
-                elif features[node] in optimizations['StandardScaler']['push_attris']:
+                elif 'push_attris' in optimizations['StandardScaler'] and features[node] in optimizations['StandardScaler']['push_attris']:
                     i = merge_standard_features['norm_features'].index(features[node])
                     if merge_standard_features["avgs"][i] >= 0:
                         feature = f'({feature}-{merge_standard_features["avgs"][i]})/({merge_standard_features["stds"][i]})'
@@ -339,10 +342,10 @@ class DTMSQL(object):
 
             ###### merge minmaxscaler ######
             if merge_minmax_features is not None:
-                if features[node] in optimizations['MinMaxScaler']['merge_attris']:
+                if 'merge_attris' in optimizations['MinMaxScaler'] and features[node] in optimizations['MinMaxScaler']['merge_attris']:
                     i = merge_minmax_features['norm_features'].index(features[node])
                     thr = (thr - merge_minmax_features['range_min'][i]) * 1.0 / merge_minmax_features['scale'][i] + merge_minmax_features['data_min'][i]
-                elif features[node] in optimizations['MinMaxScaler']['push_attris']:
+                elif 'push_attris' in optimizations['MinMaxScaler'] and features[node] in optimizations['MinMaxScaler']['push_attris']:
                     i = merge_minmax_features['norm_features'].index(features[node])
                     if merge_minmax_features['data_min'][i] >= 0:
                         feature = "({}-{}) * {} + {}".format(feature, merge_minmax_features['data_min'][i], merge_minmax_features['scale'][i], merge_minmax_features['range_min'][i])   

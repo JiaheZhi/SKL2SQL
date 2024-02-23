@@ -11,27 +11,40 @@ class BinaryEncoderSQL(object):
     def set_dbms(self, dbms: str):
         self.dbms = dbms
 
-    def get_params(self, fitted_transformer, binaryencoder_infos, all_features, prev_transform_features):
+    def get_params(self, fitted_transformer, binaryencoder_infos, all_features, preprocess_all_features, prev_transform_features):
         binary_atrributes = binaryencoder_infos['attrs']
         not_binary_atrributes = []
         out_all_features = []
+        preprocess_out_all_features = []
         train_data_path = binaryencoder_infos['train_data_path']
         train_data = pd.read_csv(train_data_path)
         binary_encoder = ce.BinaryEncoder(cols=binary_atrributes)
         train_data_binary = binary_encoder.fit_transform(train_data[binary_atrributes])
         train_data_join = pd.concat([train_data[binary_atrributes], train_data_binary], axis=1)
-        for attr_name in all_features:
+
+        for attr_name in preprocess_all_features:
             if attr_name not in binary_atrributes:
                 not_binary_atrributes.append(attr_name)
+
+        for attr_name in all_features:
+            if attr_name not in binary_atrributes:
                 out_all_features.append(attr_name)
             else:
                 for col_name in train_data_binary.columns:
                     if attr_name in col_name:
                         out_all_features.append(col_name)   
 
+        for attr_name in preprocess_all_features:
+            if attr_name not in binary_atrributes:
+                preprocess_out_all_features.append(attr_name)
+            else:
+                for col_name in train_data_binary.columns:
+                    if attr_name in col_name:
+                        preprocess_out_all_features.append(col_name)   
+
         self.params = {"out_all_features": out_all_features, 'out_transform_features': prev_transform_features,
                        "binaryencoder_infos": binaryencoder_infos, 'not_binary_atrributes': not_binary_atrributes,
-                       'train_data_binary': train_data_binary, 'train_data_join': train_data_join}
+                       'train_data_binary': train_data_binary, 'train_data_join': train_data_join, 'preprocess_all_features': preprocess_out_all_features}
         return self.params
 
     def query(self, table_name):

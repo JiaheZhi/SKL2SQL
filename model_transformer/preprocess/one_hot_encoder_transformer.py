@@ -21,9 +21,13 @@ class OneHotEncoderSQL(object):
         self.ohe_table_pk = 'id'
         self.ohe_table_fval_col = 'fval'
         self.ohe_table_fidx_col = 'fidx'
+        self.optimizations = None
 
     def get_table_name(self):
         return self.ohe_table_name
+
+    def set_optimizations(self, optimizations):
+        self.optimizations = optimizations
 
     def get_table_cols(self):
         return {
@@ -74,6 +78,14 @@ class OneHotEncoderSQL(object):
 
         ohe_map = ohe_params["ohe_encoding"]
         remaining_features = ohe_params["other_features"]
+        optimizations = ohe_params['optimizations']
+        if optimizations:
+            push_attris = optimizations['OneHotEncoder'].get('push_attris')
+            merge_attris = optimizations['OneHotEncoder'].get('merge_attris')
+            if push_attris is None and merge_attris is not None:
+                push_attris = merge_attris
+            elif push_attris is not None and merge_attris is not None:
+                push_attris = push_attris + merge_attris
 
         dbms_utils = DBMSUtils()
 
@@ -84,10 +96,11 @@ class OneHotEncoderSQL(object):
             # feature_after_ohe = ohe_feature_map["feature_after_ohe"]
             # fao = dbms_utils.get_delimited_col(dbms, feature_after_ohe)
             ohe_feature_map = ohe_map[feature_after_ohe]
-            feature_before_ohe = dbms_utils.get_delimited_col(dbms, ohe_feature_map["feature_before_ohe"])
-            value = ohe_feature_map["value"]
-            alias = dbms_utils.get_delimited_col(dbms, ohe_feature_map["alias"])
-            ohe_query += "CASE WHEN {} = '{}' THEN 1 ELSE 0 END AS {},\n".format(feature_before_ohe, value, alias)
+            if not optimizations or ohe_feature_map["feature_before_ohe"] not in push_attris:
+                feature_before_ohe = dbms_utils.get_delimited_col(dbms, ohe_feature_map["feature_before_ohe"])
+                value = ohe_feature_map["value"]
+                alias = dbms_utils.get_delimited_col(dbms, ohe_feature_map["alias"])
+                ohe_query += "CASE WHEN {} = '{}' THEN 1 ELSE 0 END AS {},\n".format(feature_before_ohe, value, alias)
 
         # add the remaining features to the selection
         for f in remaining_features:
@@ -157,7 +170,7 @@ class OneHotEncoderSQL(object):
 
         return ohe_to_index_map
 
-    def get_params(self, ohe, ohe_features, all_features, prev_transform_features=None):
+    def get_params(self, ohe, ohe_features, all_features, preprocess_all_features, prev_transform_features=None):
         """
         This method extracts from the Sklearn One Hot Encoder all the fitted parameters needed to replicate in SQL the
         One Hot Encoding transformation.
@@ -180,10 +193,18 @@ class OneHotEncoderSQL(object):
 
         # get the output ohe-encoded feature names
         features_after_ohe = ohe.get_feature_names()
+        if self.optimizations:
+            push_attris = self.optimizations['OneHotEncoder'].get('push_attris')
+            merge_attris = self.optimizations['OneHotEncoder'].get('merge_attris')
+            if push_attris is None and merge_attris is not None:
+                push_attris = merge_attris
+            elif push_attris is not None and merge_attris is not None:
+                push_attris = push_attris + merge_attris
 
         ohe_map = {}
         count_map = {}
         features_after_ohe_list = []
+        real_features_after_ohe_list = []
         # loop over the categorical features obtained after the application of the Sklearn's One Hot Encoder
         for feature_after_ohe in features_after_ohe:
             # the categorical features after the Sklearn OHE follow the format x<column_id>_<column_val> (e.g., x1_a)
@@ -196,7 +217,16 @@ class OneHotEncoderSQL(object):
                 count_map[feature] += 1
             else:
                 count_map[feature] = 0
-            features_after_ohe_list.append(f'{feature}_{count_map[feature]}')
+            real_features_after_ohe_list.append(f'{feature}_{count_map[feature]}')
+            if push_attris:
+                if feature not in push_attris:
+                    features_after_ohe_list.append(f'{feature}_{count_map[feature]}')
+                else:
+                    if feature not in features_after_ohe_list:
+                        features_after_ohe_list.append(feature)
+            else:
+                features_after_ohe_list.append(f'{feature}_{count_map[feature]}')
+                
             ohe_map[feature_after_ohe] = {"feature_before_ohe": feature, "value": value,
                                           "alias": f'{feature}_{count_map[feature]}'}
 
@@ -209,18 +239,33 @@ class OneHotEncoderSQL(object):
                 continue
             remaining_features.append(f)
 
+        preprocess_remaining_features = []
+        for f in preprocess_all_features:
+            if f in prev_transform_features or f in ohe_features:
+                continue
+            preprocess_remaining_features.append(f)
+
         # out_features = prev_transform_features + list(features_after_ohe) + remaining_features
-        out_features = prev_transform_features + features_after_ohe_list + remaining_features
+        real_out_features = prev_transform_features + real_features_after_ohe_list + remaining_features
+        preprocess_out_features = prev_transform_features + features_after_ohe_list + preprocess_remaining_features
 
         ohe_to_index_map = self._map_ohe_features_to_index(prev_transform_features, features_after_ohe,
                                                            remaining_features, ohe_features)
-
+        other_features = []
+        for f in preprocess_all_features:
+            if push_attris:
+                if f not in ohe_features or f in push_attris:
+                    other_features.append(f)
+            else:
+                if f not in ohe_features:
+                    other_features.append(f)
         # self.params = {"ohe_encoding": ohe_map, "out_all_features": out_features, "ohe_features": ohe_features,
         #                "other_features": prev_transform_features + remaining_features,
         #                'out_transform_features': list(features_after_ohe), 'ohe2idx_map': ohe_to_index_map}
-        self.params = {"ohe_encoding": ohe_map, "out_all_features": out_features, "ohe_features": ohe_features,
-                       "other_features": prev_transform_features + remaining_features,
-                       'out_transform_features': features_after_ohe_list, 'ohe2idx_map': ohe_to_index_map}
+        self.params = {"ohe_encoding": ohe_map, "out_all_features": real_out_features, "ohe_features": ohe_features,
+                       "other_features":  other_features,
+                       'out_transform_features': real_features_after_ohe_list, 'ohe2idx_map': ohe_to_index_map,
+                       'preprocess_all_features': preprocess_out_features, 'optimizations':self.optimizations}
 
         return self.params
 

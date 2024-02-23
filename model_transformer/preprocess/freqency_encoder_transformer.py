@@ -11,13 +11,13 @@ class FrequencyEncoderSQL(object):
     def set_dbms(self, dbms: str):
         self.dbms = dbms
 
-    def get_params(self, fitted_transformer, infos, all_features, prev_transform_features):
+    def get_params(self, fitted_transformer, infos, all_features, preprocess_all_features, prev_transform_features):
         attrs = infos['attrs']
         train_data_path = infos['train_data_path']
-        other_features = [f for f in all_features if f not in attrs]
+        other_features = [f for f in preprocess_all_features if f not in attrs]
         self.params = {'out_all_features': all_features, 'out_transform_features': prev_transform_features,
                        'transform_features': attrs, 'other_features': other_features,
-                       'train_data_path': train_data_path}
+                       'train_data_path': train_data_path, 'preprocess_all_features': preprocess_all_features}
         return self.params
 
     def query(self, table_name):

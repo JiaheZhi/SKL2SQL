@@ -182,6 +182,10 @@ class Optimizer(object):
         self.ml_manager = TransformerManager()
         if 'OneHotEncoder' in optimizations:
             self.one_optimization = True
+            if optimizations['OneHotEncoder'].get('other_attris'):
+                self.one_gen_preprocess = True
+            else:
+                self.one_gen_preprocess = False
         else:
             self.one_optimization = False
 
@@ -273,6 +277,7 @@ class Optimizer(object):
         prev_transform_features = []
         new_transformers = []
         sql_transformers_to_merge = []
+        preprocess_all_features = features
         for transformer in self.transformers:
             transformer_name = transformer["transform_name"]
             if "fitted_transform" in transformer:
@@ -287,13 +292,14 @@ class Optimizer(object):
             if transformer_name in self.optimizations:
                 transformer_sql_wrapper.set_optimizations(self.optimizations)
             transformer_params = transformer_sql_wrapper.get_params(fitted_transformer, transformer_features,
-                                                                    features, prev_transform_features)
+                                                                    features, preprocess_all_features, prev_transform_features)
             features = transformer_params["out_all_features"]
-
+            preprocess_all_features = transformer_params['preprocess_all_features']
             # transformers that have to be merged with the model are ignored in this phase
             if transformer_name not in transformers_to_merge or (transformer_name == 'UDF' and self.udf_need_gen_preprocess)\
                 or (transformer_name == 'StandardScaler' and self.standard_gen_preprocess)\
-                    or (transformer_name == 'MinMaxScaler' and self.minmax_gen_preprocess):
+                    or (transformer_name == 'MinMaxScaler' and self.minmax_gen_preprocess)\
+                        or (transformer_name == 'OneHotEncoder' and self.one_gen_preprocess):
                 transformer_sql_wrapper.set_dbms(self.dbms)
                 new_transformers.append(transformer_sql_wrapper)
 
@@ -301,7 +307,7 @@ class Optimizer(object):
                 sql_transformers_to_merge.append((transformer_name, transformer_sql_wrapper, transformer_params))
             
 
-            prev_transform_features = transformer_params["out_transform_features"][:]
+            prev_transform_features = prev_transform_features + transformer_params["out_transform_features"]
         # if all the preprocess is fusion to the tree, then use the deafaultpreprecess to select all needed attributes
         if not new_transformers:
             transformer_sql_wrapper = self.ml_manager.sql_transform_types['DefaultPreprocess']

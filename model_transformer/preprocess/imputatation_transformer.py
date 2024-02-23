@@ -9,14 +9,15 @@ class ImputationSQL(object):
     def set_dbms(self, dbms: str):
         self.dbms = dbms
 
-    def get_params(self, fitted_transformer, imputation_infos, all_features, prev_transform_features):
+    def get_params(self, fitted_transformer, imputation_infos, all_features, preprocess_all_features, prev_transform_features):
         not_imputation_atrributes = []
-        for attr_name in all_features:
+        for attr_name in preprocess_all_features:
             if attr_name not in imputation_infos:
                 not_imputation_atrributes.append(attr_name)
 
         self.params = {"out_all_features": all_features, 'out_transform_features': prev_transform_features,
-                       "imputation_infos": imputation_infos, 'not_imputation_atrributes': not_imputation_atrributes}
+                       "imputation_infos": imputation_infos, 'not_imputation_atrributes': not_imputation_atrributes
+                       , 'preprocess_all_features': preprocess_all_features}
         return self.params
     
     def query(self, table_name):

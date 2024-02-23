@@ -9,14 +9,14 @@ class UDFSQL(object):
     def set_dbms(self, dbms: str):
         self.dbms = dbms
 
-    def get_params(self, fitted_transformer, udf_infos, all_features, prev_transform_features):
+    def get_params(self, fitted_transformer, udf_infos, all_features, preprocess_all_features, prev_transform_features):
         not_udf_atrributes = []
-        for attr_name in all_features:
+        for attr_name in preprocess_all_features:
             if attr_name not in udf_infos or udf_infos[attr_name]['is_push']:
                 not_udf_atrributes.append(attr_name)
 
         self.params = {"out_all_features": all_features, 'out_transform_features': prev_transform_features,
-                       "udf_infos": udf_infos, 'not_udf_attributes': not_udf_atrributes}
+                       "udf_infos": udf_infos, 'not_udf_attributes': not_udf_atrributes, 'preprocess_all_features': preprocess_all_features}
         return self.params
     
     def query(self, table_name):
