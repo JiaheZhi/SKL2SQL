@@ -204,24 +204,19 @@ class Optimizer(object):
                 self.minmax_gen_preprocess = True
             else:
                 self.minmax_gen_preprocess = False
+        
+        if 'OrdinalEncoder' in optimizations:
+            self.ordinal_optimization = True
+            if optimizations['OrdinalEncoder'].get('other_attris'):
+                self.ordinal_gen_preprocess = True
+            else:
+                self.ordinal_gen_preprocess = False
 
         self.udf_need_gen_preprocess = True
         self.udf_need_merge = False
-        
-
 
         self.optimizations = optimizations
         self.dbms = dbms
-
-        if self.one_optimization:
-            print("OneHot Optimizer enabled.")
-        else:
-            print("OneHot Optimizer disabled.")
-        
-        if self.standard_optimization:
-            print("Scaler Optimizer enabled.")
-        else:
-            print("Scaler Optimizer disabled.")
 
 
     def optimize(self):
@@ -239,18 +234,20 @@ class Optimizer(object):
                 transformers_to_merge.append('OneHotEncoder')
         
         if self.standard_optimization:
-            # if the pipeline includes an StandardScaler and a tree-based model then apply the StandardScaler directly
-            # in the decision tree rules and simplified
             if 'StandardScaler' in self.transformer_names and \
                     any(key in self.model_name for key in self.tree_based_model_keys):
                 transformers_to_merge.append('StandardScaler')
         
         if self.minmax_optimization:
-            # if the pipeline includes an StandardScaler and a tree-based model then apply the StandardScaler directly
-            # in the decision tree rules and simplified
             if 'MinMaxScaler' in self.transformer_names and \
                     any(key in self.model_name for key in self.tree_based_model_keys):
                 transformers_to_merge.append('MinMaxScaler')
+
+        if self.ordinal_optimization:
+            if 'OrdinalEncoder' in self.transformer_names and \
+                    any(key in self.model_name for key in self.tree_based_model_keys):
+                transformers_to_merge.append('OrdinalEncoder')
+
         
         for transform in out_pipeline['transforms']:
             if transform['transform_name'] == 'UDF':
@@ -266,8 +263,6 @@ class Optimizer(object):
                     self.udf_need_merge = True     
         
         if self.udf_need_merge:
-            # if the pipeline includes an udf and a tree-based model then apply the udf directly
-            # in the decision tree rules and simplified
             if 'UDF' in self.transformer_names and \
                     any(key in self.model_name for key in self.tree_based_model_keys):
                 transformers_to_merge.append('UDF')
@@ -299,7 +294,8 @@ class Optimizer(object):
             if transformer_name not in transformers_to_merge or (transformer_name == 'UDF' and self.udf_need_gen_preprocess)\
                 or (transformer_name == 'StandardScaler' and self.standard_gen_preprocess)\
                     or (transformer_name == 'MinMaxScaler' and self.minmax_gen_preprocess)\
-                        or (transformer_name == 'OneHotEncoder' and self.one_gen_preprocess):
+                        or (transformer_name == 'OneHotEncoder' and self.one_gen_preprocess)\
+                            or (transformer_name == 'OrdinalEncoder' and self.ordinal_gen_preprocess):
                 transformer_sql_wrapper.set_dbms(self.dbms)
                 new_transformers.append(transformer_sql_wrapper)
 
@@ -357,6 +353,10 @@ class Optimizer(object):
                 if transf_name == 'MinMaxScaler':
                     print("MinMaxScaler Operator fusion enabled.")
                     model_sql_wrapper.merge_minmax_with_trees(transf_params)
+
+                if transf_name == 'OrdinalEncoder':
+                    print("OrdinalEncoder Operator fusion enabled.")
+                    model_sql_wrapper.merge_ordinal_with_trees(transf_params)
 
 
         new_model = {

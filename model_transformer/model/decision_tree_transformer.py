@@ -59,6 +59,9 @@ class DTMSQL(object):
     def merge_minmax_with_trees(self, merge_minmax_features):
         self.merge_features['merge_minmax_features'] = merge_minmax_features
 
+    def merge_ordinal_with_trees(self, merge_ordinal_features):
+        self.merge_features['merge_ordinal_features'] = merge_ordinal_features
+
     def merge_udf_with_trees(self, merge_udf_features):
         self.merge_features['merge_udf_features'] = merge_udf_features
 
@@ -270,6 +273,7 @@ class DTMSQL(object):
         merge_udf_features = merge_features.get('merge_udf_features')
         imputation_features = merge_features.get('imputation_features')
         merge_minmax_features = merge_features.get('merge_minmax_features')
+        merge_ordinal_features = merge_features.get('merge_ordinal_features')
 
         assert isinstance(tree, BaseDecisionTree), "Only BaseDecisionTree data type is allowed for param 'tree'."
         assert isinstance(feature_names, list), "Only list data type is allowed for param 'features_names'."
@@ -351,6 +355,34 @@ class DTMSQL(object):
                         feature = "({}-{}) * {} + {}".format(feature, merge_minmax_features['data_min'][i], merge_minmax_features['scale'][i], merge_minmax_features['range_min'][i])   
                     else:
                         feature = "({}+{}) * {} + {}".format(feature, -merge_minmax_features['data_min'][i], merge_minmax_features['scale'][i], merge_minmax_features['range_min'][i])
+            
+            ###### merge ordinal encoder ######
+            if merge_ordinal_features is not None:
+                if 'merge_attris' in optimizations['OrdinalEncoder'] and features[node] in optimizations['OrdinalEncoder']['merge_attris']:
+                    op = 'in'
+                    pos = int(thr) + 1
+                    encoder_features = merge_ordinal_features['out_transform_features']
+                    categories = merge_ordinal_features['categories']
+                    i = encoder_features.index(features[node])
+                    categorie = categories[i]
+                    if type(categorie[0]) == str:
+                        thr = '(' + ','.join([f"\'{c}\'" for c in categorie[:pos]]) +')'
+                    else:
+                        thr = '(' + ','.join([f"{c}" for c in categorie[:pos]]) +')'
+
+                elif 'push_attris' in optimizations['OrdinalEncoder'] and features[node] in optimizations['OrdinalEncoder']['push_attris']:
+                    sql = "CASE "
+                    encoder_features = merge_ordinal_features['out_transform_features']
+                    categories = merge_ordinal_features['categories']
+                    i = encoder_features.index(features[node])
+                    categorie = categories[i]
+                    for j in range(len(categorie)):
+                        if type(categorie[j]) == str:
+                            sql += f"WHEN {feature} = \'{categorie[j]}\' THEN {j} "
+                        else:
+                            sql += f"WHEN {feature} = {categorie[j]} THEN {j} "
+                    sql += "end "
+                    feature = sql
             
             sql_dtm_rule = f" CASE WHEN {feature} {op} {thr} THEN"
 

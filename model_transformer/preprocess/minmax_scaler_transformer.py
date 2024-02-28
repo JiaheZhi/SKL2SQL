@@ -81,9 +81,12 @@ class MinMaxScalerSQL(object):
         range_min = self.params["range_min"]
         norm_features = self.params["norm_features"]
         other_features = self.params["other_features"]
-        push_attris = self.optimizations['MinMaxScaler']['push_attris']
-        merge_attris = self.optimizations['MinMaxScaler']['merge_attris']
-        push_attris = push_attris + merge_attris
+        push_attris = self.optimizations['MinMaxScaler'].get('push_attris')
+        merge_attris = self.optimizations['MinMaxScaler'].get('merge_attris')
+        if push_attris is None and merge_attris is not None:
+            push_attris = merge_attris
+        elif push_attris is not None and merge_attris is not None:
+            push_attris = push_attris + merge_attris
 
         dbms_util = DBMSUtils()
 

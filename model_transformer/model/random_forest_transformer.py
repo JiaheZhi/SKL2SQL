@@ -62,6 +62,9 @@ class RFMSQL(object):
     def merge_minmax_with_trees(self, merge_minmax_features):
         self.merge_features['merge_minmax_features'] = merge_minmax_features
 
+    def merge_ordinal_with_trees(self, merge_ordinal_features):
+        self.merge_features['merge_ordinal_features'] = merge_ordinal_features
+
     def merge_udf_with_trees(self, merge_udf_features):
         self.merge_features['merge_udf_features'] = merge_udf_features
     

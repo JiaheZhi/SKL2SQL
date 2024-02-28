@@ -129,9 +129,12 @@ class StandardScalerSQL(object):
         stds = self.params["stds"]
         norm_features = self.params["norm_features"]
         other_features = self.params["other_features"]
-        push_attris = self.optimizations['StandardScaler']['push_attris']
-        merge_attris = self.optimizations['StandardScaler']['merge_attris']
-        push_attris = push_attris + merge_attris
+        push_attris = self.optimizations['StandardScaler'].get('push_attris')
+        merge_attris = self.optimizations['StandardScaler'].get('merge_attris')
+        if push_attris is None and merge_attris is not None:
+            push_attris = merge_attris
+        elif push_attris is not None and merge_attris is not None:
+            push_attris = push_attris + merge_attris
 
         dbms_util = DBMSUtils()
 

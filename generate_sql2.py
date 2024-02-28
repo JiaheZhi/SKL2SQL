@@ -76,8 +76,8 @@ if __name__ == '__main__':
             'other_attris': ['Country']
         },
         'OrdinalEncoder':{
-            'push_attris': ['Source'],
-            'merge_attris': [],
+            'push_attris': [],
+            'merge_attris': ['Source'],
             'other_attris': []
         }
     }
