@@ -17,9 +17,10 @@ frequency_encoder_cols = ['Zipcode']
 onehot_encoder_cols = ['Timezone', 'Country']
 label_encoder_cols = ['Source']
 standscaler_cols = ['Temperature(F)', 'Humidity(%)', 'Pressure(in)']
-minmaxscaler_cols = ['Visibility(mi)', 'Wind_Chill(F)']
+minmaxscaler_cols = ['Wind_Chill(F)']
+equal_width_cols = ['Visibility(mi)']
 udf_cols = ['Description', 'Start_Time', 'Weather_Condition']
-X = X[binary_encoder_cols + frequency_encoder_cols + onehot_encoder_cols + label_encoder_cols + standscaler_cols + minmaxscaler_cols + udf_cols]
+X = X[binary_encoder_cols + frequency_encoder_cols + onehot_encoder_cols + label_encoder_cols + standscaler_cols + minmaxscaler_cols + udf_cols + equal_width_cols]
 
 # clean data
 for col in X.columns:
@@ -45,6 +46,9 @@ def f(weather: str):
             bad_value += 1
     return bad_value
 X['Weather_Condition'] = X['Weather_Condition'].apply(lambda weather: f(str(weather)))
+for equal_width_col in equal_width_cols:
+    X[equal_width_col] = pd.cut(X[equal_width_col], bins=[0, 10, 20 ,30, 1000], labels=[1,2,3,4])
+    print(X[equal_width_col])
 
 # define pipline
 std_scalar = StandardScaler(with_mean=False)
@@ -70,6 +74,6 @@ pipeline = Pipeline(steps=[pipeline_transforms, pipeline_estimator])
 pipeline.fit(X, y)
 t2 = time.perf_counter()
 # save model to the file
-dump(pipeline, '/root/volume/SKL2SQL/trained_model/usa_accident_rf_pipeline_deep8.joblib')
+dump(pipeline, '/root/volume/SKL2SQL/trained_model/usa_accident_rf_pipeline_deep8_1.joblib')
 
 print(f'time:{t2-t1}s')

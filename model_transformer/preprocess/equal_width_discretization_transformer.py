@@ -30,18 +30,24 @@ class EqualWidthDiscretizationSQL(object):
 
         # loop over the equal width descretization features and insert them in the select clause
         for attr_name in infos:
-            bins = infos[attr_name]['bins']
-            labels = infos[attr_name]['labels']
-            query += "CASE "
-            for i in range(len(bins)):
-                query += f"WHEN {dbms_util.get_delimited_col(self.dbms, attr_name)} <= {bins[i]} THEN {labels[i]} "
-            query += f"ELSE {labels[-1]} "
-            query += f"END AS {dbms_util.get_delimited_col(self.dbms, attr_name)}, "
+            if not ('is_push' in infos[attr_name] and infos[attr_name]['is_push'] or 'is_merge' in infos[attr_name] and infos[attr_name]['is_merge']):
+                bins = infos[attr_name]['bins']
+                labels = infos[attr_name]['labels']
+                query += "CASE "
+                for i in range(len(bins)):
+                    query += f"WHEN {dbms_util.get_delimited_col(self.dbms, attr_name)} <= {bins[i]} THEN {labels[i]} "
+                query += f"ELSE {labels[-1]} "
+                query += f"END AS {dbms_util.get_delimited_col(self.dbms, attr_name)}, "
 
         # loop over the remaining features and insert them in the select clause
         for f in not_preprocess_atrributes:
             f = dbms_util.get_delimited_col(self.dbms, f)
             query += "{},".format(f)
+
+        for attr_name in infos:
+            if 'is_push' in infos[attr_name] and infos[attr_name]['is_push'] or 'is_merge' in infos[attr_name] and infos[attr_name]['is_merge']:
+                query += "{},".format(dbms_util.get_delimited_col(self.dbms, attr_name))
+
         query = query[:-1]  # remove the last ','
 
         query += " FROM {}".format(table_name)

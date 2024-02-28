@@ -215,6 +215,9 @@ class Optimizer(object):
         self.udf_need_gen_preprocess = True
         self.udf_need_merge = False
 
+        self.equal_need_gen_preprocess = True
+        self.equal_need_merge = False
+
         self.optimizations = optimizations
         self.dbms = dbms
 
@@ -260,12 +263,30 @@ class Optimizer(object):
                     self.udf_need_gen_preprocess = False
                     self.udf_need_merge = True
                 elif merge_num < len(transform_features) and merge_num > 0:
-                    self.udf_need_merge = True     
+                    self.udf_need_merge = True
+            
+            if transform['transform_name'] == 'EqualWidthDiscretization':
+                transform_features = transform['transform_features']
+                merge_num = 0
+                for attr_name in transform_features:
+                    if (transform_features[attr_name].get('is_push') and transform_features[attr_name]['is_push'])\
+                        or (transform_features[attr_name].get('is_merge') and transform_features[attr_name]['is_merge']):
+                        merge_num += 1
+                if merge_num == len(transform_features):
+                    self.equal_need_gen_preprocess = False
+                    self.equal_need_merge = True
+                elif merge_num < len(transform_features) and merge_num > 0:
+                    self.equal_need_merge = True
         
         if self.udf_need_merge:
             if 'UDF' in self.transformer_names and \
                     any(key in self.model_name for key in self.tree_based_model_keys):
                 transformers_to_merge.append('UDF')
+
+        if self.equal_need_merge:
+            if 'EqualWidthDiscretization' in self.transformer_names and \
+                    any(key in self.model_name for key in self.tree_based_model_keys):
+                transformers_to_merge.append('EqualWidthDiscretization')
                 
         
         # get the fitted transformers from the pipeline
@@ -295,7 +316,8 @@ class Optimizer(object):
                 or (transformer_name == 'StandardScaler' and self.standard_gen_preprocess)\
                     or (transformer_name == 'MinMaxScaler' and self.minmax_gen_preprocess)\
                         or (transformer_name == 'OneHotEncoder' and self.one_gen_preprocess)\
-                            or (transformer_name == 'OrdinalEncoder' and self.ordinal_gen_preprocess):
+                            or (transformer_name == 'OrdinalEncoder' and self.ordinal_gen_preprocess)\
+                                or (transformer_name == 'EqualWidthDiscretization' and self.equal_need_gen_preprocess):
                 transformer_sql_wrapper.set_dbms(self.dbms)
                 new_transformers.append(transformer_sql_wrapper)
 
@@ -357,6 +379,10 @@ class Optimizer(object):
                 if transf_name == 'OrdinalEncoder':
                     print("OrdinalEncoder Operator fusion enabled.")
                     model_sql_wrapper.merge_ordinal_with_trees(transf_params)
+                
+                if transf_name == 'EqualWidthDiscretization':
+                    print("EqualWidthDiscretization Operator fusion enabled.")
+                    model_sql_wrapper.merge_equal_with_trees(transf_params)
 
 
         new_model = {

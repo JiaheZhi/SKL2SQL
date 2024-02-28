@@ -65,6 +65,9 @@ class DTMSQL(object):
     def merge_udf_with_trees(self, merge_udf_features):
         self.merge_features['merge_udf_features'] = merge_udf_features
 
+    def merge_equal_with_trees(self, merge_equal_features):
+        self.merge_features['merge_equal_features'] = merge_equal_features
+
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations
 
@@ -274,6 +277,7 @@ class DTMSQL(object):
         imputation_features = merge_features.get('imputation_features')
         merge_minmax_features = merge_features.get('merge_minmax_features')
         merge_ordinal_features = merge_features.get('merge_ordinal_features')
+        merge_equal_features = merge_features.get('merge_equal_features')
 
         assert isinstance(tree, BaseDecisionTree), "Only BaseDecisionTree data type is allowed for param 'tree'."
         assert isinstance(feature_names, list), "Only list data type is allowed for param 'features_names'."
@@ -342,7 +346,36 @@ class DTMSQL(object):
             if merge_udf_features is not None:
                 udf_infos = merge_udf_features['udf_infos']
                 if features[node] in udf_infos and udf_infos[features[node]]['is_push']:
-                    feature = f'{udf_infos[features[node]]["udf_name"]}({feature})' 
+                    feature = f'{udf_infos[features[node]]["udf_name"]}({feature})'
+
+            ###### merge equalwidth discretization ######
+            if merge_equal_features is not None:
+                equal_infos = merge_equal_features['infos']
+                if features[node] in equal_infos and 'is_push' in equal_infos[features[node]] and equal_infos[features[node]]['is_push']:
+                    bins = equal_infos[features[node]]['bins']
+                    labels = equal_infos[features[node]]['labels']
+                    sql = "CASE "
+                    for i in range(len(bins)):
+                        sql += f"WHEN {feature} <= {bins[i]} THEN {labels[i]} "
+                    sql += f"ELSE {labels[-1]} END "
+                    feature = sql
+                elif features[node] in equal_infos and 'is_merge' in equal_infos[features[node]] and equal_infos[features[node]]['is_merge']:
+                    bins = equal_infos[features[node]]['bins']
+                    labels = equal_infos[features[node]]['labels']
+                    pos = 0
+                    for i in range(len(labels)):
+                        if labels[i] <= thr:
+                            pos = i
+                        else:
+                            break
+                    if pos > len(bins) - 1:
+                        pos = len(bins) - 1
+                        op = '>'
+                    if thr < labels[0]:
+                        thr = -99999999
+                    else:
+                        thr = bins[pos]
+                    
 
             ###### merge minmaxscaler ######
             if merge_minmax_features is not None:

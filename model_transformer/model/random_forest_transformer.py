@@ -67,6 +67,9 @@ class RFMSQL(object):
 
     def merge_udf_with_trees(self, merge_udf_features):
         self.merge_features['merge_udf_features'] = merge_udf_features
+
+    def merge_equal_with_trees(self, merge_equal_features):
+        self.merge_features['merge_equal_features'] = merge_equal_features
     
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations

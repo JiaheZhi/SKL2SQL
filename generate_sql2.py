@@ -5,18 +5,21 @@ from model_transformer.utility.dbms_utils import DBMSUtils
 if __name__ == '__main__':
     manager = TransformerManager()
 
-    model_file = '/root/volume/SKL2SQL/trained_model/usa_accident_rf_pipeline_deep8.joblib'
+    model_file = '/root/volume/SKL2SQL/trained_model/usa_accident_rf_pipeline_deep8_1.joblib'
     dataset_name = '(usa_accident LEFT JOIN usa_accident_zipcode_map on COALESCE(usa_accident.\"Zipcode\", \'91761\')=usa_accident_zipcode_map."Zipcode")' 
     
-    features = ['Airport_Code_0', 'Airport_Code_1', 'Airport_Code_2', 'Airport_Code_3',
+    # binary_encoder_cols = ['Airport_Code', ]
+    binary_encoder_cols = ['Airport_Code_0', 'Airport_Code_1', 'Airport_Code_2', 'Airport_Code_3',
        'Airport_Code_4', 'Airport_Code_5', 'Airport_Code_6', 'Airport_Code_7',
-       'Airport_Code_8', 'Airport_Code_9', 'Airport_Code_10', 'Zipcode',
-       'Source', 'Timezone', 'Country', 'Temperature(F)', 'Wind_Chill(F)',
-       'Humidity(%)', 'Pressure(in)', 'Visibility(mi)', 'Description',
-       'Start_Time', 'Weather_Condition']
-    # features = ['Airport_Code', 'Zipcode','Source', 'Timezone', 'Country', 
-    #             'Temperature(F)', 'Wind_Chill(F)','Humidity(%)', 'Pressure(in)', 
-    #             'Visibility(mi)', 'Description','Start_Time', 'Weather_Condition']
+       'Airport_Code_8', 'Airport_Code_9', 'Airport_Code_10']
+    frequency_encoder_cols = ['Zipcode']
+    onehot_encoder_cols = ['Timezone', 'Country']
+    label_encoder_cols = ['Source']
+    standscaler_cols = ['Temperature(F)', 'Humidity(%)', 'Pressure(in)']
+    minmaxscaler_cols = ['Wind_Chill(F)']
+    equal_width_cols = ['Visibility(mi)']
+    udf_cols = ['Description', 'Start_Time', 'Weather_Condition']
+    features = binary_encoder_cols + frequency_encoder_cols + onehot_encoder_cols + label_encoder_cols + standscaler_cols + minmaxscaler_cols + udf_cols + equal_width_cols
     dbms = DBMSUtils.get_dbms_from_str_connection('postgresql://postgres:@localhost/postgres')
     preprocessors = {}
     preprocessors['Imputation'] = {
@@ -50,7 +53,8 @@ if __name__ == '__main__':
         'Visibility(mi)':{
             'bins': [10, 20, 30],
             'labels':[1, 2, 3, 4],
-            'is_push': True
+            # 'is_push': True,
+            'is_merge':True
         }
     }
 
@@ -66,7 +70,7 @@ if __name__ == '__main__':
             'other_attris': ['Pressure(in)']
         },
         'MinMaxScaler': {
-            'push_attris': ['Visibility(mi)'],
+            'push_attris': [],
             'merge_attris': [],
             'other_attris': ['Wind_Chill(F)']
         },
