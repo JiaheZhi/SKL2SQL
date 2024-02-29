@@ -179,7 +179,7 @@ FROM
                         END
                       END
                       ELSE CASE
-                        WHEN bad_count("Weather_Condition") <= 0.5 THEN CASE
+                        WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 0.5 THEN CASE
                           WHEN "Airport_Code_9" <= 0.5 THEN 1.0
                           ELSE 1.0
                         END
@@ -218,7 +218,7 @@ FROM
                     ELSE CASE
                       WHEN "Airport_Code_7" <= 0.5 THEN CASE
                         WHEN "Airport_Code_5" <= 0.5 THEN CASE
-                          WHEN bad_count("Weather_Condition") <= 0.5 THEN 1.0
+                          WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 0.5 THEN 1.0
                           ELSE 1.0
                         END
                         ELSE CASE
@@ -321,7 +321,7 @@ FROM
                           ELSE 3.0
                         END
                         ELSE CASE
-                          WHEN bad_count("Weather_Condition") <= 0.5 THEN 1.0
+                          WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 0.5 THEN 1.0
                           ELSE 1.0
                         END
                       END
@@ -369,7 +369,7 @@ FROM
                     ELSE CASE
                       WHEN "Airport_Code_3" <= 0.5 THEN CASE
                         WHEN "Humidity(%)" <= 157.96917782796402 THEN CASE
-                          WHEN bad_count("Weather_Condition") <= 0.5 THEN 1.0
+                          WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 0.5 THEN 1.0
                           ELSE 1.0
                         END
                         ELSE CASE
@@ -651,7 +651,7 @@ FROM
                     END
                   END
                   ELSE CASE
-                    WHEN bad_count("Weather_Condition") <= 0.5 THEN CASE
+                    WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 0.5 THEN CASE
                       WHEN "Airport_Code_9" <= 0.5 THEN CASE
                         WHEN "Airport_Code_5" <= 0.5 THEN CASE
                           WHEN time_months("Start_Time") <= 24268.5 THEN 1.0
@@ -928,7 +928,7 @@ FROM
                         END
                       END
                       ELSE CASE
-                        WHEN bad_count("Weather_Condition") <= 0.5 THEN CASE
+                        WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 0.5 THEN CASE
                           WHEN "Airport_Code_8" <= 0.5 THEN 1.0
                           ELSE 1.0
                         END
@@ -1129,7 +1129,7 @@ FROM
                   WHEN Timezone = 'US/Pacific' THEN 1
                   ELSE 0
                 END <= 0.5 THEN CASE
-                  WHEN bad_count("Weather_Condition") <= 0.5 THEN CASE
+                  WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 0.5 THEN CASE
                     WHEN "Source" in ('Source1') THEN CASE
                       WHEN "Airport_Code_2" <= 0.5 THEN CASE
                         WHEN "Zipcode" <= 65.5 THEN CASE
@@ -1177,7 +1177,7 @@ FROM
                   END
                   ELSE CASE
                     WHEN "Airport_Code_0" <= 0.5 THEN CASE
-                      WHEN bad_count("Weather_Condition") <= 2.5 THEN CASE
+                      WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 2.5 THEN CASE
                         WHEN "Pressure(in)" <= 28.802888870239258 THEN CASE
                           WHEN "Description" <= 12.5 THEN 1.0
                           ELSE 2.0
@@ -1286,7 +1286,7 @@ FROM
                           ELSE 1.0
                         END
                         ELSE CASE
-                          WHEN bad_count("Weather_Condition") <= 0.5 THEN 1.0
+                          WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 0.5 THEN 1.0
                           ELSE 1.0
                         END
                       END
@@ -1668,7 +1668,7 @@ FROM
                       END
                     END
                     ELSE CASE
-                      WHEN bad_count("Weather_Condition") <= 0.5 THEN CASE
+                      WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 0.5 THEN CASE
                         WHEN "Description" <= 10.5 THEN CASE
                           WHEN ("Temperature(F)" -61.993707143960116) / (18.948923924075153) <= 4.775996685028076 THEN 1.0
                           ELSE 2.0
@@ -1719,7 +1719,7 @@ FROM
                     ELSE CASE
                       WHEN "Zipcode" <= 95.5 THEN CASE
                         WHEN "Zipcode" <= 41.5 THEN CASE
-                          WHEN bad_count("Weather_Condition") <= 1.5 THEN 1.0
+                          WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 1.5 THEN 1.0
                           ELSE 2.0
                         END
                         ELSE CASE
@@ -1812,7 +1812,7 @@ FROM
                         END
                       END
                       ELSE CASE
-                        WHEN bad_count("Weather_Condition") <= 0.5 THEN CASE
+                        WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 0.5 THEN CASE
                           WHEN "Description" <= 8.5 THEN 1.0
                           ELSE 1.0
                         END
@@ -1839,7 +1839,7 @@ FROM
                           ELSE 2.0
                         END
                         ELSE CASE
-                          WHEN bad_count("Weather_Condition") <= 0.5 THEN 3.0
+                          WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 0.5 THEN 3.0
                           ELSE 3.0
                         END
                       END
@@ -2302,7 +2302,7 @@ FROM
                       END
                     END
                     ELSE CASE
-                      WHEN bad_count("Weather_Condition") <= 0.5 THEN CASE
+                      WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 0.5 THEN CASE
                         WHEN ("Temperature(F)" -61.993707143960116) / (18.948923924075153) <= 4.087303400039673 THEN CASE
                           WHEN "Airport_Code_5" <= 0.5 THEN 1.0
                           ELSE 1.0
@@ -2332,7 +2332,7 @@ FROM
                   ELSE 0
                 END <= 0.5 THEN CASE
                   WHEN "Description" <= 13.5 THEN CASE
-                    WHEN bad_count("Weather_Condition") <= 0.5 THEN CASE
+                    WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 0.5 THEN CASE
                       WHEN "Description" <= 12.5 THEN CASE
                         WHEN "Pressure(in)" <= 29.59420394897461 THEN CASE
                           WHEN CASE
@@ -2453,7 +2453,7 @@ FROM
                         END
                       END
                       ELSE CASE
-                        WHEN bad_count("Weather_Condition") <= 0.5 THEN CASE
+                        WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 0.5 THEN CASE
                           WHEN "Description" <= 17.5 THEN 1.0
                           ELSE 1.0
                         END
@@ -2995,7 +2995,7 @@ FROM
                     END
                     ELSE CASE
                       WHEN "Description" <= 11.5 THEN CASE
-                        WHEN bad_count("Weather_Condition") <= 0.5 THEN CASE
+                        WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 0.5 THEN CASE
                           WHEN "Airport_Code_2" <= 0.5 THEN 1.0
                           ELSE 1.0
                         END
@@ -3188,7 +3188,7 @@ FROM
                     WHEN "Humidity(%)" <= 108.96917544024981 THEN CASE
                       WHEN "Description" <= 15.5 THEN CASE
                         WHEN time_months("Start_Time") <= 24233.5 THEN CASE
-                          WHEN bad_count("Weather_Condition") <= 0.5 THEN 1.0
+                          WHEN bad_count(COALESCE("Weather_Condition", 'Fair')) <= 0.5 THEN 1.0
                           ELSE 1.0
                         END
                         ELSE CASE
@@ -3486,8 +3486,6 @@ FROM
                                 "Description",
                                 'A crash has occurred causing no to minimum delays. Use caution.'
                               ) AS "Description",
-                              COALESCE("Weather_Condition", 'Fair') AS "Weather_Condition",
-                              COALESCE("Airport_Code", 'KCQT') AS "Airport_Code",
                               "Airport_Code_0",
                               "Airport_Code_1",
                               "Airport_Code_2",
@@ -3507,7 +3505,8 @@ FROM
                               "Pressure(in)",
                               "Wind_Chill(F)",
                               "Start_Time",
-                              "Visibility(mi)"
+                              "Visibility(mi)",
+                              "Weather_Condition"
                             FROM
                               (
                                 usa_accident

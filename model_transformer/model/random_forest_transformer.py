@@ -70,6 +70,9 @@ class RFMSQL(object):
 
     def merge_equal_with_trees(self, merge_equal_features):
         self.merge_features['merge_equal_features'] = merge_equal_features
+
+    def merge_imputation_with_trees(self, merge_imputation_features):
+        self.merge_features['merge_imputation_features'] = merge_imputation_features
     
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations

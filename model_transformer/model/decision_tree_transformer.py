@@ -68,6 +68,9 @@ class DTMSQL(object):
     def merge_equal_with_trees(self, merge_equal_features):
         self.merge_features['merge_equal_features'] = merge_equal_features
 
+    def merge_imputation_with_trees(self, merge_imputation_features):
+        self.merge_features['merge_imputation_features'] = merge_imputation_features
+
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations
 
@@ -274,10 +277,10 @@ class DTMSQL(object):
         merge_ohe_features = merge_features.get('merge_ohe_features')
         merge_standard_features = merge_features.get('merge_standard_features')
         merge_udf_features = merge_features.get('merge_udf_features')
-        imputation_features = merge_features.get('imputation_features')
         merge_minmax_features = merge_features.get('merge_minmax_features')
         merge_ordinal_features = merge_features.get('merge_ordinal_features')
         merge_equal_features = merge_features.get('merge_equal_features')
+        merge_imputation_features = merge_features.get('merge_imputation_features')
 
         assert isinstance(tree, BaseDecisionTree), "Only BaseDecisionTree data type is allowed for param 'tree'."
         assert isinstance(feature_names, list), "Only list data type is allowed for param 'features_names'."
@@ -312,9 +315,10 @@ class DTMSQL(object):
             thr = thresholds[node]
 
             ###### merge imputation ######
-            if imputation_features is not None:
-                if features[node] in imputation_features:
-                    feature = f"COALESCE({feature}, {imputation_features[features[node]]})"
+            if merge_imputation_features is not None:
+                imputation_infos = merge_imputation_features['imputation_infos']
+                if features[node] in imputation_infos and 'is_push' in imputation_infos[features[node]] and imputation_infos[features[node]]['is_push']:
+                    feature = f"COALESCE({feature}, \'{imputation_infos[features[node]]['impuataion_value']}\')"
                     
             ###### merge onehot ######
             if merge_ohe_features is not None:

@@ -218,6 +218,9 @@ class Optimizer(object):
         self.equal_need_gen_preprocess = True
         self.equal_need_merge = False
 
+        self.imputation_need_gen_preprocess = True
+        self.imputation_need_merge = False
+
         self.optimizations = optimizations
         self.dbms = dbms
 
@@ -257,7 +260,7 @@ class Optimizer(object):
                 transform_features = transform['transform_features']
                 merge_num = 0
                 for attr_name in transform_features:
-                    if transform_features[attr_name]['is_push']:
+                    if transform_features[attr_name].get('is_push') and transform_features[attr_name]['is_push']:
                         merge_num += 1
                 if merge_num == len(transform_features):
                     self.udf_need_gen_preprocess = False
@@ -277,6 +280,18 @@ class Optimizer(object):
                     self.equal_need_merge = True
                 elif merge_num < len(transform_features) and merge_num > 0:
                     self.equal_need_merge = True
+            
+            if transform['transform_name'] == 'Imputation':
+                transform_features = transform['transform_features']
+                merge_num = 0
+                for attr_name in transform_features:
+                    if transform_features[attr_name].get('is_push') and transform_features[attr_name]['is_push']:
+                        merge_num += 1
+                if merge_num == len(transform_features):
+                    self.imputation_need_gen_preprocess = False
+                    self.imputation_need_merge = True
+                elif merge_num < len(transform_features) and merge_num > 0:
+                    self.imputation_need_merge = True
         
         if self.udf_need_merge:
             if 'UDF' in self.transformer_names and \
@@ -287,6 +302,11 @@ class Optimizer(object):
             if 'EqualWidthDiscretization' in self.transformer_names and \
                     any(key in self.model_name for key in self.tree_based_model_keys):
                 transformers_to_merge.append('EqualWidthDiscretization')
+
+        if self.imputation_need_merge:
+            if 'Imputation' in self.transformer_names and \
+                    any(key in self.model_name for key in self.tree_based_model_keys):
+                transformers_to_merge.append('Imputation')
                 
         
         # get the fitted transformers from the pipeline
@@ -317,7 +337,8 @@ class Optimizer(object):
                     or (transformer_name == 'MinMaxScaler' and self.minmax_gen_preprocess)\
                         or (transformer_name == 'OneHotEncoder' and self.one_gen_preprocess)\
                             or (transformer_name == 'OrdinalEncoder' and self.ordinal_gen_preprocess)\
-                                or (transformer_name == 'EqualWidthDiscretization' and self.equal_need_gen_preprocess):
+                                or (transformer_name == 'EqualWidthDiscretization' and self.equal_need_gen_preprocess)\
+                                    or (transformer_name == 'Imputation' and self.imputation_need_gen_preprocess):
                 transformer_sql_wrapper.set_dbms(self.dbms)
                 new_transformers.append(transformer_sql_wrapper)
 
@@ -383,6 +404,10 @@ class Optimizer(object):
                 if transf_name == 'EqualWidthDiscretization':
                     print("EqualWidthDiscretization Operator fusion enabled.")
                     model_sql_wrapper.merge_equal_with_trees(transf_params)
+                
+                if transf_name == 'Imputation':
+                    print("Imputation Operator fusion enabled.")
+                    model_sql_wrapper.merge_imputation_with_trees(transf_params)
 
 
         new_model = {

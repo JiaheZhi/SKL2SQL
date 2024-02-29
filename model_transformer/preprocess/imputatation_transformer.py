@@ -30,14 +30,20 @@ class ImputationSQL(object):
 
         # loop over the udf features and insert them in the select clause
         for attri_name in imputation_infos:
-            impuataion_value = imputation_infos[attri_name]
-            attri_name = dbms_util.get_delimited_col(self.dbms, attri_name)
-            query += f"COALESCE({attri_name}, \'{impuataion_value}\') AS {attri_name},"
+            if not('is_push' in imputation_infos[attri_name] and imputation_infos[attri_name]['is_push']): 
+                impuataion_value = imputation_infos[attri_name]['impuataion_value']
+                attri_name = dbms_util.get_delimited_col(self.dbms, attri_name)
+                query += f"COALESCE({attri_name}, \'{impuataion_value}\') AS {attri_name},"
 
         # loop over the remaining features and insert them in the select clause
         for f in not_imputation_atrributes:
             f = dbms_util.get_delimited_col(self.dbms, f)
             query += "{},".format(f)
+        
+        for attri_name in imputation_infos:
+            if 'is_push' in imputation_infos[attri_name] and imputation_infos[attri_name]['is_push']: 
+                attri_name = dbms_util.get_delimited_col(self.dbms, attri_name)
+                query += "{},".format(attri_name)
         query = query[:-1]  # remove the last ','
 
         query += " FROM {}".format(table_name)

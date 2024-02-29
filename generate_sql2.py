@@ -23,10 +23,18 @@ if __name__ == '__main__':
     dbms = DBMSUtils.get_dbms_from_str_connection('postgresql://postgres:@localhost/postgres')
     preprocessors = {}
     preprocessors['Imputation'] = {
-        'Timezone': 'US/Eastern',
-        'Description': 'A crash has occurred causing no to minimum delays. Use caution.',
-        'Weather_Condition': 'Fair',
-        'Airport_Code': 'KCQT'
+        'Timezone': {
+            'impuataion_value':'US/Eastern',
+            'is_push':False
+        },
+        'Description': {
+            'impuataion_value':'A crash has occurred causing no to minimum delays. Use caution.',
+            'is_push':False
+        },
+        'Weather_Condition': {
+            'impuataion_value':'Fair',
+            'is_push':True
+        }
     }
 
     preprocessors['UDF'] = {
