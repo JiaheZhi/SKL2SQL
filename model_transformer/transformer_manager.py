@@ -221,6 +221,9 @@ class Optimizer(object):
         self.imputation_need_gen_preprocess = True
         self.imputation_need_merge = False
 
+        self.binary_need_gen_preprocess = True
+        self.binary_need_merge = False
+
         self.optimizations = optimizations
         self.dbms = dbms
 
@@ -292,6 +295,20 @@ class Optimizer(object):
                     self.imputation_need_merge = True
                 elif merge_num < len(transform_features) and merge_num > 0:
                     self.imputation_need_merge = True
+
+            if transform['transform_name'] == 'BinaryEncoder':
+                transform_features = transform['transform_features']
+                merge_num = 0
+                transform_features = transform_features['attrs']
+                for attr_name in transform_features:
+                    if (transform_features[attr_name].get('is_push') and transform_features[attr_name]['is_push'])\
+                        or (transform_features[attr_name].get('is_merge') and transform_features[attr_name]['is_merge']):
+                        merge_num += 1
+                if merge_num == len(transform_features):
+                    self.binary_need_gen_preprocess = False
+                    self.binary_need_merge = True
+                elif merge_num < len(transform_features) and merge_num > 0:
+                    self.binary_need_merge = True
         
         if self.udf_need_merge:
             if 'UDF' in self.transformer_names and \
@@ -307,6 +324,11 @@ class Optimizer(object):
             if 'Imputation' in self.transformer_names and \
                     any(key in self.model_name for key in self.tree_based_model_keys):
                 transformers_to_merge.append('Imputation')
+
+        if self.binary_need_merge:
+            if 'BinaryEncoder' in self.transformer_names and \
+                    any(key in self.model_name for key in self.tree_based_model_keys):
+                transformers_to_merge.append('BinaryEncoder')
                 
         
         # get the fitted transformers from the pipeline
@@ -338,7 +360,8 @@ class Optimizer(object):
                         or (transformer_name == 'OneHotEncoder' and self.one_gen_preprocess)\
                             or (transformer_name == 'OrdinalEncoder' and self.ordinal_gen_preprocess)\
                                 or (transformer_name == 'EqualWidthDiscretization' and self.equal_need_gen_preprocess)\
-                                    or (transformer_name == 'Imputation' and self.imputation_need_gen_preprocess):
+                                    or (transformer_name == 'Imputation' and self.imputation_need_gen_preprocess)\
+                                        or (transformer_name == 'BinaryEncoder' and self.binary_need_gen_preprocess):
                 transformer_sql_wrapper.set_dbms(self.dbms)
                 new_transformers.append(transformer_sql_wrapper)
 
@@ -408,6 +431,10 @@ class Optimizer(object):
                 if transf_name == 'Imputation':
                     print("Imputation Operator fusion enabled.")
                     model_sql_wrapper.merge_imputation_with_trees(transf_params)
+
+                if transf_name == 'BinaryEncoder':
+                    print("BinaryEncoder Operator fusion enabled.")
+                    model_sql_wrapper.merge_binary_with_trees(transf_params)
 
 
         new_model = {

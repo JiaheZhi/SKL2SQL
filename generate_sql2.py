@@ -8,10 +8,10 @@ if __name__ == '__main__':
     model_file = '/root/volume/SKL2SQL/trained_model/usa_accident_rf_pipeline_deep8_1.joblib'
     dataset_name = '(usa_accident LEFT JOIN usa_accident_zipcode_map on COALESCE(usa_accident.\"Zipcode\", \'91761\')=usa_accident_zipcode_map."Zipcode")' 
     
-    # binary_encoder_cols = ['Airport_Code', ]
-    binary_encoder_cols = ['Airport_Code_0', 'Airport_Code_1', 'Airport_Code_2', 'Airport_Code_3',
-       'Airport_Code_4', 'Airport_Code_5', 'Airport_Code_6', 'Airport_Code_7',
-       'Airport_Code_8', 'Airport_Code_9', 'Airport_Code_10']
+    binary_encoder_cols = ['Airport_Code', ]
+    # binary_encoder_cols = ['Airport_Code_0', 'Airport_Code_1', 'Airport_Code_2', 'Airport_Code_3',
+    #    'Airport_Code_4', 'Airport_Code_5', 'Airport_Code_6', 'Airport_Code_7',
+    #    'Airport_Code_8', 'Airport_Code_9', 'Airport_Code_10']
     frequency_encoder_cols = ['Zipcode']
     onehot_encoder_cols = ['Timezone', 'Country']
     label_encoder_cols = ['Source']
@@ -52,10 +52,16 @@ if __name__ == '__main__':
         }
     }
 
-    # preprocessors['BinaryEncoder'] = {
-    #     'attrs': ['Airport_Code'],
-    #     'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv'
-    # }
+    preprocessors['BinaryEncoder'] = {
+        'attrs': {
+            'Airport_Code': {
+                # 'is_push':True,
+                'is_merge':True
+            }
+        },
+        'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv',
+        # 'is_merge':True
+    }
 
     preprocessors['EqualWidthDiscretization'] = {
         'Visibility(mi)':{
@@ -67,7 +73,7 @@ if __name__ == '__main__':
     }
 
     # preprocessors['FrequencyEncoder'] = {
-    #     'attrs': ['Timezone'],
+    #     'attrs': ['Zipcode'],
     #     'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv'
     # }
 

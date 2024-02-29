@@ -74,6 +74,9 @@ class RFMSQL(object):
     def merge_imputation_with_trees(self, merge_imputation_features):
         self.merge_features['merge_imputation_features'] = merge_imputation_features
     
+    def merge_binary_with_trees(self, merge_binary_features):
+        self.merge_features['merge_binary_features'] = merge_binary_features
+    
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations
 

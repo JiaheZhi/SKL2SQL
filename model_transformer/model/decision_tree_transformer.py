@@ -8,6 +8,8 @@ class DTMSQL(object):
     This class implements the SQL wrapper for a Sklearn's Decision Tree Model (DTM).
     """
 
+    binary_map = {}
+
     def __init__(self, classification: bool = False):
         """
         This method initializes the state of the Decision Tree Model SQL wrapper.
@@ -70,6 +72,9 @@ class DTMSQL(object):
 
     def merge_imputation_with_trees(self, merge_imputation_features):
         self.merge_features['merge_imputation_features'] = merge_imputation_features
+
+    def merge_binary_with_trees(self, merge_binary_features):
+        self.merge_features['merge_binary_features'] = merge_binary_features
 
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations
@@ -281,6 +286,7 @@ class DTMSQL(object):
         merge_ordinal_features = merge_features.get('merge_ordinal_features')
         merge_equal_features = merge_features.get('merge_equal_features')
         merge_imputation_features = merge_features.get('merge_imputation_features')
+        merge_binary_features = merge_features.get('merge_binary_features')
 
         assert isinstance(tree, BaseDecisionTree), "Only BaseDecisionTree data type is allowed for param 'tree'."
         assert isinstance(feature_names, list), "Only list data type is allowed for param 'features_names'."
@@ -351,6 +357,75 @@ class DTMSQL(object):
                 udf_infos = merge_udf_features['udf_infos']
                 if features[node] in udf_infos and udf_infos[features[node]]['is_push']:
                     feature = f'{udf_infos[features[node]]["udf_name"]}({feature})'
+
+
+            ###### merge binary encoder ######
+            if merge_binary_features is not None:
+                binary_atrributes = merge_binary_features['binaryencoder_infos']['attrs']
+                f = ''
+                for attr_name in binary_atrributes:
+                    if attr_name in features[node]:
+                        f = attr_name
+                        break
+                if f in binary_atrributes and 'is_push' in binary_atrributes[f] and binary_atrributes[f]['is_push']:
+                    if features[node] not in DTMSQL.binary_map:
+                        train_data_join = merge_binary_features['train_data_join']
+                        train_data_join_groupby = train_data_join.groupby(f)[[features[node]]].first()
+                        begin_str = f'CASE WHEN {dbms_util.get_delimited_col(dbms, f)} in '
+                        one_index_list = []
+                        zero_index_list = []
+                        # 遍历行
+                        for row in range(train_data_join_groupby.shape[0]):
+                            if train_data_join_groupby.iloc[row][features[node]]:
+                                one_index_list.append(f"'{train_data_join_groupby.index[row]}'")
+                            else:
+                                zero_index_list.append(f"'{train_data_join_groupby.index[row]}'")
+
+
+                        in_str = ""
+                        if(len(one_index_list) < len(zero_index_list)):
+                            in_str += f"({','.join(one_index_list)}) THEN 1 ELSE 0 "
+                        else:
+                            in_str += f"({','.join(zero_index_list)}) THEN 0 ELSE 1 "
+
+                        end_str = f'END '
+                        feature = begin_str + in_str + end_str
+                        DTMSQL.binary_map[features[node]] = feature
+                    else:
+                        feature = DTMSQL.binary_map[features[node]]
+                elif f in binary_atrributes and 'is_merge' in binary_atrributes[f] and binary_atrributes[f]['is_merge']:
+                    if features[node] not in DTMSQL.binary_map:
+                        train_data_join = merge_binary_features['train_data_join']
+                        train_data_join_groupby = train_data_join.groupby(f)[[features[node]]].first()
+                        one_index_list = []
+                        zero_index_list = []
+                        # 遍历行
+                        for row in range(train_data_join_groupby.shape[0]):
+                            if train_data_join_groupby.iloc[row][features[node]]:
+                                one_index_list.append(f"'{train_data_join_groupby.index[row]}'")
+                            else:
+                                zero_index_list.append(f"'{train_data_join_groupby.index[row]}'")
+
+
+                        in_str = ""
+                        if(len(one_index_list) < len(zero_index_list)):
+                            in_str += f"({','.join(one_index_list)})"
+                            op = 'not in'
+                        else:
+                            in_str += f"({','.join(zero_index_list)})"
+                            op = 'in'
+                        
+                        feature = dbms_util.get_delimited_col(dbms, f)
+                        thr = in_str
+                        DTMSQL.binary_map[features[node]] = {
+                            'feature':feature,
+                            'op': op,
+                            'thr': thr
+                        }
+                    else:
+                        feature = DTMSQL.binary_map[features[node]]['feature']
+                        op = DTMSQL.binary_map[features[node]]['op']
+                        thr = DTMSQL.binary_map[features[node]]['thr']
 
             ###### merge equalwidth discretization ######
             if merge_equal_features is not None:
