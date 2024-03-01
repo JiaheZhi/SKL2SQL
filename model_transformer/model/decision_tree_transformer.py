@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.tree import BaseDecisionTree
+from collections import Counter
 from model_transformer.utility.dbms_utils import DBMSUtils
 
 
@@ -75,6 +76,9 @@ class DTMSQL(object):
 
     def merge_binary_with_trees(self, merge_binary_features):
         self.merge_features['merge_binary_features'] = merge_binary_features
+
+    def merge_frequency_with_trees(self, merge_frequency_features):
+        self.merge_features['merge_frequency_features'] = merge_frequency_features
 
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations
@@ -287,6 +291,7 @@ class DTMSQL(object):
         merge_equal_features = merge_features.get('merge_equal_features')
         merge_imputation_features = merge_features.get('merge_imputation_features')
         merge_binary_features = merge_features.get('merge_binary_features')
+        merge_frequency_features = merge_features.get('merge_frequency_features')
 
         assert isinstance(tree, BaseDecisionTree), "Only BaseDecisionTree data type is allowed for param 'tree'."
         assert isinstance(feature_names, list), "Only list data type is allowed for param 'features_names'."
@@ -355,9 +360,35 @@ class DTMSQL(object):
             ###### merge udf ######
             if merge_udf_features is not None:
                 udf_infos = merge_udf_features['udf_infos']
-                if features[node] in udf_infos and udf_infos[features[node]]['is_push']:
-                    feature = f'{udf_infos[features[node]]["udf_name"]}({feature})'
+                if features[node] in udf_infos:
+                    if 'is_push' in udf_infos[features[node]] and udf_infos[features[node]]['is_push']:
+                        feature = f'{udf_infos[features[node]]["udf_name"]}({feature})'
 
+            ###### merge frequency encoder ######
+            if merge_frequency_features is not None:
+                frequency_features = merge_frequency_features['transform_features']
+                if features[node] in frequency_features:
+                    train_data = merge_frequency_features['train_data']
+                    if 'is_push' in frequency_features[features[node]] and frequency_features[features[node]]['is_push']:
+                        data_list = train_data[features[node]]
+                        # get the map of value to frequency
+                        count = Counter(data_list)
+                        sql = "CASE "
+                        for ele, freq in count.items():
+                            sql += f"WHEN {feature} = '{ele}' THEN {freq} "
+                        sql += f"END "
+                        feature = sql
+                    elif 'is_merge' in frequency_features[features[node]] and frequency_features[features[node]]['is_merge']:
+                        data_list = train_data[features[node]]
+                        # get the map of value to frequency
+                        count = Counter(data_list)
+                        in_list = []
+                        for ele, freq in count.items():
+                            if freq <= thr:
+                                in_list.append(f"'{ele}'")
+                        in_str = '(' + ','.join(in_list) + ')'
+                        op = 'in'
+                        thr = in_str
 
             ###### merge binary encoder ######
             if merge_binary_features is not None:
@@ -380,8 +411,6 @@ class DTMSQL(object):
                                 one_index_list.append(f"'{train_data_join_groupby.index[row]}'")
                             else:
                                 zero_index_list.append(f"'{train_data_join_groupby.index[row]}'")
-
-
                         in_str = ""
                         if(len(one_index_list) < len(zero_index_list)):
                             in_str += f"({','.join(one_index_list)}) THEN 1 ELSE 0 "
@@ -393,6 +422,7 @@ class DTMSQL(object):
                         DTMSQL.binary_map[features[node]] = feature
                     else:
                         feature = DTMSQL.binary_map[features[node]]
+
                 elif f in binary_atrributes and 'is_merge' in binary_atrributes[f] and binary_atrributes[f]['is_merge']:
                     if features[node] not in DTMSQL.binary_map:
                         train_data_join = merge_binary_features['train_data_join']
@@ -405,8 +435,6 @@ class DTMSQL(object):
                                 one_index_list.append(f"'{train_data_join_groupby.index[row]}'")
                             else:
                                 zero_index_list.append(f"'{train_data_join_groupby.index[row]}'")
-
-
                         in_str = ""
                         if(len(one_index_list) < len(zero_index_list)):
                             in_str += f"({','.join(one_index_list)})"

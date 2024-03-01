@@ -56,7 +56,7 @@ if __name__ == '__main__':
         'attrs': {
             'Airport_Code': {
                 # 'is_push':True,
-                'is_merge':True
+                # 'is_merge':True
             }
         },
         'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv',
@@ -72,10 +72,15 @@ if __name__ == '__main__':
         }
     }
 
-    # preprocessors['FrequencyEncoder'] = {
-    #     'attrs': ['Zipcode'],
-    #     'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv'
-    # }
+    preprocessors['FrequencyEncoder'] = {
+        'attrs': {
+            'Zipcode': {
+                # 'is_push':True,
+                # 'is_merge':True
+            }
+        },
+        'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv'
+    }
 
     optimizations = {
         'StandardScaler': {

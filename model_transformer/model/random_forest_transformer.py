@@ -76,6 +76,9 @@ class RFMSQL(object):
     
     def merge_binary_with_trees(self, merge_binary_features):
         self.merge_features['merge_binary_features'] = merge_binary_features
+
+    def merge_frequency_with_trees(self, merge_frequency_features):
+        self.merge_features['merge_frequency_features'] = merge_frequency_features
     
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations
