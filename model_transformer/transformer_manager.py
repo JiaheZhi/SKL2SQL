@@ -19,6 +19,7 @@ from model_transformer.preprocess.freqency_encoder_transformer import FrequencyE
 from model_transformer.model.decision_tree_transformer import DTMSQL
 from model_transformer.model.random_forest_transformer import RFMSQL
 from model_transformer.utility.dbms_utils import DBMSUtils
+from model_transformer.utility.join_utils import join_transformer, del_temp_join_tables
 
 import numpy as np
 
@@ -114,10 +115,13 @@ class TransformerManager(object):
             'transforms': transforms
         }
 
-    def generate_query(self, model_data, dataset_name, features, dbms, optimizations=None, preprocessors=None):
+    def generate_query(self, model_data, table_name, features, dbms, pre_sql, optimizations=None, preprocessors=None):
         model = load_model(model_data)
         pipeline = self.extract_pipeline(model, preprocessors)
-        input_table = dataset_name
+        input_table = table_name
+
+        # add the join opreations
+        input_table, features = join_transformer(input_table, features, optimizations, preprocessors)
 
         opt = Optimizer(pipeline, features, dbms, optimizations)
         pipeline = opt.optimize()
@@ -145,13 +149,21 @@ class TransformerManager(object):
 
         queries = preliminary_queries.copy()
         out_query = ''
+
+        # add the pre sql
+        out_query = pre_sql + out_query
+
         for pre_q in preliminary_queries:
             out_query += f'{pre_q}\n'
         if model_pre_queries is not None:
             out_query += '\n'.join(model_pre_queries)
             queries += model_pre_queries
+            
         out_query += query
         queries.append(query)
+
+        # delete sql for temp tables
+        out_query = del_temp_join_tables(out_query)
 
         return queries, out_query
 
@@ -180,37 +192,39 @@ class Optimizer(object):
         self.tree_based_model_keys = ['Gradient', 'Tree', 'Forest']
 
         self.ml_manager = TransformerManager()
+        
+        self.one_gen_preprocess = False
+        self.one_optimization = False
+        self.standard_gen_preprocess = False
+        self.standard_optimization = False
+        self.minmax_gen_preprocess = False
+        self.minmax_optimization = False
+        self.ordinal_gen_preprocess = False
+        self.ordinal_optimization = False
+
         if 'OneHotEncoder' in optimizations:
             self.one_optimization = True
             if optimizations['OneHotEncoder'].get('other_attris'):
                 self.one_gen_preprocess = True
-            else:
-                self.one_gen_preprocess = False
-        else:
-            self.one_optimization = False
+            
 
         if 'StandardScaler' in optimizations:
             self.standard_optimization = True
             if optimizations['StandardScaler'].get('other_attris'):
                 self.standard_gen_preprocess = True
-            else:
-                self.standard_gen_preprocess = False
-        else:
-            self.standard_optimization = False
+            
 
         if 'MinMaxScaler' in optimizations:
             self.minmax_optimization = True
             if optimizations['MinMaxScaler'].get('other_attris'):
                 self.minmax_gen_preprocess = True
-            else:
-                self.minmax_gen_preprocess = False
+                
         
         if 'OrdinalEncoder' in optimizations:
             self.ordinal_optimization = True
             if optimizations['OrdinalEncoder'].get('other_attris'):
                 self.ordinal_gen_preprocess = True
-            else:
-                self.ordinal_gen_preprocess = False
+                
 
         self.udf_need_gen_preprocess = True
         self.udf_need_merge = False
@@ -315,6 +329,12 @@ class Optimizer(object):
         
             if transform['transform_name'] == 'FrequencyEncoder':
                 transform_features = transform['transform_features']
+                # if use join, then dont need the preprocess step and the push-up
+                if transform_features.get('method') == 'join':
+                    self.frequency_need_gen_preprocess = False
+                    break
+
+                # dont join
                 merge_num = 0
                 transform_features = transform_features['attrs']
                 for attr_name in transform_features:

@@ -1,6 +1,6 @@
 from model_transformer.utility.dbms_utils import DBMSUtils
 from collections import Counter
-import pandas as pd
+from model_transformer.utility.loader import load_dataset
 
 class FrequencyEncoderSQL(object):
 
@@ -15,7 +15,7 @@ class FrequencyEncoderSQL(object):
         attrs = infos['attrs']
         train_data_path = infos['train_data_path']
         other_features = [f for f in preprocess_all_features if f not in attrs]
-        train_data = pd.read_csv(train_data_path, nrows=10)
+        train_data = load_dataset(train_data_path)
         self.params = {'out_all_features': all_features, 'out_transform_features': prev_transform_features,
                        'transform_features': attrs, 'other_features': other_features, 'train_data':train_data,
                        'train_data_path': train_data_path, 'preprocess_all_features': preprocess_all_features}

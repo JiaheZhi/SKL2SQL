@@ -33,7 +33,10 @@ class ImputationSQL(object):
             if not('is_push' in imputation_infos[attri_name] and imputation_infos[attri_name]['is_push']): 
                 impuataion_value = imputation_infos[attri_name]['impuataion_value']
                 attri_name = dbms_util.get_delimited_col(self.dbms, attri_name)
-                query += f"COALESCE({attri_name}, \'{impuataion_value}\') AS {attri_name},"
+                if type(impuataion_value) == str:
+                    query += f"COALESCE({attri_name}, \'{impuataion_value}\') AS {attri_name},"
+                else:
+                    query += f"COALESCE({attri_name}, {impuataion_value}) AS {attri_name},"
 
         # loop over the remaining features and insert them in the select clause
         for f in not_imputation_atrributes:

@@ -3446,7 +3446,7 @@ FROM
                       "Country",
                       "Source",
                       "Wind_Chill(F)",
-                      "Description",
+                      "Description", 
                       "Start_Time",
                       "Weather_Condition",
                       "Visibility(mi)",
