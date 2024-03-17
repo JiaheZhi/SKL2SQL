@@ -4,6 +4,8 @@ import duckdb
 
 # created temp tables
 temp_tables = []
+# join transforme col map
+join_trans_col_map = {}
 
 def join_transformer(table_name, features, optimizations, preprocessors):
     table_sql = table_name
@@ -19,15 +21,16 @@ def join_transformer(table_name, features, optimizations, preprocessors):
                     # generate the count map
                     data_list = train_data[attr]
                     count = Counter(data_list)
-                    col_type = train_data[attr].dtype.name
                     # insert the count map to the corresponding database as a temproal table
                     join_table_name = attr + '_count'
                     cols = {attr:'VARCHAR'}
-                    cols['count'] = df_type2db_type(col_type, dbms)
+                    cols['count'] = df_type2db_type('int', dbms)
                     data = [(k, v) for k,v in count.items()]
                     insert_db(dbms, join_table_name, cols, data)
                     # change the table name with the join sql statements and update the features list
                     table_sql = f'({table_sql} left join {join_table_name} on {table_name}.{attr}={join_table_name}.{attr})'
+                    # add the join column transform
+                    add_join_trans_col(attr, 'count', join_table_name)
 
     return table_sql, features
 
@@ -57,7 +60,7 @@ def df_type2db_type(df_dtype, db):
             db_type = 'VARCHAR'
 
         if 'int' in df_dtype:
-            db_dtype = 'INT'
+            db_type = 'INT'
         
         if 'float' in df_dtype:
             db_type = 'FLOAT'
@@ -77,3 +80,11 @@ def del_temp_join_tables(pre_sql):
         return pre_sql + delete_sql
 
 
+
+def add_join_trans_col(origin_col, encoder_col, table_name):
+    join_trans_col_map[origin_col] = (encoder_col, table_name)
+
+
+
+def get_join_trans_col_map():
+    return join_trans_col_map

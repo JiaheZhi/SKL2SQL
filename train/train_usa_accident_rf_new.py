@@ -13,7 +13,7 @@ X = data.drop('Severity', axis=1)
 y = data['Severity']
 
 # choice effective columns
-frequency_encoder_cols = ['Weather_Condition']
+frequency_encoder_cols = ['Weather_Condition', 'Zipcode']
 onehot_encoder_cols = ['Timezone']
 standscaler_cols = ['Pressure(in)']
 other_cols = ['Station', 'Stop', 'Traffic_Signal']
@@ -48,7 +48,7 @@ pipeline = Pipeline(steps=[pipeline_transforms, pipeline_estimator])
 pipeline.fit(X, y)
 
 # save model to the file
-dump(pipeline, '/root/volume/SKL2SQL/trained_model/usa_accident_rf_deep5.joblib')
+dump(pipeline, '/root/volume/SKL2SQL/trained_model/usa_accident_rf_deep5_1.joblib')
 
 # test model
 data_test = pd.read_csv("/root/volume/SKL2SQL/dataset/US_Accidents_March23_test.csv")

@@ -16,10 +16,11 @@ from model_transformer.preprocess.minmax_scaler_transformer import MinMaxScalerS
 from model_transformer.preprocess.label_encoder_transformer import LabelEncoderSQL
 from model_transformer.preprocess.ordinal_encoder_transformer import OrdinalEncoderSQL
 from model_transformer.preprocess.freqency_encoder_transformer import FrequencyEncoderSQL
+from model_transformer.preprocess.join_transformer import JoinSQL
 from model_transformer.model.decision_tree_transformer import DTMSQL
 from model_transformer.model.random_forest_transformer import RFMSQL
 from model_transformer.utility.dbms_utils import DBMSUtils
-from model_transformer.utility.join_utils import join_transformer, del_temp_join_tables
+from model_transformer.utility.join_utils import join_transformer, del_temp_join_tables, get_join_trans_col_map
 
 import numpy as np
 
@@ -249,9 +250,10 @@ class Optimizer(object):
 
         out_pipeline = self.pipeline.copy()
         features = self.features
+        transformers_to_merge = []
+        transformers_to_join = []
 
         # if the optimization is enabled then check if the operator fusion can be applied
-        transformers_to_merge = []
         if self.one_optimization:
             # if the pipeline includes an OneHotEncoder and a tree-based model then apply the one-hot encoding directly
             # in the decision tree rules
@@ -331,6 +333,7 @@ class Optimizer(object):
                 transform_features = transform['transform_features']
                 # if use join, then dont need the preprocess step and the push-up
                 if transform_features.get('method') == 'join':
+                    transformers_to_join.append(transform['transform_name'])
                     self.frequency_need_gen_preprocess = False
                     break
 
@@ -379,6 +382,16 @@ class Optimizer(object):
         new_transformers = []
         sql_transformers_to_merge = []
         preprocess_all_features = features
+
+        # if some encoder is using join, then add the join_transformer layer
+        join_trans_col_map = get_join_trans_col_map()
+        if join_trans_col_map:
+            join_transformer = JoinSQL()
+            join_transformer.set_dbms(self.dbms)
+            join_transformer.get_params(features, join_trans_col_map)
+            new_transformers.append(join_transformer)
+
+        # resolve the preprocess transformers
         for transformer in self.transformers:
             transformer_name = transformer["transform_name"]
             if "fitted_transform" in transformer:
@@ -397,7 +410,7 @@ class Optimizer(object):
             features = transformer_params["out_all_features"]
             preprocess_all_features = transformer_params['preprocess_all_features']
             # transformers that have to be merged with the model are ignored in this phase
-            if transformer_name not in transformers_to_merge or (transformer_name == 'UDF' and self.udf_need_gen_preprocess)\
+            if transformer_name not in transformers_to_join and transformer_name not in transformers_to_merge or (transformer_name == 'UDF' and self.udf_need_gen_preprocess)\
                 or (transformer_name == 'StandardScaler' and self.standard_gen_preprocess)\
                     or (transformer_name == 'MinMaxScaler' and self.minmax_gen_preprocess)\
                         or (transformer_name == 'OneHotEncoder' and self.one_gen_preprocess)\

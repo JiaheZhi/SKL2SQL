@@ -5,10 +5,10 @@ from model_transformer.utility.dbms_utils import DBMSUtils
 if __name__ == '__main__':
     manager = TransformerManager()
 
-    model_file = '/root/volume/SKL2SQL/trained_model/usa_accident_rf_deep5.joblib'
+    model_file = '/root/volume/SKL2SQL/trained_model/usa_accident_rf_deep5_1.joblib'
     dataset_name = 'usa_accident' 
     
-    frequency_encoder_cols = ['Weather_Condition']
+    frequency_encoder_cols = ['Weather_Condition', 'Zipcode']
     onehot_encoder_cols = ['Timezone']
     standscaler_cols = ['Pressure(in)']
     other_cols = ['Station', 'Stop', 'Traffic_Signal']
@@ -26,7 +26,13 @@ if __name__ == '__main__':
             'is_push':False
         },
         'Weather_Condition': {
-            'impuataion_value': 'Fair',
+            # 'impuataion_value': 'Fair',
+            'impuataion_value': 768077,
+            'is_push':False
+        },
+        'Zipcode': {
+            # 'impuataion_value': '91761',
+            'impuataion_value': 3336,
             'is_push':False
         }
     }
@@ -34,12 +40,17 @@ if __name__ == '__main__':
     preprocessors['FrequencyEncoder'] = {
         'attrs': {
             'Weather_Condition': {
-                'is_push':True,
+                # 'is_push':True,
                 # 'is_merge':True
-            }
+            },
+            'Zipcode': {
+                # 'is_push':True,
+                # 'is_merge':True
+            },
         },
         'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv',
         'method': 'join',
+        # 'method': 'normal',
         'dbms': 'duckdb'
     }
 
@@ -61,5 +72,5 @@ if __name__ == '__main__':
     queries, query = manager.generate_query(model_file, dataset_name, features, dbms, pre_sql
                                             , optimizations, preprocessors)
     
-    with open('/root/volume/SKL2SQL/generated_sql/usa_accident_rf_deep5.sql', 'w') as sql_file:
+    with open('/root/volume/SKL2SQL/generated_sql/usa_accident_rf_deep5_join_1.sql', 'w') as sql_file:
         sql_file.write(query)
