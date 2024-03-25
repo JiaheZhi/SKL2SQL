@@ -38,9 +38,11 @@ class FrequencyEncoderSQL(object):
                 data_list = train_data[f]
                 # get the map of value to frequency
                 count = Counter(data_list)
+                count = count.most_common()
                 f = dbms_util.get_delimited_col(self.dbms, f)
                 query += "CASE "
-                for ele, freq in count.items():
+                for item in count:
+                    ele, freq = item
                     query += f"WHEN {f} = '{ele}' THEN {freq} "
                 query += f"END AS {f}, "
 
