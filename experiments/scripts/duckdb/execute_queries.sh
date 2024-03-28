@@ -9,7 +9,8 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
-out_file="/root/volume/SKL2SQL/experiments/results/usa_accident_rf_deep5_frequency_compration2_thread1.txt"
+thread=1
+out_file="/root/volume/SKL2SQL/experiments/results/usa_accident_rf_deep5_frequency_compration_thread${thread}_duckdb.txt"
 
 # 检查文件是否存在
 if [ -e "$out_file" ]; then
@@ -28,7 +29,7 @@ sql_folder="$1"
 # DuckDB 数据库文件路径
 db_file="/root/volume/duckdb/mydb"
 
-item_num=("500" "5000" "50000" "500000" "5000000" )
+item_num=("50" "263205" "526360" "789515" "1052671" "1315826" "1578981" "1842136" "2105292" "2368447" "2631602" "2894757" "3157913" "3421068" "3684223" "3947378" "4210534" "4473689" "4736844" "5000000")
 # 改变limit的数量
 for num in "${item_num[@]}"; do
     # 每个文件运行多遍
@@ -42,7 +43,7 @@ for num in "${item_num[@]}"; do
             execution_time=$(/root/volume/duckdb/build/release/duckdb "$db_file" "$(cat $sql_file) LIMIT $num;" | grep "Total Time" | awk '{print $4}')
 
             echo "查询 ${query_name}_$num 的执行时间为: $execution_time" >> "$out_file"
-        done
+        done    
     done
 done
 
