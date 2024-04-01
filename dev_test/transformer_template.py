@@ -9,7 +9,7 @@ class XXXSQL(object):
     def set_dbms(self, dbms: str):
         self.dbms = dbms
 
-    def get_params(self, fitted_transformer, infos, all_features, prev_transform_features):
+    def get_params(self, fitted_transformer, infos, all_features, preprocess_all_features, prev_transform_features):
 
         self.params = {}
         return self.params

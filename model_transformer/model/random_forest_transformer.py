@@ -79,6 +79,9 @@ class RFMSQL(object):
 
     def merge_frequency_with_trees(self, merge_frequency_features):
         self.merge_features['merge_frequency_features'] = merge_frequency_features
+
+    def merge_target_with_trees(self, merge_target_features):
+        self.merge_features['merge_target_features'] = merge_target_features
     
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations

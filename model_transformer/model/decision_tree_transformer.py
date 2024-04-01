@@ -80,6 +80,9 @@ class DTMSQL(object):
     def merge_frequency_with_trees(self, merge_frequency_features):
         self.merge_features['merge_frequency_features'] = merge_frequency_features
 
+    def merge_target_with_trees(self, merge_target_features):
+        self.merge_features['merge_target_features'] = merge_target_features
+
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations
 
@@ -292,6 +295,7 @@ class DTMSQL(object):
         merge_imputation_features = merge_features.get('merge_imputation_features')
         merge_binary_features = merge_features.get('merge_binary_features')
         merge_frequency_features = merge_features.get('merge_frequency_features')
+        merge_target_features = merge_features.get('merge_target_features')
 
         assert isinstance(tree, BaseDecisionTree), "Only BaseDecisionTree data type is allowed for param 'tree'."
         assert isinstance(feature_names, list), "Only list data type is allowed for param 'features_names'."
@@ -385,6 +389,51 @@ class DTMSQL(object):
                         in_list = []
                         for ele, freq in count.items():
                             if freq <= thr:
+                                in_list.append(f"'{ele}'")
+                        in_str = '(' + ','.join(in_list) + ')'
+                        op = 'in'
+                        thr = in_str
+
+            ###### merge target encoder ######
+            if merge_target_features is not None:
+                target_enc_features = merge_target_features['transform_features']
+                te = merge_target_features['te']
+                if features[node] in target_enc_features:
+                    train_data = merge_frequency_features['train_data']
+                    if 'is_push' in frequency_features[features[node]] and frequency_features[features[node]]['is_push']:
+                        data_list = train_data[f]
+                        count = Counter(data_list)
+                        count = count.most_common()
+                        # get variables of target encoder
+                        te_mapping = te.mapping[f]
+                        oe = te.ordinal_encoder
+                        for m in oe.mapping:
+                            if m['col'] == f:
+                                oe_mapping = m['mapping']
+                                break
+                        # generate sql
+                        f = dbms_util.get_delimited_col(dbms, f)
+                        sql = "CASE "
+                        for item in count:
+                            ele, _ = item
+                            sql += f"WHEN {f} = '{ele}' THEN {te_mapping[oe_mapping[ele]]} "
+                        sql += f"END AS {f}, "
+                        feature = sql
+                    elif 'is_merge' in frequency_features[features[node]] and frequency_features[features[node]]['is_merge']:
+                        data_list = train_data[features[node]]
+                        # get the map of value to frequency
+                        count = Counter(data_list)
+                        count = count.most_common()
+                        # get variables of target encoder
+                        te_mapping = te.mapping[f]
+                        oe = te.ordinal_encoder
+                        for m in oe.mapping:
+                            if m['col'] == f:
+                                oe_mapping = m['mapping']
+                                break
+                        in_list = []
+                        for ele, _ in count:
+                            if te_mapping[oe_mapping[ele]] <= thr:
                                 in_list.append(f"'{ele}'")
                         in_str = '(' + ','.join(in_list) + ')'
                         op = 'in'

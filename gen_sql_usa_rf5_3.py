@@ -5,14 +5,15 @@ from model_transformer.utility.dbms_utils import DBMSUtils
 if __name__ == '__main__':
     manager = TransformerManager()
 
-    model_file = '/root/volume/SKL2SQL/trained_model/usa_accident_rf_deep5_2.joblib'
+    model_file = '/root/volume/SKL2SQL/trained_model/usa_accident_rf_deep5_3.joblib'
     dataset_name = 'usa_accident' 
     
     frequency_encoder_cols = ['Source']
     onehot_encoder_cols = ['Timezone']
     standscaler_cols = ['Pressure(in)']
+    target_encoder_cols = ['City', 'County']
     other_cols = ['Station', 'Stop', 'Traffic_Signal']
-    features = frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + other_cols
+    features = frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + target_encoder_cols + other_cols
 
     dbms = DBMSUtils.get_dbms_from_str_connection('postgresql://postgres:@localhost/postgres')
     preprocessors = {}
@@ -23,6 +24,10 @@ if __name__ == '__main__':
         },
         'Pressure(in)': {
             'impuataion_value': 29.96,
+            'is_push':False
+        },
+        'City': {
+            'impuataion_value': 'Miami',
             'is_push':False
         }
     }
@@ -35,9 +40,24 @@ if __name__ == '__main__':
             }
         },
         'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv',
-        'method': 'join',
-        # 'method': 'normal',
+        # 'method': 'join',
+        'method': 'normal',
         'dbms': 'duckdb'
+    }
+
+    preprocessors['TargetEncoder'] = {
+        'attrs': {
+            'City': {
+                # 'is_push':True,
+                # 'is_merge':True
+            },
+            'County': {
+                # 'is_push':True,
+                # 'is_merge':True
+            }
+        },
+        'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv',
+        'target': 'Severity'
     }
 
     optimizations = {
@@ -58,5 +78,5 @@ if __name__ == '__main__':
     queries, query = manager.generate_query(model_file, dataset_name, features, dbms, pre_sql
                                             , optimizations, preprocessors)
     
-    with open('/root/volume/SKL2SQL/experiments/usa_accident_rf_deep5_2/usa_accident_rf_deep5_join_2.sql', 'w') as sql_file:
+    with open('/root/volume/SKL2SQL/experiments/usa_accident_rf_deep5_3/usa_accident_rf_deep5_case_3.sql', 'w') as sql_file:
         sql_file.write(query)
