@@ -18,6 +18,7 @@ from model_transformer.preprocess.ordinal_encoder_transformer import OrdinalEnco
 from model_transformer.preprocess.freqency_encoder_transformer import FrequencyEncoderSQL
 from model_transformer.preprocess.join_transformer import JoinSQL
 from model_transformer.preprocess.target_encoder_transformer import TargetEncoderSQL
+from model_transformer.preprocess.leave_one_out_encoder_transformer import LeaveOneOutEncoderSQL
 from model_transformer.model.decision_tree_transformer import DTMSQL
 from model_transformer.model.random_forest_transformer import RFMSQL
 from model_transformer.utility.dbms_utils import DBMSUtils
@@ -83,7 +84,8 @@ class TransformerManager(object):
         'LabelEncoder': LabelEncoderSQL(),
         'OrdinalEncoder': OrdinalEncoderSQL(),
         'FrequencyEncoder': FrequencyEncoderSQL(),
-        'TargetEncoder': TargetEncoderSQL()
+        'TargetEncoder': TargetEncoderSQL(),
+        'LeaveOneOutEncoder': LeaveOneOutEncoderSQL()
     }
 
 
@@ -247,6 +249,9 @@ class Optimizer(object):
         self.target_need_gen_preprocess = True
         self.target_need_merge = False
 
+        self.leave_need_gen_preprocess = True
+        self.leave_need_merge = False
+
         self.optimizations = optimizations
         self.dbms = dbms
 
@@ -376,6 +381,27 @@ class Optimizer(object):
                 elif merge_num < len(transform_features) and merge_num > 0:
                     self.target_need_merge = True
 
+            if transform['transform_name'] == 'LeaveOneOutEncoder':
+                transform_features = transform['transform_features']
+                # if use join, then dont need the preprocess step and the push-up
+                if transform_features.get('method') == 'join':
+                    transformers_to_join.append(transform['transform_name'])
+                    self.target_need_gen_preprocess = False
+                    break
+
+                # dont join
+                merge_num = 0
+                transform_features = transform_features['attrs']
+                for attr_name in transform_features:
+                    if (transform_features[attr_name].get('is_push') and transform_features[attr_name]['is_push'])\
+                        or (transform_features[attr_name].get('is_merge') and transform_features[attr_name]['is_merge']):
+                        merge_num += 1
+                if merge_num == len(transform_features):
+                    self.leave_need_gen_preprocess = False
+                    self.leave_need_merge = True
+                elif merge_num < len(transform_features) and merge_num > 0:
+                    self.leave_need_merge = True
+
 
         if self.udf_need_merge:
             if 'UDF' in self.transformer_names and \
@@ -406,6 +432,11 @@ class Optimizer(object):
             if 'TargetEncoder' in self.transformer_names and \
                     any(key in self.model_name for key in self.tree_based_model_keys):
                 transformers_to_merge.append('TargetEncoder')
+
+        if self.leave_need_merge:
+            if 'LeaveOneOutEncoder' in self.transformer_names and \
+                    any(key in self.model_name for key in self.tree_based_model_keys):
+                transformers_to_merge.append('LeaveOneOutEncoder')
                 
         
         # get the fitted transformers from the pipeline
@@ -450,7 +481,8 @@ class Optimizer(object):
                                     or (transformer_name == 'Imputation' and self.imputation_need_gen_preprocess)\
                                         or (transformer_name == 'BinaryEncoder' and self.binary_need_gen_preprocess)\
                                             or (transformer_name == 'FrequencyEncoder' and self.frequency_need_gen_preprocess)\
-                                                or (transformer_name == 'TargetEncoder' and self.target_need_gen_preprocess):
+                                                or (transformer_name == 'TargetEncoder' and self.target_need_gen_preprocess)\
+                                                    or (transformer_name == 'LeaveOneOutEncoder' and self.leave_need_gen_preprocess):
                 transformer_sql_wrapper.set_dbms(self.dbms)
                 new_transformers.append(transformer_sql_wrapper)
 
@@ -532,6 +564,10 @@ class Optimizer(object):
                 if transf_name == 'TargetEncoder':
                     print("TargetEncoder Operator fusion enabled.")
                     model_sql_wrapper.merge_target_with_trees(transf_params)
+
+                if transf_name == 'LeaveOneOutEncoder':
+                    print("LeaveOneOutEncoder Operator fusion enabled.")
+                    model_sql_wrapper.merge_leave_with_trees(transf_params)
 
 
         new_model = {

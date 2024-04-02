@@ -16,9 +16,10 @@ y = data['Severity']
 frequency_encoder_cols = ['Source']
 onehot_encoder_cols = ['Timezone']
 standscaler_cols = ['Pressure(in)']
-target_encoder_cols = ['City', 'County']
+target_encoder_cols = ['Wind_Direction']
+leaveoneout_encoder_cols = ['State']
 other_cols = ['Station', 'Stop', 'Traffic_Signal']
-X = X[frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + target_encoder_cols + other_cols]
+X = X[frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + target_encoder_cols+ leaveoneout_encoder_cols + other_cols]
 
 # clean data
 for col in X.columns:
@@ -32,6 +33,9 @@ counter_encoder = ce.CountEncoder(cols=frequency_encoder_cols)
 X = counter_encoder.fit_transform(X)
 target_encoder = ce.TargetEncoder(cols=target_encoder_cols)
 X = target_encoder.fit_transform(X, y)
+leaveoneout_encoder = ce.LeaveOneOutEncoder(cols=leaveoneout_encoder_cols)
+X = leaveoneout_encoder.fit_transform(X, y)
+
 # define pipline
 std_scalar = StandardScaler(with_mean=False)
 onehot_encoder = OneHotEncoder(handle_unknown='ignore')
@@ -56,7 +60,7 @@ dump(pipeline, '/root/volume/SKL2SQL/trained_model/usa_accident_rf_deep5_3.jobli
 data_test = pd.read_csv("/root/volume/SKL2SQL/dataset/US_Accidents_March23_test.csv")
 X_test = data.drop('Severity', axis=1)
 y_test = data['Severity']
-X_test = X_test[frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + target_encoder_cols + other_cols]
+X_test = X_test[frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + target_encoder_cols + leaveoneout_encoder_cols + other_cols]
 
 # clean data
 for col in X_test.columns:
@@ -69,6 +73,8 @@ counter_encoder = ce.CountEncoder(cols=frequency_encoder_cols)
 X_test = counter_encoder.fit_transform(X_test)
 target_encoder = ce.TargetEncoder(cols=target_encoder_cols)
 X_test = target_encoder.fit_transform(X_test, y)
+leaveoneout_encoder = ce.LeaveOneOutEncoder(cols=leaveoneout_encoder_cols)
+X_test = leaveoneout_encoder.fit_transform(X_test, y)
 
 # evaluate the test result
 y_predict = pipeline.predict(X_test)

@@ -11,9 +11,10 @@ if __name__ == '__main__':
     frequency_encoder_cols = ['Source']
     onehot_encoder_cols = ['Timezone']
     standscaler_cols = ['Pressure(in)']
-    target_encoder_cols = ['City', 'County']
+    target_encoder_cols = ['Wind_Direction']
+    leaveoneout_encoder_cols = ['State']
     other_cols = ['Station', 'Stop', 'Traffic_Signal']
-    features = frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + target_encoder_cols + other_cols
+    features = frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + target_encoder_cols + leaveoneout_encoder_cols + other_cols
 
     dbms = DBMSUtils.get_dbms_from_str_connection('postgresql://postgres:@localhost/postgres')
     preprocessors = {}
@@ -26,8 +27,8 @@ if __name__ == '__main__':
             'impuataion_value': 29.96,
             'is_push':False
         },
-        'City': {
-            'impuataion_value': 'Miami',
+        'Wind_Direction': {
+            'impuataion_value': 'CALM',
             'is_push':False
         }
     }
@@ -47,13 +48,20 @@ if __name__ == '__main__':
 
     preprocessors['TargetEncoder'] = {
         'attrs': {
-            'City': {
+            'Wind_Direction': {
                 # 'is_push':True,
-                # 'is_merge':True
-            },
-            'County': {
+                'is_merge':True
+            }
+        },
+        'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv',
+        'target': 'Severity'
+    }
+
+    preprocessors['LeaveOneOutEncoder'] = {
+        'attrs': {
+            'State': {
                 # 'is_push':True,
-                # 'is_merge':True
+                'is_merge':True
             }
         },
         'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv',

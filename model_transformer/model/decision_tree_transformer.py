@@ -83,6 +83,9 @@ class DTMSQL(object):
     def merge_target_with_trees(self, merge_target_features):
         self.merge_features['merge_target_features'] = merge_target_features
 
+    def merge_leave_with_trees(self, merge_leave_features):
+        self.merge_features['merge_leave_features'] = merge_leave_features
+
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations
 
@@ -296,6 +299,7 @@ class DTMSQL(object):
         merge_binary_features = merge_features.get('merge_binary_features')
         merge_frequency_features = merge_features.get('merge_frequency_features')
         merge_target_features = merge_features.get('merge_target_features')
+        merge_leave_features = merge_features.get('merge_leave_features')
 
         assert isinstance(tree, BaseDecisionTree), "Only BaseDecisionTree data type is allowed for param 'tree'."
         assert isinstance(feature_names, list), "Only list data type is allowed for param 'features_names'."
@@ -399,41 +403,76 @@ class DTMSQL(object):
                 target_enc_features = merge_target_features['transform_features']
                 te = merge_target_features['te']
                 if features[node] in target_enc_features:
-                    train_data = merge_frequency_features['train_data']
-                    if 'is_push' in frequency_features[features[node]] and frequency_features[features[node]]['is_push']:
-                        data_list = train_data[f]
+                    train_data = merge_target_features['train_data']
+                    if 'is_push' in target_enc_features[features[node]] and target_enc_features[features[node]]['is_push']:
+                        data_list = train_data[features[node]]
                         count = Counter(data_list)
                         count = count.most_common()
                         # get variables of target encoder
-                        te_mapping = te.mapping[f]
+                        te_mapping = te.mapping[features[node]]
                         oe = te.ordinal_encoder
                         for m in oe.mapping:
-                            if m['col'] == f:
+                            if m['col'] == features[node]:
                                 oe_mapping = m['mapping']
                                 break
                         # generate sql
-                        f = dbms_util.get_delimited_col(dbms, f)
+                        f = dbms_util.get_delimited_col(dbms, features[node])
                         sql = "CASE "
                         for item in count:
                             ele, _ = item
                             sql += f"WHEN {f} = '{ele}' THEN {te_mapping[oe_mapping[ele]]} "
                         sql += f"END AS {f}, "
                         feature = sql
-                    elif 'is_merge' in frequency_features[features[node]] and frequency_features[features[node]]['is_merge']:
+                    elif 'is_merge' in target_enc_features[features[node]] and target_enc_features[features[node]]['is_merge']:
                         data_list = train_data[features[node]]
                         # get the map of value to frequency
                         count = Counter(data_list)
                         count = count.most_common()
                         # get variables of target encoder
-                        te_mapping = te.mapping[f]
+                        te_mapping = te.mapping[features[node]]
                         oe = te.ordinal_encoder
                         for m in oe.mapping:
-                            if m['col'] == f:
+                            if m['col'] == features[node]:
                                 oe_mapping = m['mapping']
                                 break
                         in_list = []
                         for ele, _ in count:
                             if te_mapping[oe_mapping[ele]] <= thr:
+                                in_list.append(f"'{ele}'")
+                        in_str = '(' + ','.join(in_list) + ')'
+                        op = 'in'
+                        thr = in_str
+
+            ###### merge leaveOneOut encoder ######
+            if merge_leave_features is not None:
+                leave_enc_features = merge_leave_features['transform_features']
+                looe = merge_leave_features['looe']
+                if features[node] in leave_enc_features:
+                    train_data = merge_leave_features['train_data']
+                    if 'is_push' in leave_enc_features[features[node]] and leave_enc_features[features[node]]['is_push']:
+                        data_list = train_data[features[node]]
+                        count = Counter(data_list)
+                        count = count.most_common()
+                        # get variables of target encoder
+                        looe_mapping = looe.mapping[features[node]]
+                        # generate sql
+                        f = dbms_util.get_delimited_col(dbms, features[node])
+                        sql = "CASE "
+                        for item in count:
+                            ele, _ = item
+                            sql += f"WHEN {f} = '{ele}' THEN {looe_mapping.at[ele, 'sum']/looe_mapping.at[ele, 'count']} "
+                        sql += f"END AS {f}, "
+                        feature = sql
+                    elif 'is_merge' in leave_enc_features[features[node]] and leave_enc_features[features[node]]['is_merge']:
+                        data_list = train_data[features[node]]
+                        # get the map of value to frequency
+                        count = Counter(data_list)
+                        count = count.most_common()
+                        # get variables of target encoder
+                        looe_mapping = looe.mapping[features[node]]
+                        in_list = []
+                        for ele, _ in count:
+                            if looe_mapping.at[ele, 'sum']/looe_mapping.at[ele, 'count'] <= thr:
                                 in_list.append(f"'{ele}'")
                         in_str = '(' + ','.join(in_list) + ')'
                         op = 'in'

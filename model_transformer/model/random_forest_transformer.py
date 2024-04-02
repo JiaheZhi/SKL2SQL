@@ -82,6 +82,9 @@ class RFMSQL(object):
 
     def merge_target_with_trees(self, merge_target_features):
         self.merge_features['merge_target_features'] = merge_target_features
+
+    def merge_leave_with_trees(self, merge_leave_features):
+        self.merge_features['merge_leave_features'] = merge_leave_features
     
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations
