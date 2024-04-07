@@ -20,5 +20,5 @@ looe_mapping = looe.mapping['Education']
 
 uq = df['Education'].unique()
 looe_sql_map = {f_name:looe_mapping.at[f_name, 'sum']/looe_mapping.at[f_name, 'count'] for f_name in uq}
-
+print(looe_mapping['sum'].dtype)
 print(looe_sql_map)

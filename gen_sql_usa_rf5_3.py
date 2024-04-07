@@ -50,22 +50,26 @@ if __name__ == '__main__':
         'attrs': {
             'Wind_Direction': {
                 # 'is_push':True,
-                'is_merge':True
+                # 'is_merge':True
             }
         },
         'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv',
-        'target': 'Severity'
+        'target': 'Severity',
+        'method': 'join',
+        'dbms': 'pg'
     }
 
     preprocessors['LeaveOneOutEncoder'] = {
         'attrs': {
             'State': {
                 # 'is_push':True,
-                'is_merge':True
+                # 'is_merge':True
             }
         },
         'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv',
-        'target': 'Severity'
+        'target': 'Severity',
+        'method': 'join',
+        'dbms': 'pg'
     }
 
     optimizations = {
@@ -86,5 +90,5 @@ if __name__ == '__main__':
     queries, query = manager.generate_query(model_file, dataset_name, features, dbms, pre_sql
                                             , optimizations, preprocessors)
     
-    with open('/root/volume/SKL2SQL/experiments/usa_accident_rf_deep5_3/usa_accident_rf_deep5_case_3.sql', 'w') as sql_file:
+    with open('/root/volume/SKL2SQL/experiments/usa_accident_rf_deep5_3/usa_accident_rf_deep5_join_3.sql', 'w') as sql_file:
         sql_file.write(query)

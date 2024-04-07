@@ -300,7 +300,7 @@ class Optimizer(object):
                 elif merge_num < len(transform_features) and merge_num > 0:
                     self.udf_need_merge = True
             
-            if transform['transform_name'] == 'EqualWidthDiscretization':
+            elif transform['transform_name'] == 'EqualWidthDiscretization':
                 transform_features = transform['transform_features']
                 merge_num = 0
                 for attr_name in transform_features:
@@ -313,7 +313,7 @@ class Optimizer(object):
                 elif merge_num < len(transform_features) and merge_num > 0:
                     self.equal_need_merge = True
             
-            if transform['transform_name'] == 'Imputation':
+            elif transform['transform_name'] == 'Imputation':
                 transform_features = transform['transform_features']
                 merge_num = 0
                 for attr_name in transform_features:
@@ -325,7 +325,7 @@ class Optimizer(object):
                 elif merge_num < len(transform_features) and merge_num > 0:
                     self.imputation_need_merge = True
 
-            if transform['transform_name'] == 'BinaryEncoder':
+            elif transform['transform_name'] == 'BinaryEncoder':
                 transform_features = transform['transform_features']
                 merge_num = 0
                 transform_features = transform_features['attrs']
@@ -339,68 +339,65 @@ class Optimizer(object):
                 elif merge_num < len(transform_features) and merge_num > 0:
                     self.binary_need_merge = True
         
-            if transform['transform_name'] == 'FrequencyEncoder':
+            elif transform['transform_name'] == 'FrequencyEncoder':
                 transform_features = transform['transform_features']
                 # if use join, then dont need the preprocess step and the push-up
                 if transform_features.get('method') == 'join':
                     transformers_to_join.append(transform['transform_name'])
                     self.frequency_need_gen_preprocess = False
-                    break
+                else:
+                    # dont join
+                    merge_num = 0
+                    transform_features = transform_features['attrs']
+                    for attr_name in transform_features:
+                        if (transform_features[attr_name].get('is_push') and transform_features[attr_name]['is_push'])\
+                            or (transform_features[attr_name].get('is_merge') and transform_features[attr_name]['is_merge']):
+                            merge_num += 1
+                    if merge_num == len(transform_features):
+                        self.frequency_need_gen_preprocess = False
+                        self.frequency_need_merge = True
+                    elif merge_num < len(transform_features) and merge_num > 0:
+                        self.frequency_need_merge = True
 
-                # dont join
-                merge_num = 0
-                transform_features = transform_features['attrs']
-                for attr_name in transform_features:
-                    if (transform_features[attr_name].get('is_push') and transform_features[attr_name]['is_push'])\
-                        or (transform_features[attr_name].get('is_merge') and transform_features[attr_name]['is_merge']):
-                        merge_num += 1
-                if merge_num == len(transform_features):
-                    self.frequency_need_gen_preprocess = False
-                    self.frequency_need_merge = True
-                elif merge_num < len(transform_features) and merge_num > 0:
-                    self.frequency_need_merge = True
-
-            if transform['transform_name'] == 'TargetEncoder':
+            elif transform['transform_name'] == 'TargetEncoder':
                 transform_features = transform['transform_features']
                 # if use join, then dont need the preprocess step and the push-up
                 if transform_features.get('method') == 'join':
                     transformers_to_join.append(transform['transform_name'])
                     self.target_need_gen_preprocess = False
-                    break
+                else:
+                    # dont join
+                    merge_num = 0
+                    transform_features = transform_features['attrs']
+                    for attr_name in transform_features:
+                        if (transform_features[attr_name].get('is_push') and transform_features[attr_name]['is_push'])\
+                            or (transform_features[attr_name].get('is_merge') and transform_features[attr_name]['is_merge']):
+                            merge_num += 1
+                    if merge_num == len(transform_features):
+                        self.target_need_gen_preprocess = False
+                        self.target_need_merge = True
+                    elif merge_num < len(transform_features) and merge_num > 0:
+                        self.target_need_merge = True
 
-                # dont join
-                merge_num = 0
-                transform_features = transform_features['attrs']
-                for attr_name in transform_features:
-                    if (transform_features[attr_name].get('is_push') and transform_features[attr_name]['is_push'])\
-                        or (transform_features[attr_name].get('is_merge') and transform_features[attr_name]['is_merge']):
-                        merge_num += 1
-                if merge_num == len(transform_features):
-                    self.target_need_gen_preprocess = False
-                    self.target_need_merge = True
-                elif merge_num < len(transform_features) and merge_num > 0:
-                    self.target_need_merge = True
-
-            if transform['transform_name'] == 'LeaveOneOutEncoder':
+            elif transform['transform_name'] == 'LeaveOneOutEncoder':
                 transform_features = transform['transform_features']
                 # if use join, then dont need the preprocess step and the push-up
                 if transform_features.get('method') == 'join':
                     transformers_to_join.append(transform['transform_name'])
-                    self.target_need_gen_preprocess = False
-                    break
-
-                # dont join
-                merge_num = 0
-                transform_features = transform_features['attrs']
-                for attr_name in transform_features:
-                    if (transform_features[attr_name].get('is_push') and transform_features[attr_name]['is_push'])\
-                        or (transform_features[attr_name].get('is_merge') and transform_features[attr_name]['is_merge']):
-                        merge_num += 1
-                if merge_num == len(transform_features):
                     self.leave_need_gen_preprocess = False
-                    self.leave_need_merge = True
-                elif merge_num < len(transform_features) and merge_num > 0:
-                    self.leave_need_merge = True
+                else:
+                    # dont join
+                    merge_num = 0
+                    transform_features = transform_features['attrs']
+                    for attr_name in transform_features:
+                        if (transform_features[attr_name].get('is_push') and transform_features[attr_name]['is_push'])\
+                            or (transform_features[attr_name].get('is_merge') and transform_features[attr_name]['is_merge']):
+                            merge_num += 1
+                    if merge_num == len(transform_features):
+                        self.leave_need_gen_preprocess = False
+                        self.leave_need_merge = True
+                    elif merge_num < len(transform_features) and merge_num > 0:
+                        self.leave_need_merge = True
 
 
         if self.udf_need_merge:
