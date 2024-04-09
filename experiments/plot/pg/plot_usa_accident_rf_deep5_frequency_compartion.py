@@ -17,11 +17,16 @@ with open('/root/volume/SKL2SQL/experiments/results/pg/usa_accident_rf_deep5_fre
                 time = float(match.group(3))
                 if fusion not in data:
                     data[fusion] = {}
-                data[fusion][last_number] = time
+                if last_number not in data[fusion]:
+                    data[fusion][last_number] = {}
+                    data[fusion][last_number]['sum'] = 0
+                    data[fusion][last_number]['len'] = 0
+                data[fusion][last_number]['sum'] += time
+                data[fusion][last_number]['len'] += 1
                 break
 
 # 构建二维数组
-array = [[data[fusion][last_number] / 1000 for last_number in last_numbers] for fusion in fusions]
+array = [[data[fusion][last_number]['sum'] / data[fusion][last_number]['len'] / 1000 for last_number in last_numbers] for fusion in fusions]
 
 # 图标样式
 markers = ['o', '^', 'x']
