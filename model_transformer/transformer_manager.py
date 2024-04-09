@@ -22,7 +22,7 @@ from model_transformer.preprocess.leave_one_out_encoder_transformer import Leave
 from model_transformer.model.decision_tree_transformer import DTMSQL
 from model_transformer.model.random_forest_transformer import RFMSQL
 from model_transformer.utility.dbms_utils import DBMSUtils
-from model_transformer.utility.join_utils import join_transformer, del_temp_join_tables, get_join_trans_col_map
+from model_transformer.utility.join_utils import join_transformer, del_temp_join_tables, get_join_trans_col_map, join_features_transformer
 
 import numpy as np
 
@@ -123,12 +123,14 @@ class TransformerManager(object):
     def generate_query(self, model_data, table_name, features, dbms, pre_sql, optimizations=None, preprocessors=None):
         model = load_model(model_data)
         pipeline = self.extract_pipeline(model, preprocessors)
+
         input_table = table_name
-
+        # # change the join features names
+        # preprocess_features = join_features_transformer(features, optimizations, preprocessors, pipeline)
         # add the join opreations
-        input_table, features = join_transformer(input_table, features, optimizations, preprocessors)
+        input_table, preprocess_features = join_transformer(input_table,features, optimizations, preprocessors, pipeline)
 
-        opt = Optimizer(pipeline, features, dbms, optimizations)
+        opt = Optimizer(pipeline, features, preprocess_features, dbms, optimizations)
         pipeline = opt.optimize()
 
         # create an SQL query for each transformer
@@ -174,7 +176,7 @@ class TransformerManager(object):
 
 
 class Optimizer(object):
-    def __init__(self, pipeline: dict, features: list, dbms: str, optimizations):
+    def __init__(self, pipeline: dict, features: list, preprocess_features: list, dbms: str, optimizations):
         assert isinstance(pipeline, dict)
         assert 'model' in pipeline
         assert 'transforms' in pipeline
@@ -189,6 +191,7 @@ class Optimizer(object):
 
         self.pipeline = pipeline
         self.features = features
+        self.preprocess_features = preprocess_features
 
         self.transformers = self.pipeline["transforms"]
         self.model = self.pipeline['model']
@@ -200,37 +203,16 @@ class Optimizer(object):
         
         self.one_gen_preprocess = False
         self.one_optimization = False
+
         self.standard_gen_preprocess = False
         self.standard_optimization = False
+
         self.minmax_gen_preprocess = False
         self.minmax_optimization = False
+
         self.ordinal_gen_preprocess = False
         self.ordinal_optimization = False
-
-        if 'OneHotEncoder' in optimizations:
-            self.one_optimization = True
-            if optimizations['OneHotEncoder'].get('other_attris'):
-                self.one_gen_preprocess = True
-            
-
-        if 'StandardScaler' in optimizations:
-            self.standard_optimization = True
-            if optimizations['StandardScaler'].get('other_attris'):
-                self.standard_gen_preprocess = True
-            
-
-        if 'MinMaxScaler' in optimizations:
-            self.minmax_optimization = True
-            if optimizations['MinMaxScaler'].get('other_attris'):
-                self.minmax_gen_preprocess = True
                 
-        
-        if 'OrdinalEncoder' in optimizations:
-            self.ordinal_optimization = True
-            if optimizations['OrdinalEncoder'].get('other_attris'):
-                self.ordinal_gen_preprocess = True
-                
-
         self.udf_need_gen_preprocess = True
         self.udf_need_merge = False
 
@@ -259,32 +241,40 @@ class Optimizer(object):
     def optimize(self):
 
         out_pipeline = self.pipeline.copy()
+        optimizations = self.optimizations
         features = self.features
         transformers_to_merge = []
         transformers_to_join = []
 
-        # if the optimization is enabled then check if the operator fusion can be applied
-        if self.one_optimization:
-            # if the pipeline includes an OneHotEncoder and a tree-based model then apply the one-hot encoding directly
-            # in the decision tree rules
-            if 'OneHotEncoder' in self.transformer_names and \
-                    any(key in self.model_name for key in self.tree_based_model_keys):
-                transformers_to_merge.append('OneHotEncoder')
-        
-        if self.standard_optimization:
-            if 'StandardScaler' in self.transformer_names and \
-                    any(key in self.model_name for key in self.tree_based_model_keys):
-                transformers_to_merge.append('StandardScaler')
-        
-        if self.minmax_optimization:
-            if 'MinMaxScaler' in self.transformer_names and \
-                    any(key in self.model_name for key in self.tree_based_model_keys):
-                transformers_to_merge.append('MinMaxScaler')
+        if 'OneHotEncoder' in optimizations:
+            if optimizations['OneHotEncoder'].get('join_attris'):
+                transformers_to_join.append('OneHotEncoder')
+            else:
+                if optimizations['OneHotEncoder'].get('push_attris') or optimizations['OneHotEncoder'].get('merge_attris'):
+                    self.one_optimization = True
+                if optimizations['OneHotEncoder'].get('other_attris'):
+                    self.one_gen_preprocess = True
+            
 
-        if self.ordinal_optimization:
-            if 'OrdinalEncoder' in self.transformer_names and \
-                    any(key in self.model_name for key in self.tree_based_model_keys):
-                transformers_to_merge.append('OrdinalEncoder')
+        if 'StandardScaler' in optimizations:
+            if optimizations['StandardScaler'].get('push_attris') or optimizations['StandardScaler'].get('merge_attris'):
+                self.standard_optimization = True
+            if optimizations['StandardScaler'].get('other_attris'):
+                self.standard_gen_preprocess = True
+            
+
+        if 'MinMaxScaler' in optimizations:
+            if optimizations['MinMaxScaler'].get('push_attris') or optimizations['MinMaxScaler'].get('merge_attris'):
+                self.minmax_optimization = True
+            if optimizations['MinMaxScaler'].get('other_attris'):
+                self.minmax_gen_preprocess = True
+                
+        
+        if 'OrdinalEncoder' in optimizations:
+            if optimizations['OrdinalEncoder'].get('push_attris') or optimizations['OrdinalEncoder'].get('merge_attris'):
+                self.ordinal_optimization = True
+            if optimizations['OrdinalEncoder'].get('other_attris'):
+                self.ordinal_gen_preprocess = True
 
         
         for transform in out_pipeline['transforms']:
@@ -399,6 +389,28 @@ class Optimizer(object):
                     elif merge_num < len(transform_features) and merge_num > 0:
                         self.leave_need_merge = True
 
+        # if the optimization is enabled then check if the operator fusion can be applied
+        if self.one_optimization:
+            # if the pipeline includes an OneHotEncoder and a tree-based model then apply the one-hot encoding directly
+            # in the decision tree rules
+            if 'OneHotEncoder' in self.transformer_names and \
+                    any(key in self.model_name for key in self.tree_based_model_keys):
+                transformers_to_merge.append('OneHotEncoder')
+        
+        if self.standard_optimization:
+            if 'StandardScaler' in self.transformer_names and \
+                    any(key in self.model_name for key in self.tree_based_model_keys):
+                transformers_to_merge.append('StandardScaler')
+        
+        if self.minmax_optimization:
+            if 'MinMaxScaler' in self.transformer_names and \
+                    any(key in self.model_name for key in self.tree_based_model_keys):
+                transformers_to_merge.append('MinMaxScaler')
+
+        if self.ordinal_optimization:
+            if 'OrdinalEncoder' in self.transformer_names and \
+                    any(key in self.model_name for key in self.tree_based_model_keys):
+                transformers_to_merge.append('OrdinalEncoder')
 
         if self.udf_need_merge:
             if 'UDF' in self.transformer_names and \
@@ -440,7 +452,8 @@ class Optimizer(object):
         prev_transform_features = []
         new_transformers = []
         sql_transformers_to_merge = []
-        preprocess_all_features = features
+        preprocess_all_features = self.preprocess_features
+        join_transformers_parms = {}
 
         # if some encoder is using join, then add the join_transformer layer
         join_trans_col_map = get_join_trans_col_map()
@@ -482,6 +495,9 @@ class Optimizer(object):
                                                     or (transformer_name == 'LeaveOneOutEncoder' and self.leave_need_gen_preprocess):
                 transformer_sql_wrapper.set_dbms(self.dbms)
                 new_transformers.append(transformer_sql_wrapper)
+
+            if transformer_name in transformers_to_join:
+                join_transformers_parms[transformer_name] = transformer_params
 
             if transformer_name in transformers_to_merge:
                 sql_transformers_to_merge.append((transformer_name, transformer_sql_wrapper, transformer_params))
@@ -575,5 +591,6 @@ class Optimizer(object):
 
         out_pipeline['transforms'] = new_transformers
         out_pipeline['model'] = new_model
+        out_pipeline['join_transformers_parms'] = join_transformers_parms
 
         return out_pipeline

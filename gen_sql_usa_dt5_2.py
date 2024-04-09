@@ -48,8 +48,10 @@ if __name__ == '__main__':
         },
         'OneHotEncoder':{
             'push_attris': [],
-            'merge_attris': ['Timezone'],
-            'other_attris': []
+            'merge_attris': [],
+            'other_attris': [],
+            'join_attris': ['Timezone'],
+            'dbms': 'duckdb'
         },
     }
 
@@ -58,5 +60,5 @@ if __name__ == '__main__':
     queries, query = manager.generate_query(model_file, dataset_name, features, dbms, pre_sql
                                             , optimizations, preprocessors)
     
-    with open('/root/volume/SKL2SQL/experiments/usa_accident_dt_deep5_2/usa_accident_dt_deep5_join_2.sql', 'w') as sql_file:
+    with open('/root/volume/SKL2SQL/experiments/usa_accident_dt_deep5_2/usa_accident_dt_deep5_join_2_dev.sql', 'w') as sql_file:
         sql_file.write(query)

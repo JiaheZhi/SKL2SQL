@@ -10,8 +10,40 @@ temp_tables = []
 # join transforme col map
 join_trans_col_map = {}
 
-def join_transformer(table_name, features, optimizations, preprocessors):
+
+def join_features_transformer(features, optimizations, preprocessors, pipeline):
+    preprocess_features = features
+    for preprocessor in optimizations:
+        if preprocessor == 'OneHotEncoder':
+            if optimizations['OneHotEncoder'].get('join_attris'):
+                attrs = optimizations[preprocessor]['join_attris']
+                for transform in pipeline['transforms']:
+                    if transform['transform_name'] == 'OneHotEncoder':
+                        one_enc = transform['fitted_transform']
+                        one_features = transform['transform_features']
+                        break
+
+                features_after_one = one_enc.get_feature_names()
+                count_map = {}
+                for feature_after_one in features_after_one:
+                    # the categorical features after the Sklearn OHE follow the format x<column_id>_<column_val> (e.g., x1_a)
+                    feature_item = feature_after_one.split("_")
+                    feature = one_features[int(feature_item[0].replace('x', ""))]
+                    if feature in count_map:
+                        count_map[feature] += 1
+                    else:
+                        count_map[feature] = 0    
+        
+                for attr in attrs:
+                    index_attr = preprocess_features.index(attr)
+                    preprocess_features[index_attr:index_attr+1] = [f'{attr}_{i}' for i in range(count_map[attr] + 1)]
+                
+    return preprocess_features
+
+
+def join_transformer(table_name, features, optimizations, preprocessors, pipeline):
     table_sql = table_name
+    preprocess_features = features
     for preprocessor in preprocessors:
         #------------------------------join the frequency encoder -------------------------------------------#
         if preprocessor == 'FrequencyEncoder':
@@ -31,7 +63,7 @@ def join_transformer(table_name, features, optimizations, preprocessors):
                     data = [(k, v) for k,v in count.items()]
                     insert_db(dbms, join_table_name, cols, data)
                     # change the table name with the join sql statements and update the features list
-                    table_sql = f'({table_sql} left join {join_table_name} on {table_name}.{attr}={join_table_name}.{attr})'
+                    table_sql = f'{table_sql} left join {join_table_name} on {table_name}.{attr}={join_table_name}.{attr}'
                     # add the join column transform
                     add_join_trans_col(attr, 'count', join_table_name)
         
@@ -55,13 +87,13 @@ def join_transformer(table_name, features, optimizations, preprocessors):
                             oe_mapping = m['mapping']
                             break
                     # insert the count map to the corresponding database as a temproal table
-                    join_table_name = attr + '_count'
+                    join_table_name = attr + '_target'
                     cols = {attr:'VARCHAR'}
                     cols['enc_value'] = df_type2db_type(str(te_mapping.dtype), dbms)
                     data = [(k, te_mapping[oe_mapping[k]]) for k in attr_unique]
                     insert_db(dbms, join_table_name, cols, data)
                     # change the table name with the join sql statements and update the features list
-                    table_sql = f'({table_sql} left join {join_table_name} on {table_name}.{attr}={join_table_name}.{attr})'
+                    table_sql = f'{table_sql} left join {join_table_name} on {table_name}.{attr}={join_table_name}.{attr}'
                     # add the join column transform
                     add_join_trans_col(attr, 'enc_value', join_table_name)
         
@@ -80,42 +112,64 @@ def join_transformer(table_name, features, optimizations, preprocessors):
                     attr_unique = train_data[attr].unique()
                     looe_mapping = looe.mapping[attr]
                     # insert the count map to the corresponding database as a temproal table
-                    join_table_name = attr + '_count'
+                    join_table_name = attr + '_leave_one_out'
                     cols = {attr:'VARCHAR'}
                     cols['enc_value'] = df_type2db_type(str(looe_mapping['sum'].dtype), dbms)
                     data = [(k, looe_mapping.at[k, 'sum']/looe_mapping.at[k, 'count']) for k in attr_unique]
                     insert_db(dbms, join_table_name, cols, data)
                     # change the table name with the join sql statements and update the features list
-                    table_sql = f'({table_sql} left join {join_table_name} on {table_name}.{attr}={join_table_name}.{attr})'
+                    table_sql = f'{table_sql} left join {join_table_name} on {table_name}.{attr}={join_table_name}.{attr}'
                     # add the join column transform
                     add_join_trans_col(attr, 'enc_value', join_table_name)
 
+    for preprocessor in optimizations:
         #------------------------------join the Onehot encoder -------------------------------------------#
         if preprocessor == 'OneHotEncoder':
-            if preprocessors[preprocessor]['method'] == 'join':
-                attrs = preprocessors[preprocessor]['attrs']
-                train_data_path = preprocessors[preprocessor]['train_data_path']
-                dbms = preprocessors[preprocessor]['dbms']
-                target = preprocessors[preprocessor]['target']
-                train_data = load_dataset(train_data_path)
-                looe = LeaveOneOutEncoder(cols=list(attrs.keys()))
-                looe.fit(train_data[list(attrs.keys())], train_data[target])
+            if optimizations[preprocessor].get('join_attris'):
+                attrs = optimizations[preprocessor]['join_attris']
+                dbms = optimizations[preprocessor]['dbms']
+                
+                for transform in pipeline['transforms']:
+                    if transform['transform_name'] == 'OneHotEncoder':
+                        one_enc = transform['fitted_transform']
+                        one_features = transform['transform_features']
+                        break
+
+                features_after_one = one_enc.get_feature_names()
+                count_map = {}
+                one_map = {}
+                for feature_after_one in features_after_one:
+                    # the categorical features after the Sklearn OHE follow the format x<column_id>_<column_val> (e.g., x1_a)
+                    feature_item = feature_after_one.split("_")
+                    feature = one_features[int(feature_item[0].replace('x', ""))]
+                    value = feature_item[1]
+                    if feature in count_map:
+                        count_map[feature] += 1
+                    else:
+                        count_map[feature] = 0
+                    one_map[feature_after_one] = {"feature_before_one": feature, "value": value,
+                                          "alias": f'{feature}_{count_map[feature]}'}
                 for attr in attrs:
-                    # extract the targetencoder info
-                    attr_unique = train_data[attr].unique()
-                    looe_mapping = looe.mapping[attr]
-                    # insert the count map to the corresponding database as a temproal table
-                    join_table_name = attr + '_count'
+                    # extract the info
+                    join_table_name = attr + '_one'
+                    attr_map = {}
                     cols = {attr:'VARCHAR'}
-                    cols['enc_value'] = df_type2db_type(str(looe_mapping['sum'].dtype), dbms)
-                    data = [(k, looe_mapping.at[k, 'sum']/looe_mapping.at[k, 'count']) for k in attr_unique]
+                    data = []
+                    for key, value in one_map.items():
+                        if value['feature_before_one'] == attr:
+                            attr_map[int(value['alias'].split('_')[-1])] = value['value']
+                    for i in range(len(attr_map)):
+                        cols[attr + f'_{i}'] = 'smallint'
+                        data.append((attr_map[i],) + tuple(1 if j==i else 0 for j in range(len(attr_map))))
                     insert_db(dbms, join_table_name, cols, data)
                     # change the table name with the join sql statements and update the features list
-                    table_sql = f'({table_sql} left join {join_table_name} on {table_name}.{attr}={join_table_name}.{attr})'
-                    # add the join column transform
-                    add_join_trans_col(attr, 'enc_value', join_table_name)
+                    table_sql = f'{table_sql} left join {join_table_name} on {table_name}.{attr}={join_table_name}.{attr}'
+                    # change the one col to muilti cols
+                    index_attr = preprocess_features.index(attr)
+                    preprocess_features[index_attr:index_attr+1] = [f'{attr}_{i}' for i in range(count_map[attr] + 1)]
+                    
 
-    return table_sql, features
+    return table_sql, preprocess_features
 
 
 def insert_db(db, table_name, cols, data):
@@ -186,6 +240,12 @@ def df_type2db_type(df_dtype, db):
         
         if 'float' in df_dtype:
             db_type = 'FLOAT'
+
+        if 'smallint' in df_dtype:
+            db_type = 'SMALLINT'
+
+        if 'boolean' in df_dtype:
+            db_type = 'BOOLEAN'
 
     return db_type
 
