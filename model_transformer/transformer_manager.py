@@ -22,7 +22,7 @@ from model_transformer.preprocess.leave_one_out_encoder_transformer import Leave
 from model_transformer.model.decision_tree_transformer import DTMSQL
 from model_transformer.model.random_forest_transformer import RFMSQL
 from model_transformer.utility.dbms_utils import DBMSUtils
-from model_transformer.utility.join_utils import join_transformer, del_temp_join_tables, get_join_trans_col_map, join_features_transformer
+from model_transformer.utility.join_utils import join_transformer, del_temp_join_tables, get_join_trans_col_map
 
 import numpy as np
 
@@ -125,8 +125,7 @@ class TransformerManager(object):
         pipeline = self.extract_pipeline(model, preprocessors)
 
         input_table = table_name
-        # # change the join features names
-        # preprocess_features = join_features_transformer(features, optimizations, preprocessors, pipeline)
+
         # add the join opreations
         input_table, preprocess_features = join_transformer(input_table,features, optimizations, preprocessors, pipeline)
 
@@ -271,10 +270,13 @@ class Optimizer(object):
                 
         
         if 'OrdinalEncoder' in optimizations:
-            if optimizations['OrdinalEncoder'].get('push_attris') or optimizations['OrdinalEncoder'].get('merge_attris'):
-                self.ordinal_optimization = True
-            if optimizations['OrdinalEncoder'].get('other_attris'):
-                self.ordinal_gen_preprocess = True
+            if optimizations['OrdinalEncoder'].get('join_attris'):
+                transformers_to_join.append('OrdinalEncoder')
+            else:
+                if optimizations['OrdinalEncoder'].get('push_attris') or optimizations['OrdinalEncoder'].get('merge_attris'):
+                    self.ordinal_optimization = True
+                if optimizations['OrdinalEncoder'].get('other_attris'):
+                    self.ordinal_gen_preprocess = True
 
         
         for transform in out_pipeline['transforms']:
@@ -317,17 +319,23 @@ class Optimizer(object):
 
             elif transform['transform_name'] == 'BinaryEncoder':
                 transform_features = transform['transform_features']
-                merge_num = 0
-                transform_features = transform_features['attrs']
-                for attr_name in transform_features:
-                    if (transform_features[attr_name].get('is_push') and transform_features[attr_name]['is_push'])\
-                        or (transform_features[attr_name].get('is_merge') and transform_features[attr_name]['is_merge']):
-                        merge_num += 1
-                if merge_num == len(transform_features):
+                # if use join, then dont need the preprocess step and the push-up
+                if transform_features.get('method') == 'join':
+                    transformers_to_join.append(transform['transform_name'])
                     self.binary_need_gen_preprocess = False
-                    self.binary_need_merge = True
-                elif merge_num < len(transform_features) and merge_num > 0:
-                    self.binary_need_merge = True
+                else:
+                    # dont join
+                    merge_num = 0
+                    transform_features = transform_features['attrs']
+                    for attr_name in transform_features:
+                        if (transform_features[attr_name].get('is_push') and transform_features[attr_name]['is_push'])\
+                            or (transform_features[attr_name].get('is_merge') and transform_features[attr_name]['is_merge']):
+                            merge_num += 1
+                    if merge_num == len(transform_features):
+                        self.binary_need_gen_preprocess = False
+                        self.binary_need_merge = True
+                    elif merge_num < len(transform_features) and merge_num > 0:
+                        self.binary_need_merge = True
         
             elif transform['transform_name'] == 'FrequencyEncoder':
                 transform_features = transform['transform_features']

@@ -79,7 +79,8 @@ if __name__ == '__main__':
                 # 'is_merge':True
             }
         },
-        'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv'
+        'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv',
+        'method': 'normal'
     }
 
     optimizations = {
@@ -100,14 +101,14 @@ if __name__ == '__main__':
         },
         'OrdinalEncoder':{
             'push_attris': [],
-            'merge_attris': ['Source'],
-            'other_attris': []
+            'merge_attris': [],
+            'other_attris': [],
+            'join_attris': ['Source'],
+            'dbms': 'duckdb'
         }
     }
-
-    queries, query = manager.generate_query(model_file, dataset_name, features, dbms
+    pre_sql = ''
+    queries, query = manager.generate_query(model_file, dataset_name, features, dbms, pre_sql
                                             , optimizations, preprocessors=preprocessors)
     with open('/root/volume/SKL2SQL/generated_sql/usa_accident_rf_deep5_dev.sql', 'w') as sql_file:
         sql_file.write(query)
-
-    print(query)

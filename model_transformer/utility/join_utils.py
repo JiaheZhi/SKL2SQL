@@ -1,6 +1,6 @@
 from collections import Counter
 from model_transformer.utility.loader import load_dataset
-from category_encoders import TargetEncoder, LeaveOneOutEncoder
+from category_encoders import TargetEncoder, LeaveOneOutEncoder, BinaryEncoder
 import duckdb
 import psycopg2
 from psycopg2 import OperationalError
@@ -9,37 +9,6 @@ from psycopg2 import OperationalError
 temp_tables = []
 # join transforme col map
 join_trans_col_map = {}
-
-
-def join_features_transformer(features, optimizations, preprocessors, pipeline):
-    preprocess_features = features
-    for preprocessor in optimizations:
-        if preprocessor == 'OneHotEncoder':
-            if optimizations['OneHotEncoder'].get('join_attris'):
-                attrs = optimizations[preprocessor]['join_attris']
-                for transform in pipeline['transforms']:
-                    if transform['transform_name'] == 'OneHotEncoder':
-                        one_enc = transform['fitted_transform']
-                        one_features = transform['transform_features']
-                        break
-
-                features_after_one = one_enc.get_feature_names()
-                count_map = {}
-                for feature_after_one in features_after_one:
-                    # the categorical features after the Sklearn OHE follow the format x<column_id>_<column_val> (e.g., x1_a)
-                    feature_item = feature_after_one.split("_")
-                    feature = one_features[int(feature_item[0].replace('x', ""))]
-                    if feature in count_map:
-                        count_map[feature] += 1
-                    else:
-                        count_map[feature] = 0    
-        
-                for attr in attrs:
-                    index_attr = preprocess_features.index(attr)
-                    preprocess_features[index_attr:index_attr+1] = [f'{attr}_{i}' for i in range(count_map[attr] + 1)]
-                
-    return preprocess_features
-
 
 def join_transformer(table_name, features, optimizations, preprocessors, pipeline):
     table_sql = table_name
@@ -121,6 +90,42 @@ def join_transformer(table_name, features, optimizations, preprocessors, pipelin
                     table_sql = f'{table_sql} left join {join_table_name} on {table_name}.{attr}={join_table_name}.{attr}'
                     # add the join column transform
                     add_join_trans_col(attr, 'enc_value', join_table_name)
+        
+        #------------------------------join the Binary encoder -------------------------------------------#
+        if preprocessor == 'BinaryEncoder':
+            if preprocessors[preprocessor]['method'] == 'join':
+                attrs = preprocessors[preprocessor]['attrs']
+                train_data_path = preprocessors[preprocessor]['train_data_path']
+                dbms = preprocessors[preprocessor]['dbms']
+                train_data = load_dataset(train_data_path)
+                binary_enc = BinaryEncoder(cols=attrs)
+                binary_enc.fit(train_data[attrs])
+                
+                for attr in attrs:
+                    for m in binary_enc.ordinal_encoder.category_mapping:
+                        if m['col'] == attr:
+                            order_mapping = m['mapping']
+                            break
+
+                    for m in binary_enc.mapping:
+                        if m['col'] == attr:
+                            binary_mapping = m['mapping']
+                            break
+                    
+                    cols = {attr:'VARCHAR'}
+                    for col in binary_mapping.columns:
+                        cols[col] = 'smallint'
+                    
+                    data = []
+                    for value, order in order_mapping.items():
+                        data.append((value,) + tuple(binary_mapping.loc[order]))
+                    
+                    join_table_name = attr + '_binary'
+                    insert_db(dbms, join_table_name, cols, data)
+                    table_sql = f'{table_sql} left join {join_table_name} on {table_name}.{attr}={join_table_name}.{attr}'
+                    index_attr = preprocess_features.index(attr)
+                    preprocess_features[index_attr:index_attr+1] = list(binary_mapping.columns)
+
 
     for preprocessor in optimizations:
         #------------------------------join the Onehot encoder -------------------------------------------#
@@ -130,7 +135,7 @@ def join_transformer(table_name, features, optimizations, preprocessors, pipelin
                 dbms = optimizations[preprocessor]['dbms']
                 
                 for transform in pipeline['transforms']:
-                    if transform['transform_name'] == 'OneHotEncoder':
+                    if transform['transform_name'] == preprocessor:
                         one_enc = transform['fitted_transform']
                         one_features = transform['transform_features']
                         break
@@ -167,7 +172,32 @@ def join_transformer(table_name, features, optimizations, preprocessors, pipelin
                     # change the one col to muilti cols
                     index_attr = preprocess_features.index(attr)
                     preprocess_features[index_attr:index_attr+1] = [f'{attr}_{i}' for i in range(count_map[attr] + 1)]
+            
+        #------------------------------join the Ordinal encoder -------------------------------------------#
+        if preprocessor == 'OrdinalEncoder':
+            if optimizations[preprocessor].get('join_attris'):
+                attrs = optimizations[preprocessor]['join_attris']
+                dbms = optimizations[preprocessor]['dbms']
+                
+                for transform in pipeline['transforms']:
+                    if transform['transform_name'] == preprocessor:
+                        ordinal_enc = transform['fitted_transform']
+                        ordinal_features = transform['transform_features']
+                        break
+                
+                categories = ordinal_enc.categories_
+                for i, attr in enumerate(ordinal_features):
+                    classes = categories[i]
+                    join_table_name = attr + '_ordinal'
+                    cols = {attr:'VARCHAR'}
+                    cols['enc_value'] = 'int'
+                    data = [(cla, j) for j, cla in enumerate(classes)]
+                    insert_db(dbms, join_table_name, cols, data)
+                    table_sql = f'{table_sql} left join {join_table_name} on {table_name}.{attr}={join_table_name}.{attr}'
+                    add_join_trans_col(attr, 'enc_value', join_table_name)
                     
+                    
+
 
     return table_sql, preprocess_features
 

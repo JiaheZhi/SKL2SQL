@@ -18,8 +18,9 @@ onehot_encoder_cols = ['Timezone']
 standscaler_cols = ['Pressure(in)']
 target_encoder_cols = ['Wind_Direction']
 leaveoneout_encoder_cols = ['State']
+binary_encoder_cols = ['County']
 other_cols = ['Station', 'Stop', 'Traffic_Signal']
-X = X[frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + target_encoder_cols+ leaveoneout_encoder_cols + other_cols]
+X = X[frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + target_encoder_cols+ leaveoneout_encoder_cols + binary_encoder_cols + other_cols]
 
 # clean data
 for col in X.columns:
@@ -35,6 +36,8 @@ target_encoder = ce.TargetEncoder(cols=target_encoder_cols)
 X = target_encoder.fit_transform(X, y)
 leaveoneout_encoder = ce.LeaveOneOutEncoder(cols=leaveoneout_encoder_cols)
 X = leaveoneout_encoder.fit_transform(X, y)
+binary_encoder = ce.BinaryEncoder(cols=binary_encoder_cols)
+X = binary_encoder.fit_transform(X)
 
 # define pipline
 std_scalar = StandardScaler(with_mean=False)
@@ -54,13 +57,13 @@ pipeline = Pipeline(steps=[pipeline_transforms, pipeline_estimator])
 pipeline.fit(X, y)
 
 # save model to the file
-dump(pipeline, '/root/volume/SKL2SQL/trained_model/usa_accident_rf_deep5_3.joblib')
+dump(pipeline, '/root/volume/SKL2SQL/trained_model/usa_accident_rf_deep5_4.joblib')
 
 # test model
 data_test = pd.read_csv("/root/volume/SKL2SQL/dataset/US_Accidents_March23_test.csv")
 X_test = data.drop('Severity', axis=1)
 y_test = data['Severity']
-X_test = X_test[frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + target_encoder_cols + leaveoneout_encoder_cols + other_cols]
+X_test = X_test[frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + target_encoder_cols + leaveoneout_encoder_cols + binary_encoder_cols + other_cols]
 
 # clean data
 for col in X_test.columns:
@@ -75,6 +78,8 @@ target_encoder = ce.TargetEncoder(cols=target_encoder_cols)
 X_test = target_encoder.fit_transform(X_test, y)
 leaveoneout_encoder = ce.LeaveOneOutEncoder(cols=leaveoneout_encoder_cols)
 X_test = leaveoneout_encoder.fit_transform(X_test, y)
+binary_encoder = ce.BinaryEncoder(cols=binary_encoder_cols)
+X_test = binary_encoder.fit_transform(X_test)
 
 # evaluate the test result
 y_predict = pipeline.predict(X_test)
