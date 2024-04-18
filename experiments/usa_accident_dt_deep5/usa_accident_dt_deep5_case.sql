@@ -1,6 +1,6 @@
 -- pg
-set
-  max_parallel_workers = 1;
+-- set
+--   max_parallel_workers = 1;
 
 -- duckdb
 -- set
@@ -235,6 +235,7 @@ FROM
         WHEN "Weather_Condition" = 'Partial Fog / Windy' THEN 1
         WHEN "Weather_Condition" = 'Shallow Fog / Windy' THEN 1
         WHEN "Weather_Condition" = 'Sand / Dust Whirls Nearby' THEN 1
+        -- ELSE 1
       END AS "Weather_Condition",
       "Timezone",
       "Pressure(in)",
@@ -253,4 +254,6 @@ FROM
         FROM
           usa_accident
       ) AS data
-  ) AS data
+  ) AS data;
+
+  -- 输出的执行计划中各算子的执行时间应该是真实的时间，而不是估计的

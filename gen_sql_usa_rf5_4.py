@@ -57,7 +57,7 @@ if __name__ == '__main__':
         'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv',
         'target': 'Severity',
         'method': 'join',
-        'dbms': 'pg'
+        'dbms': 'duckdb'
     }
 
     preprocessors['LeaveOneOutEncoder'] = {
@@ -70,7 +70,7 @@ if __name__ == '__main__':
         'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv',
         'target': 'Severity',
         'method': 'join',
-        'dbms': 'pg'
+        'dbms': 'duckdb'
     }
 
     preprocessors['BinaryEncoder'] = {

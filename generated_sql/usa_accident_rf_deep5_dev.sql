@@ -479,7 +479,7 @@ FROM
                 SELECT
                   COALESCE("Timezone", 'US/Eastern') AS "Timezone",
                   COALESCE("Pressure(in)", 29.96) AS "Pressure(in)",
-                  COALESCE("Wind_Direction", 'CALM') AS "Wind_Direction",
+                  "Wind_Direction",
                   "Source",
                   "State",
                   "County_0",
@@ -530,5 +530,13 @@ FROM
   ) AS F;
 
 
-DROP TABLE
-  County_binary;
+-- DROP TABLE
+--   Wind_Direction_target;
+
+
+-- DROP TABLE
+--   State_leave_one_out;
+
+
+-- DROP TABLE
+--   County_binary;

@@ -390,12 +390,40 @@ class DTMSQL(object):
                         data_list = train_data[features[node]]
                         # get the map of value to frequency
                         count = Counter(data_list)
+                        ### in
+                        # in_list = []
+                        # for ele, freq in count.items():
+                        #     if freq <= thr:
+                        #         in_list.append(f"'{ele}'")
+                        # in_str = '(' + ','.join(in_list) + ')'
+                        # op = 'in'
+                        # thr = in_str
+
+                        ### in-values
+                        # in_list = []
+                        # for ele, freq in count.items():
+                        #     if freq <= thr:
+                        #         in_list.append(f"('{ele}')")
+                        # in_str = '(values' + ','.join(in_list) + ')'
+                        # op = 'in'
+                        # thr = in_str
+
+                        ### any-array
+                        # in_list = []
+                        # for ele, freq in count.items():
+                        #     if freq <= thr:
+                        #         in_list.append(f"'{ele}'")
+                        # in_str = '(array[' + ','.join(in_list) + '])'
+                        # op = '=any'
+                        # thr = in_str
+
+                        ### any-values
                         in_list = []
                         for ele, freq in count.items():
                             if freq <= thr:
-                                in_list.append(f"'{ele}'")
-                        in_str = '(' + ','.join(in_list) + ')'
-                        op = 'in'
+                                in_list.append(f"('{ele}')")
+                        in_str = '(values' + ','.join(in_list) + ')'
+                        op = '=any'
                         thr = in_str
 
             ###### merge target encoder ######

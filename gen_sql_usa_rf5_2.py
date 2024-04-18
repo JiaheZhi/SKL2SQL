@@ -31,12 +31,12 @@ if __name__ == '__main__':
         'attrs': {
             'Source': {
                 # 'is_push':True,
-                # 'is_merge':True
+                'is_merge':True
             }
         },
         'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv',
-        'method': 'join',
-        # 'method': 'normal',
+        # 'method': 'join',
+        'method': 'normal',
         'dbms': 'duckdb'
     }
 
@@ -53,10 +53,10 @@ if __name__ == '__main__':
         },
     }
 
-    pre_sql = "set threads= 4; EXPLAIN ANALYZE "
+    pre_sql = "set max_parallel_workers = 1; EXPLAIN ANALYZE "
 
     queries, query = manager.generate_query(model_file, dataset_name, features, dbms, pre_sql
                                             , optimizations, preprocessors)
     
-    with open('/root/volume/SKL2SQL/experiments/usa_accident_rf_deep5_2/usa_accident_rf_deep5_join_2.sql', 'w') as sql_file:
+    with open('/root/volume/SKL2SQL/experiments/usa_accident_rf_deep_fusions/usa_accident_rf_deep5_any-value-3when.sql', 'w') as sql_file:
         sql_file.write(query)
