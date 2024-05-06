@@ -31,7 +31,7 @@ if __name__ == '__main__':
     def modify_tree(tree, node=0, path=None, attribute_index_to_count=None):
         """
         从决策树提取所有路径，并记录每个路径上 X[24] 的出现次数
-        """
+        """ 
         if path is None:
             path = []
         path += [node]

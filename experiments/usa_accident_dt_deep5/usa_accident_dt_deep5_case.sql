@@ -257,3 +257,21 @@ FROM
   ) AS data;
 
   -- 输出的执行计划中各算子的执行时间应该是真实的时间，而不是估计的
+
+
+
+  EXPLAIN ANALYZE
+SELECT
+  (p2-3) as p3,
+FROM
+  (
+    SELECT  
+      (p1+9)/10 as p2,
+    FROM
+      (
+        SELECT
+          COALESCE("Pressure(in)", 29.96) AS p1,
+        FROM 
+          usa_accident
+      ) AS data
+  ) AS data;

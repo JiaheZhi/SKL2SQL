@@ -1,7 +1,5 @@
-from sklearn.ensemble import GradientBoostingRegressor, GradientBoostingClassifier, RandomForestClassifier, RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, MinMaxScaler, LabelEncoder, OrdinalEncoder
-from sklearn.linear_model import LogisticRegression, SGDRegressor, LinearRegression
-from sklearn.neural_network import MLPClassifier, MLPRegressor
 # from lightning.regression import SDCARegressor
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from model_transformer.utility.loader import load_model
@@ -21,7 +19,6 @@ from model_transformer.preprocess.target_encoder_transformer import TargetEncode
 from model_transformer.preprocess.leave_one_out_encoder_transformer import LeaveOneOutEncoderSQL
 from model_transformer.model.decision_tree_transformer import DTMSQL
 from model_transformer.model.random_forest_transformer import RFMSQL
-from model_transformer.utility.dbms_utils import DBMSUtils
 from model_transformer.utility.join_utils import join_transformer, del_temp_join_tables, get_join_trans_col_map
 
 import numpy as np
@@ -29,23 +26,12 @@ import numpy as np
 
 class TransformerManager(object):
     model_types = {
-        'GradientBoostingRegressor': GradientBoostingRegressor(max_leaf_nodes=20, n_estimators=100, min_samples_leaf=10,
-                                                               learning_rate=0.2, random_state=24),
-        'GradientBoostingClassifier': GradientBoostingClassifier(max_leaf_nodes=20, n_estimators=100,
-                                                                 min_samples_leaf=10,
-                                                                 learning_rate=0.2, random_state=24),
-        'LogisticRegression': LogisticRegression(random_state=24),
-        'SGDRegressor': SGDRegressor(),
-        # 'SDCARegressor': SDCARegressor(),
         'DecisionTreeClassifier': DecisionTreeClassifier(max_depth=3, min_samples_leaf=10,
                                                          random_state=24),
         'DecisionTreeRegressor': DecisionTreeRegressor(max_depth=3, random_state=42),
         'RandomForestClassifier': RandomForestClassifier(max_depth=10, n_estimators=4, random_state=24),
         'RandomForestRegressor': RandomForestRegressor(max_depth=3, max_leaf_nodes=20, n_estimators=100,
                                                        min_samples_leaf=10, random_state=24),
-        'MLPClassifier': MLPClassifier(hidden_layer_sizes=(5, 5, 5)),
-        'MLPRegressor': MLPRegressor(hidden_layer_sizes=(5, 5, 5)),
-        'LinearRegression': LinearRegression(),
 
     }
 
@@ -58,18 +44,10 @@ class TransformerManager(object):
     }
 
     sql_model_types = {
-        # 'GradientBoostingRegressor': GBMSQL(),
-        # 'GradientBoostingClassifier': GBMSQL(classification=True),
-        # 'LogisticRegression': LogisticRegressionSQL(),
-        # 'SGDRegressor': SGDModelSQL(),
-        # 'SDCARegressor': SDCARegressorSQL(),
         'DecisionTreeClassifier': DTMSQL(classification=True),
         'DecisionTreeRegressor': DTMSQL(),
         'RandomForestClassifier': RFMSQL(classification=True),
         'RandomForestRegressor': RFMSQL(),
-        # 'MLPClassifier': MLPSQL(classification=True),
-        # 'MLPRegressor': MLPSQL(),
-        # 'LinearRegression': LINRModelSQL()
     }
 
     sql_transform_types = {
@@ -120,15 +98,18 @@ class TransformerManager(object):
             'transforms': transforms
         }
 
-    def generate_query(self, model_data, table_name, features, dbms, pre_sql, optimizations=None, preprocessors=None):
+    def generate_query(self, model_data, table_name, features, dbms, pre_sql, optimizations=None, preprocessors=None, auto_gen=False):
         model = load_model(model_data)
         pipeline = self.extract_pipeline(model, preprocessors)
-
         input_table = table_name
+
+        # automatically genarate the SQL genarating configurations according to the cost model of "craftsman"
+        
 
         # add the join opreations
         input_table, preprocess_features = join_transformer(input_table,features, optimizations, preprocessors, pipeline)
 
+        # initialize the SOL Transformers
         opt = Optimizer(pipeline, features, preprocess_features, dbms, optimizations)
         pipeline = opt.optimize()
 
