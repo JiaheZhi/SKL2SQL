@@ -110,5 +110,6 @@ if __name__ == '__main__':
     pre_sql = ''
     queries, query = manager.generate_query(model_file, dataset_name, features, dbms, pre_sql
                                             , optimizations, preprocessors=preprocessors)
-    with open('/root/volume/SKL2SQL/generated_sql/usa_accident_rf_deep5_dev.sql', 'w') as sql_file:
-        sql_file.write(query)
+    # with open('/root/volume/SKL2SQL/generated_sql/usa_accident_rf_deep5_dev.sql', 'w') as sql_file:
+    #     sql_file.write(query)
+    print(query)

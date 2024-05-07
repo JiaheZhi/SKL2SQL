@@ -1,6 +1,5 @@
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, MinMaxScaler, LabelEncoder, OrdinalEncoder
-# from lightning.regression import SDCARegressor
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from model_transformer.utility.loader import load_model
 from model_transformer.preprocess.binary_encoder_transformer import BinaryEncoderSQL
@@ -20,7 +19,7 @@ from model_transformer.preprocess.leave_one_out_encoder_transformer import Leave
 from model_transformer.model.decision_tree_transformer import DTMSQL
 from model_transformer.model.random_forest_transformer import RFMSQL
 from model_transformer.utility.join_utils import join_transformer, del_temp_join_tables, get_join_trans_col_map
-
+from model_transformer.auto_select.auto_config import auto_config
 import numpy as np
 
 
@@ -98,16 +97,49 @@ class TransformerManager(object):
             'transforms': transforms
         }
 
-    def generate_query(self, model_data, table_name, features, dbms, pre_sql, optimizations=None, preprocessors=None, auto_gen=False):
-        model = load_model(model_data)
+    def generate_query(self, model_file, table_name, features, dbms, pre_sql=None, optimizations=None, preprocessors=None, auto_gen=False, sample_dataset=None):
+        """
+        Generate a query statement based on provided model file, table name, features, and DBMS.
+
+        This function constructs a SQL query statement using the input model data, table name,
+        features, and database management system information.
+        
+        Parameters:
+        model_file : dict
+            A dictionary containing model-related data.
+        table_name : str
+            The name of the target SQL table.
+        features : list
+            model features.
+        dbms : str
+            The type of the target database management system, such as 'pg', 'duckdb', 'clickhouse', etc.
+        pre_sql : str
+            head SQL statement to be executed before the query.
+        optimizations : list, optional
+            A list of SKL-pre-op config, default is None.
+        preprocessors : list, optional
+            A list of Non-SKL-pre-op config, default is None.
+        auto_gen : bool, optional
+            A flag indicating whether to automatically generate the query statement, default is False.
+
+        Returns: str
+            The generated query statement.
+        """
+
+        # Ensure that sample_dataset is provided when auto_gen is True
+        assert not auto_gen or sample_dataset is not None, "sample_dataset must be provided when auto_gen is True"
+
+        # some load and extract tasks
+        model = load_model(model_file)
         pipeline = self.extract_pipeline(model, preprocessors)
         input_table = table_name
 
         # automatically genarate the SQL genarating configurations according to the cost model of "craftsman"
-        
+        if auto_gen:
+            optimizations, preprocessors = auto_config(model, sample_dataset, features, optimizations, preprocessors)
 
         # add the join opreations
-        input_table, preprocess_features = join_transformer(input_table,features, optimizations, preprocessors, pipeline)
+        input_table, preprocess_features = join_transformer(input_table, features, optimizations, preprocessors, pipeline)
 
         # initialize the SOL Transformers
         opt = Optimizer(pipeline, features, preprocess_features, dbms, optimizations)
