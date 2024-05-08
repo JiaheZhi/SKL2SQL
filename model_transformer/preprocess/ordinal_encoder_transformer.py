@@ -13,6 +13,11 @@ class OrdinalEncoderSQL(object):
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations
 
+
+    def transform_model_features_in(self, transform, all_features):
+        return all_features
+    
+
     def get_params(self, fitted_transformer, transform_features, all_features, preprocess_all_features, prev_transform_features):
         categories = fitted_transformer.categories_
         self.all_features = all_features

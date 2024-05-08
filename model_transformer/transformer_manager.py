@@ -97,6 +97,16 @@ class TransformerManager(object):
             'transforms': transforms
         }
 
+    def get_model_features_in(self, features, pipeline):
+        model_features_in = features.copy()
+        transforms = pipeline['transforms']
+        for transform in transforms:
+            transform_name = transform['transform_name']
+            sql_transformer = self.sql_transform_types[transform_name]
+            model_features_in = sql_transformer.transform_model_features_in(transform, model_features_in)
+        return model_features_in
+
+
     def generate_query(self, model_file, table_name, features, dbms, pre_sql=None, optimizations=None, preprocessors=None, auto_gen=False, sample_dataset=None):
         """
         Generate a query statement based on provided model file, table name, features, and DBMS.
@@ -134,9 +144,12 @@ class TransformerManager(object):
         pipeline = self.extract_pipeline(model, preprocessors)
         input_table = table_name
 
+        # transform the input features to the model_features_in_
+        model_features_in = self.get_model_features_in(features, pipeline)
+
         # automatically genarate the SQL genarating configurations according to the cost model of "craftsman"
         if auto_gen:
-            optimizations, preprocessors = auto_config(model, sample_dataset, features, optimizations, preprocessors)
+            optimizations, preprocessors = auto_config(model, sample_dataset, model_features_in, optimizations, preprocessors)
 
         # add the join opreations
         input_table, preprocess_features = join_transformer(input_table, features, optimizations, preprocessors, pipeline)

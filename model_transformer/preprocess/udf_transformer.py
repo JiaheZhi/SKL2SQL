@@ -9,6 +9,11 @@ class UDFSQL(object):
     def set_dbms(self, dbms: str):
         self.dbms = dbms
 
+
+    def transform_model_features_in(self, transform, all_features):
+        return all_features
+
+
     def get_params(self, fitted_transformer, udf_infos, all_features, preprocess_all_features, prev_transform_features):
         not_udf_atrributes = []
         for attr_name in preprocess_all_features:

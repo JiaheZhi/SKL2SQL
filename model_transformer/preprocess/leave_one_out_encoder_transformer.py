@@ -12,6 +12,9 @@ class LeaveOneOutEncoderSQL(object):
     def set_dbms(self, dbms: str):
         self.dbms = dbms
 
+    def transform_model_features_in(self, transform, all_features):
+        return all_features
+
     def get_params(self, fitted_transformer, infos, all_features, preprocess_all_features, prev_transform_features):
         attrs = infos['attrs']
         train_data_path = infos['train_data_path']

@@ -170,6 +170,27 @@ class OneHotEncoderSQL(object):
 
         return ohe_to_index_map
 
+    def transform_model_features_in(self, transform, all_features):
+        one_enc = transform['fitted_transform']
+        one_features = transform['transform_features']
+        features_after_one = one_enc.get_feature_names()
+        count_map = {}
+        for feature_after_one in features_after_one:
+            # the categorical features after the Sklearn OHE follow the format x<column_id>_<column_val> (e.g., x1_a)
+            feature_item = feature_after_one.split("_")
+            feature = one_features[int(feature_item[0].replace('x', ""))]
+            if feature in count_map:
+                count_map[feature] += 1
+            else:
+                count_map[feature] = 0
+
+        for attr in one_features:
+            # change the one col to muilti cols
+            index_attr = all_features.index(attr)
+            all_features[index_attr:index_attr+1] = [f'{attr}_{i}' for i in range(count_map[attr] + 1)]
+
+        return all_features
+
     def get_params(self, ohe, ohe_features, all_features, preprocess_all_features, prev_transform_features=None):
         """
         This method extracts from the Sklearn One Hot Encoder all the fitted parameters needed to replicate in SQL the

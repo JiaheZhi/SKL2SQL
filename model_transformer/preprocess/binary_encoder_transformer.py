@@ -1,6 +1,7 @@
 from model_transformer.utility.dbms_utils import DBMSUtils
 import pandas as pd
 import category_encoders as ce
+from model_transformer.utility.loader import load_dataset
 
 class BinaryEncoderSQL(object):
     def __init__(self):
@@ -10,6 +11,27 @@ class BinaryEncoderSQL(object):
     
     def set_dbms(self, dbms: str):
         self.dbms = dbms
+
+    def transform_model_features_in(self, transform, all_features):
+        out_all_features = all_features
+        binaryencoder_infos = transform['transform_features']
+        binary_atrributes = binaryencoder_infos['attrs']
+        train_data_path = binaryencoder_infos['train_data_path']
+        train_data = load_dataset(train_data_path)
+        binary_enc = ce.BinaryEncoder(cols=binary_atrributes)
+        binary_enc.fit(train_data[binary_atrributes])
+
+        for attr in binary_atrributes:
+            for m in binary_enc.mapping:
+                if m['col'] == attr:
+                    binary_mapping = m['mapping']
+                    break
+            
+            index_attr = out_all_features.index(attr)
+            out_all_features[index_attr:index_attr+1] = list(binary_mapping.columns)
+
+        return out_all_features
+
 
     def get_params(self, fitted_transformer, binaryencoder_infos, all_features, preprocess_all_features, prev_transform_features):
         binary_atrributes = binaryencoder_infos['attrs']
