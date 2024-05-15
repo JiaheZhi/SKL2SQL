@@ -47,6 +47,7 @@ class FrequencyEncoderSQL(object):
                 for item in count:
                     ele, freq = item
                     query += f"WHEN {f} = '{ele}' THEN {freq} "
+                query += "ELSE 0 "
                 query += f"END AS {f}, "
 
         # loop over the other features and insert them in the select clause

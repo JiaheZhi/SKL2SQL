@@ -61,7 +61,8 @@ if __name__ == '__main__':
     pre_sql = "set max_parallel_workers = 1; EXPLAIN ANALYZE "
 
     queries, query = manager.generate_query(model_file, dataset_name, features, dbms, pre_sql
-                                            , optimizations, preprocessors)
+                                            , optimizations, preprocessors, auto_gen=True, 
+                                            sample_dataset='/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv')
     
-    with open('/root/volume/SKL2SQL/experiments/usa_accident_rf_deep_fusions/usa_accident_rf_deep5_any-value-100when.sql', 'w') as sql_file:
-        sql_file.write(query)
+    # with open('/root/volume/SKL2SQL/experiments/usa_accident_rf_deep_fusions/usa_accident_rf_deep5_any-value-100when.sql', 'w') as sql_file:
+    #     sql_file.write(query)

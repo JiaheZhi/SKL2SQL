@@ -107,7 +107,7 @@ class TransformerManager(object):
         return model_features_in
 
 
-    def generate_query(self, model_file, table_name, features, dbms, pre_sql=None, optimizations=None, preprocessors=None, auto_gen=False, sample_dataset=None):
+    def generate_query(self, model_file, table_name, features, dbms, pre_sql=None, optimizations=None, preprocessors=None, auto_gen=False, test_data_path=None, encoders_path=None):
         """
         Generate a query statement based on provided model file, table name, features, and DBMS.
 
@@ -136,8 +136,9 @@ class TransformerManager(object):
             The generated query statement.
         """
 
-        # Ensure that sample_dataset is provided when auto_gen is True
-        assert not auto_gen or sample_dataset is not None, "sample_dataset must be provided when auto_gen is True"
+        # Ensure that parameters is provided when auto_gen is True
+        assert not auto_gen or test_data_path is not None, "sample_dataset must be provided when auto_gen is True"
+        assert not auto_gen or encoders_path is not None, "sample_dataset must be provided when auto_gen is True"
 
         # some load and extract tasks
         model = load_model(model_file)
@@ -149,7 +150,7 @@ class TransformerManager(object):
 
         # automatically genarate the SQL genarating configurations according to the cost model of "craftsman"
         if auto_gen:
-            optimizations, preprocessors = auto_config(model, sample_dataset, model_features_in, optimizations, preprocessors)
+            optimizations, preprocessors = auto_config(pipeline, test_data_path, encoders_path, model_features_in, features, optimizations, preprocessors)
 
         # add the join opreations
         input_table, preprocess_features = join_transformer(input_table, features, optimizations, preprocessors, pipeline)

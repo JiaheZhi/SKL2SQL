@@ -22,7 +22,7 @@ if __name__ == '__main__':
         'attrs': {
             'Amount': {
                 # 'is_push':True,
-                'is_merge':True
+                # 'is_merge':True
             }
         },
         'train_data_path': '/root/volume/ML_Dataset/creditcard/credit_train.csv',
@@ -40,5 +40,5 @@ if __name__ == '__main__':
     queries, query = manager.generate_query(model_file, dataset_name, features, dbms, pre_sql
                                             , optimizations, preprocessors)
     
-    with open('/root/volume/ML_Dataset/creditcard/cred_dt_8.sql', 'w') as sql_file:
+    with open('/root/volume/ML_Dataset/creditcard/cred_dt_8_case.sql', 'w') as sql_file:
         sql_file.write(query)

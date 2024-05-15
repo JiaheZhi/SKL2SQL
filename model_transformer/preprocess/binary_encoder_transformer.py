@@ -39,7 +39,7 @@ class BinaryEncoderSQL(object):
         out_all_features = []
         preprocess_out_all_features = []
         train_data_path = binaryencoder_infos['train_data_path']
-        train_data = pd.read_csv(train_data_path, nrows=10000)
+        train_data = pd.read_csv(train_data_path)
         binary_encoder = ce.BinaryEncoder(cols=binary_atrributes)
         train_data_binary = binary_encoder.fit_transform(train_data[binary_atrributes])
         train_data_join = pd.concat([train_data[binary_atrributes], train_data_binary], axis=1)
