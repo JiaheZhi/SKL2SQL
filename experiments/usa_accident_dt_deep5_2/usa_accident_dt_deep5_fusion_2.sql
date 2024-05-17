@@ -116,7 +116,7 @@ FROM
       "Traffic_Signal"
     FROM
       usa_accident
-  ) AS data limit 5000000;
+  ) AS data
 
 
 

@@ -260,18 +260,30 @@ FROM
 
 
 
-  EXPLAIN ANALYZE
+EXPLAIN ANALYZE
 SELECT
-  (p2-3) as p3,
+  (p2-3) as p3
 FROM
   (
     SELECT  
-      (p1+9)/10 as p2,
+      (p1+9)/10 as p2
     FROM
       (
         SELECT
-          COALESCE("Pressure(in)", 29.96) AS p1,
+          COALESCE("Pressure(in)", 29.96) AS p1
         FROM 
           usa_accident
       ) AS data
   ) AS data;
+
+EXPLAIN ANALYZE
+SELECT
+  ((COALESCE("Pressure(in)", 29.96)+9)/10 -3) as p3
+        FROM 
+          usa_accident;
+
+EXPLAIN ANALYZE
+SELECT
+  (COALESCE((("Pressure(in)"+9)/10)-3,  0.896)) as p3
+        FROM 
+          usa_accident;
