@@ -100,10 +100,11 @@ class TransformerManager(object):
     def get_model_features_in(self, features, pipeline):
         model_features_in = features.copy()
         transforms = pipeline['transforms']
+        pre_features = []
         for transform in transforms:
             transform_name = transform['transform_name']
             sql_transformer = self.sql_transform_types[transform_name]
-            model_features_in = sql_transformer.transform_model_features_in(transform, model_features_in)
+            model_features_in, pre_features = sql_transformer.transform_model_features_in(transform, model_features_in, pre_features)
         return model_features_in
 
 

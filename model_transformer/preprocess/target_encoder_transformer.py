@@ -13,8 +13,8 @@ class TargetEncoderSQL(object):
         self.dbms = dbms
 
 
-    def transform_model_features_in(self, transform, all_features):
-        return all_features
+    def transform_model_features_in(self, transform, all_features, pre_features):
+        return all_features, pre_features
 
 
     def get_params(self, fitted_transformer, infos, all_features, preprocess_all_features, prev_transform_features):

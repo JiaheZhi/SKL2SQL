@@ -12,7 +12,7 @@ class BinaryEncoderSQL(object):
     def set_dbms(self, dbms: str):
         self.dbms = dbms
 
-    def transform_model_features_in(self, transform, all_features):
+    def transform_model_features_in(self, transform, all_features, pre_features):
         out_all_features = all_features
         binaryencoder_infos = transform['transform_features']
         binary_atrributes = binaryencoder_infos['attrs']
@@ -30,7 +30,7 @@ class BinaryEncoderSQL(object):
             index_attr = out_all_features.index(attr)
             out_all_features[index_attr:index_attr+1] = list(binary_mapping.columns)
 
-        return out_all_features
+        return out_all_features, pre_features
 
 
     def get_params(self, fitted_transformer, binaryencoder_infos, all_features, preprocess_all_features, prev_transform_features):

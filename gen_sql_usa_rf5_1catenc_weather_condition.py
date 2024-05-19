@@ -5,10 +5,10 @@ from model_transformer.utility.dbms_utils import DBMSUtils
 if __name__ == '__main__':
     manager = TransformerManager()
 
-    model_file = '/root/volume/SKL2SQL/trained_model/usa_rf_dp5_1catenc_source.joblib'
+    model_file = '/root/volume/SKL2SQL/trained_model/usa_rf_dp5_1catenc_weather_condition.joblib'
     dataset_name = 'usa_accident' 
     
-    frequency_encoder_cols = ['Source']
+    frequency_encoder_cols = ['Weather_Condition']
     onehot_encoder_cols = ['Timezone']
     standscaler_cols = ['Pressure(in)']
     other_cols = ['Station', 'Stop', 'Traffic_Signal']
@@ -17,6 +17,10 @@ if __name__ == '__main__':
     dbms = DBMSUtils.get_dbms_from_str_connection('postgresql://postgres:@localhost/postgres')
     preprocessors = {}
     preprocessors['Imputation'] = {
+        'Weather_Condition': {
+            'impuataion_value': 'Fair',
+            'is_push':False
+        },
         'Timezone': {
             'impuataion_value': 'US/Eastern',
             'is_push':False
@@ -29,16 +33,17 @@ if __name__ == '__main__':
 
     preprocessors['FrequencyEncoder'] = {
         'attrs': {
-            'Source': {
+            'Weather_Condition': {
                 # 'is_push':True,
-                'is_merge':True
+                # 'is_merge':True
             }
         },
         'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv',
-        # 'method': 'join',
-        'method': 'normal',
-        'dbms': 'duckdb'
+        'method': 'join',
+        # 'method': 'normal',
+        'dbms': 'pg'
     }
+        
 
     optimizations = {
         'StandardScaler': {
@@ -56,9 +61,9 @@ if __name__ == '__main__':
     pre_sql = "set max_parallel_workers = 1; EXPLAIN ANALYZE "
 
     queries, query = manager.generate_query(model_file, dataset_name, features, dbms, pre_sql
-                                            , optimizations, preprocessors, auto_gen=True, 
+                                            , optimizations, preprocessors, auto_gen=False, 
                                             test_data_path='/root/volume/SKL2SQL/dataset/US_Accidents_March23_test_noshf.csv',
-                                            encoders_path='/root/volume/SKL2SQL/trained_model/category_encoders_usa_rf5_1catenc_source.joiblib')
+                                            encoders_path='/root/volume/SKL2SQL/trained_model/category_encoders_usa_rf5_1catenc_weather_condition.joblib')
     
-    with open('/root/volume/SKL2SQL/experiments/usa_accident_rf_deep_fusions/usa_accident_rf_deep5_dev.sql', 'w') as sql_file:
+    with open('/root/volume/SKL2SQL/generated_sql/usa_accident_rf_deep5_1catenc_weather_condition_join.sql', 'w') as sql_file:
         sql_file.write(query)

@@ -31,13 +31,13 @@ if __name__ == '__main__':
         'attrs': {
             'Source': {
                 # 'is_push':True,
-                'is_merge':True
+                # 'is_merge':True
             }
         },
         'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv',
-        # 'method': 'join',
-        'method': 'normal',
-        'dbms': 'duckdb'
+        'method': 'join',
+        # 'method': 'normal',
+        'dbms': 'pg'
     }
 
     optimizations = {
@@ -56,9 +56,9 @@ if __name__ == '__main__':
     pre_sql = "set max_parallel_workers = 1; EXPLAIN ANALYZE "
 
     queries, query = manager.generate_query(model_file, dataset_name, features, dbms, pre_sql
-                                            , optimizations, preprocessors, auto_gen=True, 
+                                            , optimizations, preprocessors, auto_gen=False, 
                                             test_data_path='/root/volume/SKL2SQL/dataset/US_Accidents_March23_test_noshf.csv',
                                             encoders_path='/root/volume/SKL2SQL/trained_model/category_encoders_usa_rf5_1catenc_source.joiblib')
     
-    with open('/root/volume/SKL2SQL/experiments/usa_accident_rf_deep_fusions/usa_accident_rf_deep5_dev.sql', 'w') as sql_file:
+    with open('/root/volume/SKL2SQL/generated_sql/usa_accident_rf_deep5_1catenc_source_join.sql', 'w') as sql_file:
         sql_file.write(query)

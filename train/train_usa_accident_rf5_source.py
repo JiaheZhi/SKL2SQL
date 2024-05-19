@@ -18,11 +18,8 @@ y = data['Severity']
 frequency_encoder_cols = ['Source']
 onehot_encoder_cols = ['Timezone']
 standscaler_cols = ['Pressure(in)']
-target_encoder_cols = ['Wind_Direction']
-leaveoneout_encoder_cols = ['State']
-binary_encoder_cols = ['County']
 other_cols = ['Station', 'Stop', 'Traffic_Signal']
-X = X[frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + target_encoder_cols+ leaveoneout_encoder_cols + binary_encoder_cols + other_cols]
+X = X[frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + other_cols]
 
 # clean data
 for col in X.columns:
@@ -34,19 +31,10 @@ for col in X.columns:
 #  Encoders
 counter_encoder = ce.CountEncoder(cols=frequency_encoder_cols)
 X = counter_encoder.fit_transform(X)
-target_encoder = ce.TargetEncoder(cols=target_encoder_cols)
-X = target_encoder.fit_transform(X, y)
-leaveoneout_encoder = ce.LeaveOneOutEncoder(cols=leaveoneout_encoder_cols)
-X = leaveoneout_encoder.fit_transform(X, y)
-binary_encoder = ce.BinaryEncoder(cols=binary_encoder_cols)
-X = binary_encoder.fit_transform(X)
 category_encoders = {
-    'FrequencyEncoder':counter_encoder,
-    'BinaryEncoder':binary_encoder,
-    'TargetEncoder':target_encoder,
-    'LeaveOneOutEncoder':leaveoneout_encoder
+    'FrequencyEncoder':counter_encoder
 }
-save_model(category_encoders, '/root/volume/SKL2SQL/trained_model/category_encoders_usa_rf5_4catenc.joiblib')
+save_model(category_encoders, '/root/volume/SKL2SQL/trained_model/category_encoders_usa_rf5_1catenc_source.joiblib')
 
 # define pipline
 std_scalar = StandardScaler(with_mean=False)
@@ -66,13 +54,13 @@ pipeline = Pipeline(steps=[pipeline_transforms, pipeline_estimator])
 pipeline.fit(X, y)
 
 # save model to the file
-save_model(pipeline, '/root/volume/SKL2SQL/trained_model/usa_rf_dp5_4catenc.joblib')
+save_model(pipeline, '/root/volume/SKL2SQL/trained_model/usa_rf_dp5_1catenc_source.joblib')
 
 # test model
 data_test = pd.read_csv("/root/volume/SKL2SQL/dataset/US_Accidents_March23_test.csv")
 X_test = data.drop('Severity', axis=1)
 y_test = data['Severity']
-X_test = X_test[frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + target_encoder_cols + leaveoneout_encoder_cols + binary_encoder_cols + other_cols]
+X_test = X_test[frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + other_cols]
 
 # clean data
 for col in X_test.columns:
@@ -80,16 +68,10 @@ for col in X_test.columns:
         most_common_value = X_test[col].value_counts().idxmax()  # get the most frequency value
         X_test[col].fillna(most_common_value, inplace=True)  # imputate the null value
 
-category_encoders = load_model('/root/volume/SKL2SQL/trained_model/category_encoders_usa_rf5_4catenc.joiblib')
+category_encoders = load_model('/root/volume/SKL2SQL/trained_model/category_encoders_usa_rf5_1catenc_source.joiblib')
 # Frequency Encoder
 counter_encoder = category_encoders['FrequencyEncoder']
 X_test = counter_encoder.transform(X_test)
-target_encoder = category_encoders['TargetEncoder']
-X_test = target_encoder.transform(X_test, y)
-leaveoneout_encoder = category_encoders['LeaveOneOutEncoder']
-X_test = leaveoneout_encoder.transform(X_test, y)
-binary_encoder = category_encoders['BinaryEncoder']
-X_test = binary_encoder.transform(X_test)
 
 # evaluate the test result
 y_predict = pipeline.predict(X_test)

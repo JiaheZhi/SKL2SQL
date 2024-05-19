@@ -391,13 +391,13 @@ class DTMSQL(object):
                         # get the map of value to frequency
                         count = Counter(data_list)
                         ### in
-                        # in_list = []
-                        # for ele, freq in count.items():
-                        #     if freq <= thr:
-                        #         in_list.append(f"'{ele}'")
-                        # in_str = '(' + ','.join(in_list) + ')'
-                        # op = 'in'
-                        # thr = in_str
+                        in_list = []
+                        for ele, freq in count.items():
+                            if freq <= thr:
+                                in_list.append(f"'{ele}'")
+                        in_str = '(' + ','.join(in_list) + ')'
+                        op = 'in'
+                        thr = in_str
 
                         ### in-values
                         # in_list = []
@@ -418,13 +418,13 @@ class DTMSQL(object):
                         # thr = in_str
 
                         ### any-values
-                        in_list = []
-                        for ele, freq in count.items():
-                            if freq <= thr:
-                                in_list.append(f"('{ele}')")
-                        in_str = '(values' + ','.join(in_list) + ')'
-                        op = '=any'
-                        thr = in_str
+                        # in_list = []
+                        # for ele, freq in count.items():
+                        #     if freq <= thr:
+                        #         in_list.append(f"('{ele}')")
+                        # in_str = '(values' + ','.join(in_list) + ')'
+                        # op = '=any'
+                        # thr = in_str
 
             ###### merge target encoder ######
             if merge_target_features is not None:

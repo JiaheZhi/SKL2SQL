@@ -13,12 +13,12 @@ def auto_config(pipeline, data_path, encoders_path, feature_names, features, opt
 
     # travel the tree to get the fusion statistics information
     if model_name == 'DecisionTreeClassifier':
-        fusion_statistics = get_fusion_statistics(trained_model, transformed_data, feature_names, fitted_info)
+        fusion_statistics = get_fusion_statistics(trained_model, transformed_data, feature_names, fitted_info, encoders_path)
     elif model_name == 'RandomForestClassifier':
         trees = trained_model.estimators_
         total_fusion_statistcs = {}
         for tree_model in trees:
-            fusion_statistics = get_fusion_statistics(tree_model, transformed_data, feature_names, fitted_info)
+            fusion_statistics = get_fusion_statistics(tree_model, transformed_data, feature_names, fitted_info, encoders_path)
             total_fusion_statistcs = {key: total_fusion_statistcs.get(key, 0) + fusion_statistics.get(key, 0) for key in set(total_fusion_statistcs) | set(fusion_statistics)}
         fusion_statistics = total_fusion_statistcs
 
@@ -34,12 +34,16 @@ def auto_config(pipeline, data_path, encoders_path, feature_names, features, opt
     for attr in preprocessors['FrequencyEncoder']['attrs']:
         print(attr)
         print('case cost: ', case_statistics[attr])
-        print('fusion cost: ', fusion_statistics[attr])  
+        print('fusion cost: ')
+        for key in fusion_statistics:
+            if attr in key:
+                print(f'{key}, time:{fusion_statistics[key]}', )  
 
     return optimizations, preprocessors
 
 
-def get_fusion_statistics(model, data, features_names, fitted_info):
+def get_fusion_statistics(model, data, features_names, fitted_info, encoders_path):
+    category_encoders = load_model(encoders_path)
     statistics = None
     # get the decision paths in the dataset
     paths = model.decision_path(data)
@@ -49,7 +53,32 @@ def get_fusion_statistics(model, data, features_names, fitted_info):
     for i in range(len(paths.indptr) - 1):
         start_idx = paths.indptr[i]
         end_idx = paths.indptr[i + 1]
-        features_used = [model.tree_.feature[col_indices[j]] for j in range(start_idx, end_idx)]
+        features_used = []
+        for idx in range(start_idx, end_idx):
+            feature = features_names[model.tree_.feature[col_indices[idx]]] 
+            thr = model.tree_.threshold[col_indices[idx]]
+            count = 0
+            for key in fitted_info:
+                fitted_feature, encoder_type= key.split('#')
+                if feature==fitted_feature:
+                    if encoder_type == "FrequencyEncoder":
+                        counter_encoder = category_encoders["FrequencyEncoder"]
+                        feature_freq_map = counter_encoder.mapping[feature]
+                        for freq in reversed(feature_freq_map):
+                            if thr > freq:
+                                count += 1
+                            else:
+                                break
+                    break
+            if count > 0:
+                features_used.append(f'{feature}:{count}')
+            else:      
+                features_used.append(feature)
+
+
+
+        # features_used = [features_names[model.tree_.feature[col_indices[j]]] for j in range(start_idx, end_idx)]
+        # thresholds = [model.tree_.threshold[col_indices[j]] for j in range(start_idx, end_idx)]
         counts = Counter(features_used)
         # for idx in counts:
         #     feature = features_names[idx]
@@ -60,18 +89,20 @@ def get_fusion_statistics(model, data, features_names, fitted_info):
         else:
             statistics = statistics + counts
         
-    return {features_names[key]:statistics[key] for key in statistics}
+    return {key:statistics[key] for key in statistics}
 
 
 
 def get_case_statistics(data, features_names, fitted_info):
     lines = len(data)
-    statistics = {feature:lines for feature in features_names if feature not in fitted_info}
-    for feature in fitted_info:
+    fitted_features = [key.split('#')[0] for key in fitted_info]
+    statistics = {feature:lines for feature in features_names if feature not in fitted_features}
+    for feature_enctype in fitted_info:
+        feature = feature_enctype.split('#')[0]
         statistics[feature] = 0
         feature_counts = Counter(data[feature])
         for key in feature_counts:
-            statistics[feature] += feature_counts[key] * fitted_info[feature][key]
+            statistics[feature] += feature_counts[key] * fitted_info[feature_enctype][key]
     
     return statistics
 
@@ -116,7 +147,7 @@ def transform_data(data_path, encoders_path, features, pipeline, preprocessors):
                 for feature in transform['transform_features']['attrs'].keys():
                     count_order = {v:(i+1) for i,v in enumerate(counter_encoder.mapping[feature])}
                     count_order[0] = len(counter_encoder.mapping[feature])
-                    fitted_info[feature] = count_order
+                    fitted_info[feature+'#FrequencyEncoder'] = count_order
             elif transform['transform_name'] == 'TargetEncoder':
                 target_encoder = category_encoders['TargetEncoder']
                 data = target_encoder.transform(data)

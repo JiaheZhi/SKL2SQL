@@ -10,8 +10,8 @@ class LabelEncoderSQL(object):
     def set_dbms(self, dbms: str):
         self.dbms = dbms
 
-    def transform_model_features_in(self, transform, all_features):
-        return all_features
+    def transform_model_features_in(self, transform, all_features, pre_features):
+        return all_features, pre_features
 
     def get_params(self, fitted_transformer, transform_features, all_features, preprocess_all_features, prev_transform_features):
         classes = fitted_transformer.classes_

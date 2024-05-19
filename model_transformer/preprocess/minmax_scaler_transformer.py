@@ -24,8 +24,8 @@ class MinMaxScalerSQL(object):
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations
 
-    def transform_model_features_in(self, transform, all_features):
-        return all_features
+    def transform_model_features_in(self, transform, all_features, pre_features):
+        return all_features, pre_features
 
     def get_params(self, scaler: MinMaxScaler, norm_features, all_features, preprocess_all_features, prev_transform_features=None):
 
@@ -59,7 +59,7 @@ class MinMaxScalerSQL(object):
 
         self.params = {"data_min": data_min, "scale": scale, "range_min": range_min, "out_all_features": features,
                        "norm_features": norm_features, "other_features": preprocess_other_features,
-                       'out_transform_features': prev_transform_features, 'preprocess_all_features': preprocess_all_features}
+                       'out_transform_features': norm_features, 'preprocess_all_features': preprocess_all_features}
 
         return self.params
 

@@ -170,7 +170,7 @@ class OneHotEncoderSQL(object):
 
         return ohe_to_index_map
 
-    def transform_model_features_in(self, transform, all_features):
+    def transform_model_features_in(self, transform, all_features, pre_features):
         one_enc = transform['fitted_transform']
         one_features = transform['transform_features']
         features_after_one = one_enc.get_feature_names()
@@ -184,12 +184,22 @@ class OneHotEncoderSQL(object):
             else:
                 count_map[feature] = 0
 
+        other_features = []
+        for feature in all_features:
+            if not (feature in one_features or feature in pre_features):
+                other_features.append(feature)
+
+        one_features_fusion = []
         for attr in one_features:
             # change the one col to muilti cols
-            index_attr = all_features.index(attr)
-            all_features[index_attr:index_attr+1] = [f'{attr}_{i}' for i in range(count_map[attr] + 1)]
+            # index_attr = all_features.index(attr)
+            # all_features[index_attr:index_attr+1] = [f'{attr}_{i}' for i in range(count_map[attr] + 1)]
+            one_features_fusion.extend([f'{attr}_{i}' for i in range(count_map[attr] + 1)])
 
-        return all_features
+        all_features = pre_features + one_features_fusion + other_features
+        pre_features = pre_features + one_features_fusion 
+
+        return all_features, pre_features
 
     def get_params(self, ohe, ohe_features, all_features, preprocess_all_features, prev_transform_features=None):
         """
