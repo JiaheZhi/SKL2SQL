@@ -5,10 +5,10 @@ from model_transformer.utility.dbms_utils import DBMSUtils
 if __name__ == '__main__':
     manager = TransformerManager()
 
-    model_file = '/root/volume/SKL2SQL/trained_model/usa_rf_dp5_1catenc_source_dev.joblib'
+    model_file = '/root/volume/SKL2SQL/trained_model/usa_rf_dp5_1catenc_wind_direction.joblib'
     dataset_name = 'usa_accident' 
     
-    frequency_encoder_cols = ['Source']
+    frequency_encoder_cols = ['Wind_Direction']
     onehot_encoder_cols = ['Timezone']
     standscaler_cols = ['Pressure(in)']
     other_cols = ['Station', 'Stop', 'Traffic_Signal']
@@ -24,12 +24,16 @@ if __name__ == '__main__':
         'Pressure(in)': {
             'impuataion_value': 29.96,
             'is_push':False
+        },
+        'Wind_Direction' : {
+            'impuataion_value': 'CALM',
+            'is_push':False
         }
     }
 
     preprocessors['FrequencyEncoder'] = {
         'attrs': {
-            'Source': {
+            'Wind_Direction': {
                 # 'is_push':True,
                 # 'is_merge':True
             }
@@ -58,7 +62,7 @@ if __name__ == '__main__':
     queries, query = manager.generate_query(model_file, dataset_name, features, dbms, pre_sql
                                             , optimizations, preprocessors, auto_gen=False, 
                                             test_data_path='/root/volume/SKL2SQL/dataset/US_Accidents_March23_test_noshf.csv',
-                                            encoders_path='/root/volume/SKL2SQL/trained_model/category_encoders_usa_rf5_1catenc_source.joiblib')
+                                            encoders_path='/root/volume/SKL2SQL/trained_model/category_encoders_usa_rf5_1catenc_wind_direction.joiblib')
     
-    with open('/root/volume/SKL2SQL/generated_sql/usa_accident_rf_deep5_1catenc_source_join.sql', 'w') as sql_file:
+    with open('/root/volume/SKL2SQL/generated_sql/usa_accident_rf_deep5_1catenc_wind_direction_join.sql', 'w') as sql_file:
         sql_file.write(query)
