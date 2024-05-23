@@ -558,20 +558,9 @@ class Optimizer(object):
             model_sql_wrapper.set_optimizations(self.optimizations)
 
 
-        # if dbms limits are reached then set the sparse implementation for some transformers and for the model
-        # in the opposite case enable dense modality for all the pipeline components
-        for nt in new_transformers:
-            if 'OneHotEncoder' in str(type(nt)):
-                    nt.set_mode('dense')
-        model_sql_wrapper.set_mode('dense')
-
-
-        # if there are operators to merge and the sparse implementation is disabled then merge the previously
-        # selected transformers with the model
         if len(sql_transformers_to_merge) > 0:
             for sql_transf_to_merge in sql_transformers_to_merge:
                 transf_name = sql_transf_to_merge[0]
-                transf_sql = sql_transf_to_merge[1]
                 transf_params = sql_transf_to_merge[2]
 
                 if transf_name == 'OneHotEncoder':

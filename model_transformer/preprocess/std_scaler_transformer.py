@@ -1,6 +1,5 @@
 import numpy as np
 from sklearn.preprocessing import StandardScaler
-from collections import Iterable
 from model_transformer.utility.dbms_utils import DBMSUtils
 
 
@@ -51,36 +50,6 @@ class StandardScalerSQL(object):
                           ML.NET which ignores the means during the scaling
         :return: the fitted parameters extracted from the Sklearn StardardScaler object (i.e., averages and 1/stds)
         """
-
-        if not isinstance(scaler, StandardScaler):
-            raise TypeError("Wrong data type for parameter scaler. Only Sklearn StardardScaler data type is allowed.")
-
-        if not isinstance(norm_features, Iterable):
-            raise TypeError("Wrong data type for parameter norm_features. Only iterable objects are allowed.")
-
-        for f in norm_features:
-            if not isinstance(f, str):
-                raise TypeError("Wrong data type for single norm_features. Only string data type is allowed.")
-
-        if not isinstance(all_features, Iterable):
-            raise TypeError("Wrong data type for parameter all_features. Only iterable objects are allowed.")
-
-        for f in all_features:
-            if not isinstance(f, str):
-                raise TypeError("Wrong data type for single all_features. Only string data type is allowed.")
-
-        if prev_transform_features is not None:
-            if not isinstance(prev_transform_features, Iterable):
-                raise TypeError(
-                    "Wrong data type for parameter prev_transform_features. Only iterable objects are allowed.")
-
-            for f in prev_transform_features:
-                if not isinstance(f, str):
-                    raise TypeError(
-                        "Wrong data type for single prev_transform_features. Only string data type is allowed.")
-
-        if not isinstance(with_mean, bool):
-            raise TypeError("Wrong data type for parameter with_mean. Only boolean data type is allowed.")
 
         # extract the stds from the fitted Sklearn StardardScaler object
         scaler_std = scaler.scale_

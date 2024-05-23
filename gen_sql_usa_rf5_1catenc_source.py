@@ -27,19 +27,6 @@ if __name__ == '__main__':
         }
     }
 
-    preprocessors['FrequencyEncoder'] = {
-        'attrs': {
-            'Source': {
-                # 'is_push':True,
-                # 'is_merge':True
-            }
-        },
-        'train_data_path': '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv',
-        'method': 'join',
-        # 'method': 'normal',
-        'dbms': 'pg'
-    }
-
     optimizations = {
         'StandardScaler': {
             'push_attris': [],
@@ -48,8 +35,8 @@ if __name__ == '__main__':
         },
         'OneHotEncoder':{
             'push_attris': [],
-            'merge_attris': ['Timezone'],
-            'other_attris': []
+            'merge_attris': [],
+            'other_attris': ['Timezone']
         },
     }
 
