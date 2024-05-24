@@ -7,6 +7,11 @@ class BinaryEncoderSQL(object):
     def __init__(self):
         self.dbms = None
         self.params = None
+        self.variant_params = []
+        # x->x_0,x_1,...,x_n, record x_i's info
+        # constant_params and variant_len are used to build statistical infos
+        self.constant_params = {} 
+        self.variant_len = []
     
     
     def set_dbms(self, dbms: str):
@@ -94,6 +99,7 @@ class BinaryEncoderSQL(object):
 
                 train_data_join_groupby = train_data_join.groupby(attr)[binaryed_col_list].first()
                 
+                in_items = []
                 begin_str = f'CASE WHEN "{attr}" in '
                 for col_name in train_data_join_groupby.columns:
                     one_index_list = []
@@ -109,10 +115,18 @@ class BinaryEncoderSQL(object):
                     in_str = ""
                     if(len(one_index_list) < len(zero_index_list)):
                         in_str += f"({','.join(one_index_list)}) THEN 1 ELSE 0 "
+                        self.constant_params[col_name] = 1
+                        self.variant_len.append(len(one_index_list))
                     else:
                         in_str += f"({','.join(zero_index_list)}) THEN 0 ELSE 1 "
+                        self.constant_params[col_name] = 0
+                        self.variant_len.append(len(zero_index_list))
 
                     end_str = f'END AS "{col_name}"'
+                    
+
+                    
+
                     binary_preprocess_sql_list.append(begin_str + in_str + end_str)
 
         if len(binary_preprocess_sql_list) > 0:

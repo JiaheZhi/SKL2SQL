@@ -7,6 +7,9 @@ class FrequencyEncoderSQL(object):
     def __init__(self):
         self.dbms = None
         self.params = None
+        self.variant_params = []
+        self.constant_params = []
+
     
     def set_dbms(self, dbms: str):
         self.dbms = dbms
@@ -44,8 +47,12 @@ class FrequencyEncoderSQL(object):
                 count = count.most_common()
                 f = dbms_util.get_delimited_col(self.dbms, f)
                 query += "CASE "
+                 = 
+                self.constant_params = 
                 for item in count:
                     ele, freq = item
+                    self.variant_params.append(ele)
+                    self.constant_params.append(freq)
                     query += f"WHEN {f} = '{ele}' THEN {freq} "
                 query += "ELSE 0 "
                 query += f"END AS {f}, "

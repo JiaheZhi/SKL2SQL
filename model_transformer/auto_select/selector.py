@@ -78,11 +78,33 @@ def get_tree_statistics(tree, attribute_index):
                 if tree.feature[node] == attribute_index
                     # no fusion
                     no_fusion_count += 1
-                    # fusion threshold[i]
-                    # TODO:getinlength()
-                    # cat-c-cat/expand
-                    meta_stats.set_stats("in",length)
-                    # con-c-cat
+                    # fusion (in)
+                    edag = eDAG # global variable
+                    # expand将x转换为x_0,x_1,...,x_n (sub_field),但在树上仍以x_i进行统计
+                    # TODO:一条元组的expand的代价是求和其走过的path_i上的所有出现的x_i的代价
+                    index = 0
+                    for key, value in edag[attribute_index].items():
+                        if key == "cat-c-cat":
+                            in_length = sum(i<=threshold[node] for i in op.constant_params)
+                            meta_stats.set_stats("in",in_length)
+                        elif key == "expand":
+                            #binaryencoder
+                            in_length = 0
+                            for field_name, value in op.constant_params.item(): # traverse each sub_field
+                                if value <= threshold[node]:# max value
+                                    if value == 0:
+                                        in_length = op.variant_len[index]
+                                    else:
+                                        pass # always true
+                                else:
+                                    if value == 0:
+                                        pass # always false
+                                    else:
+                                       in_length = op.variant_len[index] # not in (Assuming that not_in and in have the same cost)
+                                meta_stats.set_stats("in",in_length)
+                                index += 1
+                    
+                    # fusion (or)
                     # TODO:avglen = getavglength()
                     meta_stats.set_stats("or",avglen)
                     
