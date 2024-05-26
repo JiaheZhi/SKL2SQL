@@ -5,8 +5,8 @@ from craftsman.utility.dbms_utils import DBMSUtils
 if __name__ == '__main__':
     manager = TransformerManager()
 
-    model_file = '/root/volume/SKL2SQL/trained_model/usa_rf_dp5_1catenc_source_dev.joblib'
-    dataset_name = 'usa_accident' 
+    pipeline_file = '/root/volume/SKL2SQL/trained_model/usa_rf_dp5_1catenc_source_dev.joblib'
+    table_name = 'usa_accident' 
     dbms = DBMSUtils.get_dbms_from_str_connection('postgresql://postgres:@localhost/postgres')
 
     optimizations = {
@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     pre_sql = "set max_parallel_workers = 1; EXPLAIN ANALYZE "
 
-    queries, query = manager.generate_query(model_file, dataset_name, dbms, pre_sql
+    queries, query = manager.generate_query(pipeline_file, table_name, dbms, pre_sql
                                             , optimizations, auto_gen=False, 
                                             test_data_path='/root/volume/SKL2SQL/dataset/US_Accidents_March23_test_noshf.csv')
     

@@ -1,18 +1,25 @@
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from craftsman.utility.dbms_utils import DBMSUtils
+from craftsman.base.operator import SQLOperator
 
 
-class StandardScalerSQL(object):
+class StandardScalerSQLOperator(SQLOperator):
     """
     This class implements the SQL wrapper for a Sklearn StardardScaler object.
     """
 
     def __init__(self):
+        super().__init__('StandardScaler')
         self.params = None
         self.dbms = None
         self.mode = None
         self.optimizations = None
+
+
+    def init(self, fitted_transform):
+        pass
+
 
     def set_mode(self, mode: str):
         assert isinstance(mode, str), "Wrong data type for param 'mode'."

@@ -1,15 +1,22 @@
-from craftsman.utility.dbms_utils import DBMSUtils
 from collections import Counter
+from craftsman.utility.dbms_utils import DBMSUtils
+from craftsman.base.operator import SQLOperator
 from craftsman.utility.loader import load_dataset
 
-class FrequencyEncoderSQL(object):
+class FrequencyEncoderSQLOperator(SQLOperator):
 
     def __init__(self):
+        super().__init__('FrequencyEncoder')
         self.dbms = None
         self.params = None
     
     def set_dbms(self, dbms: str):
         self.dbms = dbms
+
+    
+    def init(self, fitted_transform):
+        pass
+
 
     def transform_model_features_in(self, transform, all_features, pre_features):
         return all_features, pre_features

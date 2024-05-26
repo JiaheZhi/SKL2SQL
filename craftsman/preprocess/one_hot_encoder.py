@@ -1,15 +1,22 @@
 from craftsman.utility.dbms_utils import DBMSUtils
+from craftsman.base.operator import SQLOperator
 
 
-class OneHotEncoderSQL(object):
+class OneHotEncoderSQLOperator(SQLOperator):
     """
     This class implements the SQL wrapper for a Sklearn OneHotEncoder object.
     """
 
     def __init__(self):
+        super().__init__('OneHotEncoder')
         self.params = None
         self.dbms = None
         self.optimizations = None
+
+
+    def init(self, fitted_transform):
+        pass
+    
 
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations

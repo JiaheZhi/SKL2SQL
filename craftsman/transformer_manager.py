@@ -3,8 +3,8 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, MinMaxScaler, LabelEncoder, OrdinalEncoder
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from craftsman.preprocess.binary_encoder_transformer import BinaryEncoderSQL
-from craftsman.preprocess.std_scaler_transformer import StandardScalerSQL
-from craftsman.preprocess.one_hot_encoder_transformer import OneHotEncoderSQL
+from craftsman.preprocess.standard_scaler import StandardScalerSQLOperator
+from craftsman.preprocess.one_hot_encoder import OneHotEncoderSQLOperator
 from craftsman.preprocess.default_preprocess_transformer import DefaultPreprocessSQL
 from craftsman.preprocess.udf_transformer import UDFSQL
 from craftsman.preprocess.imputatation_transformer import ImputationSQL
@@ -12,7 +12,7 @@ from craftsman.preprocess.equal_width_discretization_transformer import EqualWid
 from craftsman.preprocess.minmax_scaler_transformer import MinMaxScalerSQL
 from craftsman.preprocess.label_encoder_transformer import LabelEncoderSQL
 from craftsman.preprocess.ordinal_encoder_transformer import OrdinalEncoderSQL
-from craftsman.preprocess.freqency_encoder_transformer import FrequencyEncoderSQL
+from craftsman.preprocess.frequency_encoder import FrequencyEncoderSQLOperator
 from craftsman.preprocess.join_transformer import JoinSQL
 from craftsman.preprocess.target_encoder_transformer import TargetEncoderSQL
 from craftsman.preprocess.leave_one_out_encoder_transformer import LeaveOneOutEncoderSQL
@@ -51,8 +51,8 @@ class TransformerManager(object):
     }
 
     sql_transform_types = {
-        'StandardScaler': StandardScalerSQL(),
-        'OneHotEncoder': OneHotEncoderSQL(),
+        'StandardScaler': StandardScalerSQLOperator(),
+        'OneHotEncoder': OneHotEncoderSQLOperator(),
         'DefaultPreprocess': DefaultPreprocessSQL(),
         'UDF': UDFSQL(),
         'Imputation': ImputationSQL(),
@@ -61,7 +61,7 @@ class TransformerManager(object):
         'MinMaxScaler': MinMaxScalerSQL(),
         'LabelEncoder': LabelEncoderSQL(),
         'OrdinalEncoder': OrdinalEncoderSQL(),
-        'FrequencyEncoder': FrequencyEncoderSQL(),
+        'FrequencyEncoder': FrequencyEncoderSQLOperator(),
         'TargetEncoder': TargetEncoderSQL(),
         'LeaveOneOutEncoder': LeaveOneOutEncoderSQL()
     }
@@ -143,25 +143,25 @@ class TransformerManager(object):
 
         # some load and extract tasks
         model = load_model(model_file)
-        features = model.feature_names_in_.tolist()
+        pipeline_features_in = model.feature_names_in_.tolist()
         pipeline = self.extract_pipeline_(model)
         input_table = table_name
 
         # transform the input features to the model_features_in_
-        model_features_in = self.get_model_features_in_(features, pipeline)
+        model_features_in = self.get_model_features_in_(pipeline_features_in, pipeline)
 
         # build the graph of the preprocessing operators
-        preprocessing_graph = PrepGraph(pipeline)
+        preprocessing_graph = PrepGraph(pipeline_features_in, pipeline)
 
         # automatically genarate the SQL genarating configurations according to the cost model of "craftsman"
         # if auto_gen:
         #     optimizations, preprocessors = auto_config(pipeline, test_data_path, None, model_features_in, features, optimizations, None)
 
         # add the join opreations
-        input_table, preprocess_features = join_transformer(input_table, features, optimizations, pipeline)
+        input_table, preprocess_features = join_transformer(input_table, pipeline_features_in, optimizations, pipeline)
 
         # initialize the SOL Transformers
-        opt = Optimizer(pipeline, features, preprocess_features, dbms, optimizations)
+        opt = Optimizer(pipeline, pipeline_features_in, preprocess_features, dbms, optimizations)
         pipeline = opt.optimize()
 
         # create an SQL query for each transformer
