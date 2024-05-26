@@ -1,5 +1,5 @@
-from model_transformer.transformer_manager import TransformerManager
-from model_transformer.utility.dbms_utils import DBMSUtils
+from craftsman.transformer_manager import TransformerManager
+from craftsman.utility.dbms_utils import DBMSUtils
 
 
 if __name__ == '__main__':

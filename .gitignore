@@ -8,3 +8,4 @@ __pycache__/
 *.zip
 merge
 test_lmx/
+.ipynb_checkpoints/

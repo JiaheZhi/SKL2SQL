@@ -1,4 +1,4 @@
-from model_transformer.utility.dbms_utils import DBMSUtils
+from craftsman.utility.dbms_utils import DBMSUtils
 
 class XXXSQL(object):
 
