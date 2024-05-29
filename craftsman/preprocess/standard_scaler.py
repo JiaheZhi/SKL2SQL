@@ -1,24 +1,43 @@
 import numpy as np
-from sklearn.preprocessing import StandardScaler
 from craftsman.utility.dbms_utils import DBMSUtils
-from craftsman.base.operator import SQLOperator
+from craftsman.base.operator import SQLOperator, CON_A_CON
+from craftsman.base.defs import DataType, CalculationType, OperatorType, OperatorName
 
 
-class StandardScalerSQLOperator(SQLOperator):
+class StandardScalerSQLOperator(CON_A_CON):
     """
     This class implements the SQL wrapper for a Sklearn StardardScaler object.
     """
 
-    def __init__(self):
-        super().__init__('StandardScaler')
+    def __init__(self, featrue: str, fitted_transform):
+        super().__init__(OperatorName.STANDARDSCALER)
+        self.input_data_type = DataType.CAT
+        self.output_data_type = DataType.CAT
+        self.calculation_type = CalculationType.COMPARISON
+        self.op_type = OperatorType[self._get_op_type()]
+        self.feature = featrue
         self.params = None
         self.dbms = None
         self.mode = None
         self.optimizations = None
 
+        self._abstract(fitted_transform)
 
-    def init(self, fitted_transform):
+
+    def _abstract(self, fitted_transform) -> None:
+        feature_idx = fitted_transform.feature_names_in_.tolist().index(self.feature)
+        self.scaler_std = fitted_transform.scale_[feature_idx]
+        self.scaler_mean = fitted_transform.mean_[feature_idx]
+
+
+
+    def apply(self, first_op: SQLOperator):
         pass
+
+
+    def simply(self, second_op: SQLOperator):
+        pass
+
 
 
     def set_mode(self, mode: str):

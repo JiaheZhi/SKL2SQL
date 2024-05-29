@@ -1,22 +1,46 @@
+from pandas import DataFrame
+from numpy import zeros
 from craftsman.utility.dbms_utils import DBMSUtils
-from craftsman.base.operator import SQLOperator
+from craftsman.base.operator import SQLOperator, EXPAND
+from craftsman.base.defs import DataType, CalculationType, OperatorType, OperatorName
 
-
-class OneHotEncoderSQLOperator(SQLOperator):
+class OneHotEncoderSQLOperator(EXPAND):
     """
-    This class implements the SQL wrapper for a Sklearn OneHotEncoder object.
+    This class implements the SQL Operator for a Sklearn OneHotEncoder object.
     """
 
-    def __init__(self):
-        super().__init__('OneHotEncoder')
+    def __init__(self, featrue: str, fitted_transform):
+        super().__init__(OperatorName.COUNTENCODER)
+        self.input_data_type = DataType.CAT
+        self.output_data_type = DataType.CAT
+        self.calculation_type = CalculationType.COMPARISON
+        self.op_type = OperatorType[self._get_op_type()]
+        self.feature = featrue
         self.params = None
         self.dbms = None
         self.optimizations = None
 
+        self._abstract(fitted_transform)
 
-    def init(self, fitted_transform):
+
+    def _abstract(self, fitted_transform) -> None:
+        feature_idx = fitted_transform.feature_names_in_.tolist().index(self.feature)
+        categories = fitted_transform.categories_[feature_idx]
+        df = DataFrame(zeros((len(categories), len(categories)), dtype=int), index=categories, columns=categories)
+        for category in categories:
+            df.loc[category, category] = 1
+        df.columns = [self.feature + f'_{i}' for i in range(len(df.columns))]
+        self.mapping = df
+
+
+    def apply(self, first_op: SQLOperator):
         pass
-    
+
+
+    def simply(self, second_op: SQLOperator):
+        pass
+
+
 
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations

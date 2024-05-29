@@ -1,22 +1,40 @@
 from collections import Counter
 from craftsman.utility.dbms_utils import DBMSUtils
-from craftsman.base.operator import SQLOperator
+from craftsman.base.operator import CAT_C_CAT, SQLOperator
 from craftsman.utility.loader import load_dataset
+from craftsman.base.defs import DataType, CalculationType, OperatorType, OperatorName
 
-class FrequencyEncoderSQLOperator(SQLOperator):
+class CountEncoderSQLOperator(CAT_C_CAT):
 
-    def __init__(self):
-        super().__init__('FrequencyEncoder')
+    def __init__(self, featrue: str, fitted_transform):
+        super().__init__(OperatorName.COUNTENCODER)
+        self.input_data_type = DataType.CAT
+        self.output_data_type = DataType.CAT
+        self.calculation_type = CalculationType.COMPARISON
+        self.op_type = OperatorType[self._get_op_type()]
+        self.feature = featrue
         self.dbms = None
         self.params = None
-    
-    def set_dbms(self, dbms: str):
-        self.dbms = dbms
 
-    
-    def init(self, fitted_transform):
+        self._abstract(fitted_transform)
+
+
+    def _abstract(self, fitted_transform) -> None:
+        count_mapping = fitted_transform.mapping[self.feature]
+        self.mapping = count_mapping
+
+
+    def apply(self, first_op: SQLOperator):
         pass
 
+
+    def simply(self, second_op: SQLOperator):
+        pass
+
+
+
+    def set_dbms(self, dbms: str):
+        self.dbms = dbms
 
     def transform_model_features_in(self, transform, all_features, pre_features):
         return all_features, pre_features

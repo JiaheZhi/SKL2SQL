@@ -3,8 +3,6 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, MinMaxScaler, LabelEncoder, OrdinalEncoder
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from craftsman.preprocess.binary_encoder_transformer import BinaryEncoderSQL
-from craftsman.preprocess.standard_scaler import StandardScalerSQLOperator
-from craftsman.preprocess.one_hot_encoder import OneHotEncoderSQLOperator
 from craftsman.preprocess.default_preprocess_transformer import DefaultPreprocessSQL
 from craftsman.preprocess.udf_transformer import UDFSQL
 from craftsman.preprocess.imputatation_transformer import ImputationSQL
@@ -12,7 +10,6 @@ from craftsman.preprocess.equal_width_discretization_transformer import EqualWid
 from craftsman.preprocess.minmax_scaler_transformer import MinMaxScalerSQL
 from craftsman.preprocess.label_encoder_transformer import LabelEncoderSQL
 from craftsman.preprocess.ordinal_encoder_transformer import OrdinalEncoderSQL
-from craftsman.preprocess.frequency_encoder import FrequencyEncoderSQLOperator
 from craftsman.preprocess.join_transformer import JoinSQL
 from craftsman.preprocess.target_encoder_transformer import TargetEncoderSQL
 from craftsman.preprocess.leave_one_out_encoder_transformer import LeaveOneOutEncoderSQL
@@ -51,8 +48,6 @@ class TransformerManager(object):
     }
 
     sql_transform_types = {
-        'StandardScaler': StandardScalerSQLOperator(),
-        'OneHotEncoder': OneHotEncoderSQLOperator(),
         'DefaultPreprocess': DefaultPreprocessSQL(),
         'UDF': UDFSQL(),
         'Imputation': ImputationSQL(),
@@ -61,7 +56,6 @@ class TransformerManager(object):
         'MinMaxScaler': MinMaxScalerSQL(),
         'LabelEncoder': LabelEncoderSQL(),
         'OrdinalEncoder': OrdinalEncoderSQL(),
-        'FrequencyEncoder': FrequencyEncoderSQLOperator(),
         'TargetEncoder': TargetEncoderSQL(),
         'LeaveOneOutEncoder': LeaveOneOutEncoderSQL()
     }
@@ -69,7 +63,7 @@ class TransformerManager(object):
 
 
 
-    def extract_pipeline_(self, pipeline):
+    def _extract_pipeline(self, pipeline):
         _, fitted_imputer = pipeline.steps[0]
         _, todf = pipeline.steps[1]
         _, pipeline_transformers = pipeline.steps[2]
@@ -98,7 +92,7 @@ class TransformerManager(object):
         }
 
 
-    def get_model_features_in_(self, features, pipeline):
+    def _get_model_features_in(self, features, pipeline):
         model_features_in = features.copy()
         transforms = pipeline['transforms']
         pre_features = []
@@ -144,11 +138,11 @@ class TransformerManager(object):
         # some load and extract tasks
         model = load_model(model_file)
         pipeline_features_in = model.feature_names_in_.tolist()
-        pipeline = self.extract_pipeline_(model)
+        pipeline = self._extract_pipeline(model)
         input_table = table_name
 
         # transform the input features to the model_features_in_
-        model_features_in = self.get_model_features_in_(pipeline_features_in, pipeline)
+        # model_features_in = self._get_model_features_in(pipeline_features_in, pipeline)
 
         # build the graph of the preprocessing operators
         preprocessing_graph = PrepGraph(pipeline_features_in, pipeline)
