@@ -1,4 +1,5 @@
 import numpy as np
+from pandas import DataFrame, Series
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.base.operator import SQLOperator, CON_A_CON
 from craftsman.base.defs import DataType, CalculationType, OperatorType, OperatorName
@@ -38,7 +39,9 @@ class StandardScalerSQLOperator(CON_A_CON):
     def simply(self, second_op: SQLOperator):
         pass
 
-
+    @staticmethod
+    def trans_feature_names_in(input_data: DataFrame | Series):
+        return input_data.columns
 
     def set_mode(self, mode: str):
         assert isinstance(mode, str), "Wrong data type for param 'mode'."

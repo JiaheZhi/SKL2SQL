@@ -16,6 +16,7 @@ from craftsman.preprocess.leave_one_out_encoder_transformer import LeaveOneOutEn
 from craftsman.model.decision_tree import DTSQLModel
 from craftsman.model.random_forest import RFSQLModel
 from craftsman.base.graph import PrepGraph
+from craftsman.base.defs import OperatorName
 from craftsman.utility.join_utils import join_transformer, del_temp_join_tables, get_join_trans_col_map
 from craftsman.utility.loader import load_model
 from craftsman.auto_select.auto_config import auto_config
@@ -63,26 +64,35 @@ class TransformerManager(object):
 
 
 
-    def _extract_pipeline(self, pipeline):
-        _, fitted_imputer = pipeline.steps[0]
-        _, todf = pipeline.steps[1]
-        _, pipeline_transformers = pipeline.steps[2]
-        model_name, trained_model = pipeline.steps[-1]
+    def __extract_pipeline(self, pipeline):
+        steps = pipeline.steps
+        column_transformer_start_idx = 0
 
+        # if contain imputer extract it
+        if 'Imputer' == steps[0][0]:
+            fitted_imputer = steps[0][1]
+            column_transformer_start_idx = 1
+        
+        # extract model
+        model_name, trained_model = steps[-1]
+
+        # extract preprocessors
         transforms = []
-        for idx in range(len(pipeline_transformers.transformers)):
-            a, b, c = pipeline_transformers.transformers_[idx]
-            transforms.append({
-                'transform_name': a,
-                'fitted_transform': b,
-                'transform_features': c,
-            })
+        for i in range(column_transformer_start_idx, len(steps) - 1):
+            _, pipeline_transformers = steps[i]
+            for idx in range(len(pipeline_transformers.transformers)):
+                a, b, c = pipeline_transformers.transformers_[idx]
+                transforms.append({
+                    'transform_name': a,
+                    'fitted_transform': b,
+                    'transform_features': c,
+                })
 
         return {
             'imputer': {
-                'filled_values': fitted_imputer.statistics_,
-                'missing_cols': todf.missing_cols,
-                'missing_col_indexs': todf.missing_col_indexs
+                'filled_values': fitted_imputer.statistics_ if fitted_imputer else [],
+                'missing_cols': fitted_imputer.missing_cols if fitted_imputer else [],
+                'missing_col_indexs': fitted_imputer.missing_col_indexs if fitted_imputer else []
             },
             'transforms': transforms,
             'model': {
@@ -92,7 +102,7 @@ class TransformerManager(object):
         }
 
 
-    def _get_model_features_in(self, features, pipeline):
+    def __get_model_features_in(self, features, pipeline):
         model_features_in = features.copy()
         transforms = pipeline['transforms']
         pre_features = []
@@ -138,7 +148,7 @@ class TransformerManager(object):
         # some load and extract tasks
         model = load_model(model_file)
         pipeline_features_in = model.feature_names_in_.tolist()
-        pipeline = self._extract_pipeline(model)
+        pipeline = self.__extract_pipeline(model)
         input_table = table_name
 
         # transform the input features to the model_features_in_
@@ -152,7 +162,7 @@ class TransformerManager(object):
         #     optimizations, preprocessors = auto_config(pipeline, test_data_path, None, model_features_in, features, optimizations, None)
 
         # add the join opreations
-        input_table, preprocess_features = join_transformer(input_table, pipeline_features_in, optimizations, pipeline)
+        # input_table, preprocess_features = join_transformer(input_table, pipeline_features_in, optimizations, pipeline)
 
         # initialize the SOL Transformers
         opt = Optimizer(pipeline, pipeline_features_in, preprocess_features, dbms, optimizations)

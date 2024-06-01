@@ -1,4 +1,130 @@
+import re
+import importlib
+
+import numpy as np
+import pandas as pd
+from sklearn.impute import SimpleImputer
+from sklearn.compose import ColumnTransformer
+
+from craftsman.base.defs import PREPROCESS_PACKAGE_PATH
 
 
-def train_pipeline(train_data_path, preprocessors:dict, model_type):
-    return
+def train_pipeline(train_data_path, preprocessors: dict, model_type):
+    pass
+
+
+
+class CraftsmanColumnTransformer(ColumnTransformer):
+
+    def __init__(
+        self,
+        transformers,
+        input_data,
+        *,
+        remainder="drop",
+        sparse_threshold=0.3,
+        n_jobs=None,
+        transformer_weights=None,
+        verbose=False,
+        verbose_feature_names_out=True,
+    ):
+        super().__init__(
+            transformers,
+            remainder=remainder,
+            sparse_threshold=sparse_threshold,
+            n_jobs=n_jobs,
+            transformer_weights=transformer_weights,
+            verbose=verbose,
+            verbose_feature_names_out=verbose_feature_names_out,
+        )
+        self.feature_names_in_: list[str]
+        self.feature_names_out_: list[str]
+        self.input_data = None
+
+        self.__init_transform_data_columns(input_data)
+
+
+    def __camel_to_snake(self, name: str):
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
+    def __init_transform_data_columns(self, input_data: pd.DataFrame):
+        self.feature_names_in_ = input_data.columns
+        self.feature_names_out_ = []
+        features_trans = []
+        for trans_name, _, trans_features in self.transformers:
+            features_trans.extend(trans_features)
+            module_name = self.__camel_to_snake(trans_name)
+            transform_module = importlib.import_module(PREPROCESS_PACKAGE_PATH + module_name)
+            operator_class = getattr(transform_module, trans_name + 'SQLOperator')
+            self.feature_names_out_.extend(operator_class.trans_feature_names_in(input_data[trans_features]))
+
+        features_remain = [feature for feature in self.feature_names_in_ if feature not in features_trans]
+        self.feature_names_out_.extend(features_remain)
+
+
+    def fit(self, X, y=None):
+        X = pd.DataFrame(X, columns=self.feature_names_in_)
+        return super().fit(X, y)
+
+
+    def transform(self, X):
+        X = pd.DataFrame(X, columns=self.feature_names_in_)
+        trans_data = super().transform(X)
+        return pd.DataFrame(trans_data, columns=self.feature_names_out_)
+
+
+    def fit_transform(self, X, y=None):
+        X = pd.DataFrame(X, columns=self.feature_names_in_)
+        trans_data = super().fit_transform(X, y)
+        return pd.DataFrame(trans_data, columns=self.feature_names_out_)
+
+
+
+class CraftsmanSimpleImputer(SimpleImputer):
+    def __init__(
+        self,
+        *,
+        missing_values=np.nan,
+        strategy="mean",
+        fill_value=None,
+        copy=True,
+        add_indicator=False,
+        keep_empty_features=False,
+    ):
+        super().__init__(
+            missing_values=missing_values,
+            strategy=strategy,
+            fill_value=fill_value,
+            copy=copy,
+            add_indicator=add_indicator,
+            keep_empty_features=keep_empty_features,
+        )
+        self.cols: list[str]
+        self.missing_cols: list[str]
+        self.missing_col_indexs: list[int]
+
+    def fit(self, X, y=None, **fit_params):
+        self.cols = X.columns.tolist()
+        # indentify the columns which have the missing values
+        missing_values = X.isnull().any()
+        missing_columns = missing_values[missing_values].index.to_list()
+        self.missing_cols = missing_columns
+        self.missing_col_indexs = [self.cols.index(col) for col in self.missing_cols]
+        super().fit(X, y)
+        return self
+
+    def transform(self, X, y=None, **fit_params):
+        imputed_X = super().transform(X)
+        return pd.DataFrame(imputed_X, columns=self.cols)
+
+    def fit_transform(self, X, y=None, **fit_params):
+        self.cols = X.columns.tolist()
+        # indentify the columns which have the missing values
+        missing_values = X.isnull().any()
+        missing_columns = missing_values[missing_values].index.to_list()
+        self.missing_cols = missing_columns
+        self.missing_col_indexs = [self.cols.index(col) for col in self.missing_cols]
+        imputed_X = super().fit_transform(X, y)
+        return pd.DataFrame(imputed_X, columns=self.cols)

@@ -1,5 +1,7 @@
-from pandas import DataFrame
+from pandas import DataFrame, Series
 from numpy import zeros
+from sklearn.preprocessing import OneHotEncoder
+
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.base.operator import SQLOperator, EXPAND
 from craftsman.base.defs import DataType, CalculationType, OperatorType, OperatorName
@@ -40,6 +42,20 @@ class OneHotEncoderSQLOperator(EXPAND):
     def simply(self, second_op: SQLOperator):
         pass
 
+
+    @staticmethod
+    def trans_feature_names_in(input_data: DataFrame | Series):
+        feature_names_out = []
+
+        one_hot_encoder = OneHotEncoder()
+        one_hot_encoder.fit(input_data)
+        feature_names_in = one_hot_encoder.feature_names_in_
+        categories_list = one_hot_encoder.categories_
+
+        for feature_name, categories in zip (feature_names_in, categories_list):
+            feature_names_out.extend([feature_name + f'_{i}' for i in range(len(categories))])
+
+        return feature_names_out
 
 
     def set_optimizations(self, optimizations):

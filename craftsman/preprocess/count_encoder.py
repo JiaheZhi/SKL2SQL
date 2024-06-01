@@ -1,4 +1,6 @@
 from collections import Counter
+from pandas import DataFrame, Series
+
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.base.operator import CAT_C_CAT, SQLOperator
 from craftsman.utility.loader import load_dataset
@@ -31,6 +33,9 @@ class CountEncoderSQLOperator(CAT_C_CAT):
     def simply(self, second_op: SQLOperator):
         pass
 
+    @staticmethod
+    def trans_feature_names_in(input_data: DataFrame | Series):
+        return input_data.columns
 
 
     def set_dbms(self, dbms: str):

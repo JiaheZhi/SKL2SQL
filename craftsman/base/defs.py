@@ -44,7 +44,7 @@ class OperatorName(Enum):
     BINARYENCODER = 'BinaryEncoder'
 
     # IMPUTE
-    IMPUTATION = 'Imputation'
+    SIMPLEIMPUTER = 'SimpleImputer'
 
 
 class ModelName(Enum):

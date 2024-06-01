@@ -1,3 +1,5 @@
+from pandas import DataFrame, Series
+
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.base.operator import CON_C_CAT, SQLOperator
 from craftsman.utility.loader import load_dataset
@@ -20,7 +22,6 @@ class KBinsDiscretizerSQLOperator(CON_C_CAT):
     def _abstract(self, fitted_transform) -> None:
         self.strategy = fitted_transform.strategy
         self.bin_edges = fitted_transform.bin_edges_
-        self.categories = fitted_transform._encoder.categories
 
 
     def apply(self, first_op: SQLOperator):
@@ -29,3 +30,8 @@ class KBinsDiscretizerSQLOperator(CON_C_CAT):
 
     def simply(self, second_op: SQLOperator):
         pass
+
+
+    @staticmethod
+    def trans_feature_names_in(input_data: DataFrame | Series):
+        return input_data.columns

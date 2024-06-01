@@ -50,6 +50,15 @@ class SQLOperator(ABC):
 
 
 
+    @staticmethod
+    def trans_feature_names_in(input_data: DataFrame|Series):
+        """_summary_
+
+        Args:
+            input_data (DataFrame | Series): _description_
+        """
+
+
 
 
 class CAT_C_CAT(SQLOperator):

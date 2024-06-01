@@ -1,3 +1,5 @@
+import sys
+sys.path.append("/root/volume/SKL2SQL/")
 from craftsman.transformer_manager import TransformerManager
 from craftsman.utility.dbms_utils import DBMSUtils
 
