@@ -1,14 +1,15 @@
 import re
 import importlib
-from craftsman.base.operator import SQLOperator
+from craftsman.base.operator import OperationType
 from craftsman.base.defs import PREPROCESS_PACKAGE_PATH
 
 class PrepChain(object):
 
-    def __init__(self, feature: str, pipeline: dict) -> None:
+    def __init__(self, feature: str, pipeline: dict = None) -> None:
         self.feature: str = feature
-        self.prep_operators: list[SQLOperator] = []
-        self.__build_chain(pipeline)
+        self.prep_operators: list[OperationType] = []
+        if pipeline is not None:
+            self.__build_chain(pipeline)
 
 
     def __camel_to_snake(self, name: str):
@@ -20,13 +21,18 @@ class PrepChain(object):
         transforms = pipeline['transforms']
         for transform in transforms:
             transform_features = transform['transform_features']
-            if self.feature in transform_features:
+            after_expand_features = [f for f in transform_features if self.feature in f]
+            if self.feature in transform_features or after_expand_features:
                 transform_name = transform['transform_name']
                 fitted_transform = transform['fitted_transform']
 
                 module_name = self.__camel_to_snake(transform_name)
                 transform_module = importlib.import_module(PREPROCESS_PACKAGE_PATH + module_name)
                 operator_class = getattr(transform_module, transform_name + 'SQLOperator')
-                operator = operator_class(self.feature, fitted_transform)
+
+                if self.feature in transform_features:
+                    operator = operator_class([self.feature], fitted_transform)
+                else:
+                    operator = operator_class(after_expand_features, fitted_transform)
 
                 self.prep_operators.append(operator)

@@ -1,13 +1,46 @@
 from craftsman.utility.dbms_utils import DBMSUtils
-import pandas as pd
-import category_encoders as ce
-from craftsman.utility.loader import load_dataset
+from pandas import DataFrame
 
-class BinaryEncoderSQL(object):
-    def __init__(self):
+from category_encoders import BinaryEncoder
+from craftsman.utility.loader import load_dataset
+from craftsman.utility.dbms_utils import DBMSUtils
+from craftsman.base.operator import SQLOperator, EXPAND
+from craftsman.base.defs import DataType, CalculationType, OperatorType, OperatorName
+
+class BinaryEncoderSQLOperator(EXPAND):
+    def __init__(self, featrue: list[str], fitted_transform):
+        super().__init__(OperatorName.BINARYENCODER)
+        self.features = featrue
+
         self.dbms = None
         self.params = None
+
+        self._extract(fitted_transform)
+
     
+    def _extract(self, fitted_transform) -> None:
+        feature = self.features[0]
+        for m in fitted_transform.mapping:
+            if m['col'] == feature:
+                self.mapping = m['mapping']
+                break
+    
+
+    @staticmethod
+    def trans_feature_names_in(input_data: DataFrame):
+        feature_names_out = []
+
+        binary_encoder = BinaryEncoder()
+        binary_encoder.fit(input_data)
+
+        for feature in input_data.columns:
+            for m in binary_encoder.mapping:
+                if m['col'] == feature:
+                    feature_names_out.extend(m['mapping'].columns.tolist())
+                    break 
+
+        return feature_names_out
+
     
     def set_dbms(self, dbms: str):
         self.dbms = dbms
@@ -18,7 +51,7 @@ class BinaryEncoderSQL(object):
         binary_atrributes = binaryencoder_infos['attrs']
         train_data_path = binaryencoder_infos['train_data_path']
         train_data = load_dataset(train_data_path)
-        binary_enc = ce.BinaryEncoder(cols=binary_atrributes)
+        binary_enc = BinaryEncoder(cols=binary_atrributes)
         binary_enc.fit(train_data[binary_atrributes])
 
         for attr in binary_atrributes:

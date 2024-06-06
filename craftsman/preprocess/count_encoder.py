@@ -1,5 +1,5 @@
 from collections import Counter
-from pandas import DataFrame, Series
+from pandas import DataFrame
 
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.base.operator import CAT_C_CAT, SQLOperator
@@ -8,33 +8,23 @@ from craftsman.base.defs import DataType, CalculationType, OperatorType, Operato
 
 class CountEncoderSQLOperator(CAT_C_CAT):
 
-    def __init__(self, featrue: str, fitted_transform):
+    def __init__(self, featrues: list[str], fitted_transform):
         super().__init__(OperatorName.COUNTENCODER)
-        self.input_data_type = DataType.CAT
-        self.output_data_type = DataType.CAT
-        self.calculation_type = CalculationType.COMPARISON
-        self.op_type = OperatorType[self._get_op_type()]
-        self.feature = featrue
+        self.features = featrues
         self.dbms = None
         self.params = None
 
-        self._abstract(fitted_transform)
+        self._extract(fitted_transform)
 
 
-    def _abstract(self, fitted_transform) -> None:
-        count_mapping = fitted_transform.mapping[self.feature]
-        self.mapping = count_mapping
+    def _extract(self, fitted_transform) -> None:
+        for feature in self.features:
+            count_mapping = fitted_transform.mapping[feature]
+            self.mappings.append(count_mapping)
 
-
-    def apply(self, first_op: SQLOperator):
-        pass
-
-
-    def simply(self, second_op: SQLOperator):
-        pass
 
     @staticmethod
-    def trans_feature_names_in(input_data: DataFrame | Series):
+    def trans_feature_names_in(input_data: DataFrame):
         return input_data.columns
 
 

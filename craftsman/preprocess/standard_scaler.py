@@ -1,5 +1,7 @@
 import numpy as np
-from pandas import DataFrame, Series
+from pandas import DataFrame
+from sympy import symbols, Eq
+
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.base.operator import SQLOperator, CON_A_CON
 from craftsman.base.defs import DataType, CalculationType, OperatorType, OperatorName
@@ -10,37 +12,33 @@ class StandardScalerSQLOperator(CON_A_CON):
     This class implements the SQL wrapper for a Sklearn StardardScaler object.
     """
 
-    def __init__(self, featrue: str, fitted_transform):
+    def __init__(self, featrue: list[str], fitted_transform):
         super().__init__(OperatorName.STANDARDSCALER)
-        self.input_data_type = DataType.CAT
-        self.output_data_type = DataType.CAT
-        self.calculation_type = CalculationType.COMPARISON
-        self.op_type = OperatorType[self._get_op_type()]
-        self.feature = featrue
+        self.features = featrue
         self.params = None
         self.dbms = None
         self.mode = None
         self.optimizations = None
 
-        self._abstract(fitted_transform)
+        self._extract(fitted_transform)
 
+    def _extract(self, fitted_transform) -> None:
+        for feature in self.features:
+            feature_idx = fitted_transform.feature_names_in_.tolist().index(feature)
+            self.parameter_values.append(
+                {
+                    "mean": fitted_transform.mean_[feature_idx],
+                    "std": fitted_transform.scale_[feature_idx],
+                }
+            )
 
-    def _abstract(self, fitted_transform) -> None:
-        feature_idx = fitted_transform.feature_names_in_.tolist().index(self.feature)
-        self.scaler_std = fitted_transform.scale_[feature_idx]
-        self.scaler_mean = fitted_transform.mean_[feature_idx]
-
-
-
-    def apply(self, first_op: SQLOperator):
-        pass
-
-
-    def simply(self, second_op: SQLOperator):
-        pass
+        symbols_list = symbols("y x mean std")
+        y, x, mean, std = symbols_list
+        self.symbols = {symb.name: symb for symb in symbols_list}
+        self.equation = Eq(y, (x - mean) / std)
 
     @staticmethod
-    def trans_feature_names_in(input_data: DataFrame | Series):
+    def trans_feature_names_in(input_data: DataFrame):
         return input_data.columns
 
     def set_mode(self, mode: str):
@@ -53,19 +51,25 @@ class StandardScalerSQLOperator(CON_A_CON):
     def set_optimizations(self, optimizations):
         self.optimizations = optimizations
 
-
     def transform_model_features_in(self, transform, all_features, pre_features):
-        norm_features = transform['transform_features']
+        norm_features = transform["transform_features"]
         other_features = []
         for feature in all_features:
-            if not(feature in norm_features or feature in pre_features):
+            if not (feature in norm_features or feature in pre_features):
                 other_features.append(feature)
         all_features = pre_features + norm_features + other_features
         pre_features = pre_features + norm_features
         return all_features, pre_features
 
-
-    def get_params(self, scaler, norm_features, all_features, preprocess_all_features, prev_transform_features=None, with_mean=True):
+    def get_params(
+        self,
+        scaler,
+        norm_features,
+        all_features,
+        preprocess_all_features,
+        prev_transform_features=None,
+        with_mean=True,
+    ):
         """
         This method extracts the scaling parameters (i.e., the means and the stds) from the fitted Sklearn
         StardardScaler object.
@@ -104,7 +108,7 @@ class StandardScalerSQLOperator(CON_A_CON):
             if f in select_norm_features or f in prev_transform_features:
                 continue
             other_features.append(f)
-        
+
         preprocess_other_features = []
         for f in preprocess_all_features:
             if f in select_norm_features or f in prev_transform_features:
@@ -113,9 +117,15 @@ class StandardScalerSQLOperator(CON_A_CON):
 
         features = prev_transform_features + select_norm_features + other_features
 
-        self.params = {"avgs": scaler_mean, "stds": scaler_std, "out_all_features": features,
-                       "norm_features": norm_features, "other_features": prev_transform_features + preprocess_other_features,
-                       'out_transform_features': norm_features, 'preprocess_all_features': preprocess_all_features}
+        self.params = {
+            "avgs": scaler_mean,
+            "stds": scaler_std,
+            "out_all_features": features,
+            "norm_features": norm_features,
+            "other_features": prev_transform_features + preprocess_other_features,
+            "out_transform_features": norm_features,
+            "preprocess_all_features": preprocess_all_features,
+        }
 
         return self.params
 
@@ -128,10 +138,14 @@ class StandardScalerSQLOperator(CON_A_CON):
         """
 
         if not self.params:
-            raise Exception("No parameters extracted from the fitted StardardScaler. Invoke the get_params method.")
+            raise Exception(
+                "No parameters extracted from the fitted StardardScaler. Invoke the get_params method."
+            )
 
         if not isinstance(table_name, str):
-            raise TypeError("Wrong data type for parameter table_name. Only string data type is allowed.")
+            raise TypeError(
+                "Wrong data type for parameter table_name. Only string data type is allowed."
+            )
 
         # extract the scaling parameters from the Sklearn StardardScaler object
 
@@ -139,8 +153,8 @@ class StandardScalerSQLOperator(CON_A_CON):
         stds = self.params["stds"]
         norm_features = self.params["norm_features"]
         other_features = self.params["other_features"]
-        push_attris = self.optimizations['StandardScaler'].get('push_attris')
-        merge_attris = self.optimizations['StandardScaler'].get('merge_attris')
+        push_attris = self.optimizations["StandardScaler"].get("push_attris")
+        merge_attris = self.optimizations["StandardScaler"].get("merge_attris")
         if push_attris is None and merge_attris is not None:
             push_attris = merge_attris
         elif push_attris is not None and merge_attris is not None:

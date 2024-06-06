@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, KBinsDiscretizer
 from sklearn.pipeline import Pipeline
-# from sklearn.base import clone
+
 import pandas as pd
 import category_encoders as ce
 from craftsman.utility.loader import save_model
@@ -26,10 +26,11 @@ X = data.drop("Severity", axis=1)
 # choice effective columns
 frequency_encoder_cols = ["Source"]
 onehot_encoder_cols = ["Timezone"]
+binary_encoder_cols = ["Weather_Condition"]
 standscaler_cols = ["Pressure(in)"]
 other_cols = ["Station", "Stop", "Traffic_Signal"]
-all_cols = frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + other_cols
-k_bins_discretizer_cols = ["Pressure(in)"]
+all_cols = frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + other_cols + binary_encoder_cols
+k_bins_discretizer_cols = ["Pressure(in)", "Weather_Condition"]
 X = X[all_cols]
 
 
@@ -41,6 +42,7 @@ std_scalar = StandardScaler()
 onehot_encoder = OneHotEncoder()
 counter_encoder = ce.CountEncoder()
 k_bins_discretizer = KBinsDiscretizer(encode="ordinal")
+binary_encoder = ce.BinaryEncoder()
 
 # define model
 rf = RandomForestClassifier(max_depth=5, n_estimators=4, random_state=24)
@@ -68,6 +70,11 @@ transformers = CraftsmanColumnTransformer(
             counter_encoder,
             frequency_encoder_cols,
         ),
+        (
+            OperatorName.BINARYENCODER.value,
+            binary_encoder,
+            binary_encoder_cols
+        )
     ],
     input_data=X_copy
 )

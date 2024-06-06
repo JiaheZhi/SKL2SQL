@@ -1,4 +1,4 @@
-from pandas import DataFrame, Series
+from pandas import DataFrame
 from numpy import zeros
 from sklearn.preprocessing import OneHotEncoder
 
@@ -11,40 +11,29 @@ class OneHotEncoderSQLOperator(EXPAND):
     This class implements the SQL Operator for a Sklearn OneHotEncoder object.
     """
 
-    def __init__(self, featrue: str, fitted_transform):
+    def __init__(self, featrue: list[str], fitted_transform):
         super().__init__(OperatorName.COUNTENCODER)
-        self.input_data_type = DataType.CAT
-        self.output_data_type = DataType.CAT
-        self.calculation_type = CalculationType.COMPARISON
-        self.op_type = OperatorType[self._get_op_type()]
-        self.feature = featrue
+        self.features = featrue
         self.params = None
         self.dbms = None
         self.optimizations = None
 
-        self._abstract(fitted_transform)
+        self._extract(fitted_transform)
 
 
-    def _abstract(self, fitted_transform) -> None:
-        feature_idx = fitted_transform.feature_names_in_.tolist().index(self.feature)
+    def _extract(self, fitted_transform) -> None:
+        feature = self.features[0]
+        feature_idx = fitted_transform.feature_names_in_.tolist().index(feature)
         categories = fitted_transform.categories_[feature_idx]
         df = DataFrame(zeros((len(categories), len(categories)), dtype=int), index=categories, columns=categories)
         for category in categories:
             df.loc[category, category] = 1
-        df.columns = [self.feature + f'_{i}' for i in range(len(df.columns))]
+        df.columns = [feature + f'_{i}' for i in range(len(df.columns))]
         self.mapping = df
 
 
-    def apply(self, first_op: SQLOperator):
-        pass
-
-
-    def simply(self, second_op: SQLOperator):
-        pass
-
-
     @staticmethod
-    def trans_feature_names_in(input_data: DataFrame | Series):
+    def trans_feature_names_in(input_data: DataFrame):
         feature_names_out = []
 
         one_hot_encoder = OneHotEncoder()

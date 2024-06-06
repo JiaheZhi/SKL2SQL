@@ -50,15 +50,26 @@ class CraftsmanColumnTransformer(ColumnTransformer):
 
 
     def __init_transform_data_columns(self, input_data: pd.DataFrame):
-        self.feature_names_in_ = input_data.columns
+        self.feature_names_in_ = input_data.columns.tolist()
         self.feature_names_out_ = []
         features_trans = []
-        for trans_name, _, trans_features in self.transformers:
-            features_trans.extend(trans_features)
+        for idx, (trans_name, fitted_trans, trans_features) in enumerate(self.transformers):
             module_name = self.__camel_to_snake(trans_name)
             transform_module = importlib.import_module(PREPROCESS_PACKAGE_PATH + module_name)
             operator_class = getattr(transform_module, trans_name + 'SQLOperator')
-            self.feature_names_out_.extend(operator_class.trans_feature_names_in(input_data[trans_features]))
+
+            # replace the trans_features for the last expand operator
+            new_trans_features = []
+            for feature in trans_features:
+                if feature in self.feature_names_in_:
+                    new_trans_features.append(feature)
+                else:
+                    after_expand_features = [f_in for f_in in self.feature_names_in_ if feature in f_in]
+                    new_trans_features.extend(after_expand_features)
+            
+            features_trans.extend(new_trans_features)
+            self.transformers[idx] = (trans_name, fitted_trans, new_trans_features)
+            self.feature_names_out_.extend(operator_class.trans_feature_names_in(input_data[new_trans_features]))
 
         features_remain = [feature for feature in self.feature_names_in_ if feature not in features_trans]
         self.feature_names_out_.extend(features_remain)

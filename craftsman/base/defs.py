@@ -46,6 +46,9 @@ class OperatorName(Enum):
     # IMPUTE
     SIMPLEIMPUTER = 'SimpleImputer'
 
+    # Merged Operator
+    CON_C_CAT_Merged_OP = 'con_c_cat_merged_op'
+
 
 class ModelName(Enum):
     RANDOMFORESTCLASSIFIER = 'RandomForestClassifier'
