@@ -9,7 +9,7 @@ from sklearn.pipeline import Pipeline
 import pandas as pd
 import category_encoders as ce
 from craftsman.utility.loader import save_model
-from craftsman.base.defs import OperatorName
+from craftsman.base.defs import OperatorName, ModelName
 from craftsman.utility.training_helper import CraftsmanColumnTransformer, CraftsmanSimpleImputer
 
 # files
@@ -30,7 +30,7 @@ binary_encoder_cols = ["Weather_Condition"]
 standscaler_cols = ["Pressure(in)"]
 other_cols = ["Station", "Stop", "Traffic_Signal"]
 all_cols = frequency_encoder_cols + onehot_encoder_cols + standscaler_cols + other_cols + binary_encoder_cols
-k_bins_discretizer_cols = ["Pressure(in)", "Weather_Condition"]
+k_bins_discretizer_cols = ["Pressure(in)"]
 X = X[all_cols]
 
 
@@ -86,16 +86,21 @@ transformers = CraftsmanColumnTransformer(
     remainder="passthrough",
     transformers=[
         (
-            OperatorName.KBINSDISCRETIZER.value,
+            OperatorName.KBINSDISCRETIZER.value + '_1',
             k_bins_discretizer,
             k_bins_discretizer_cols,
+        ),
+        (
+            OperatorName.KBINSDISCRETIZER.value + '_2',
+            KBinsDiscretizer(encode="ordinal", n_bins=2, strategy='uniform'),
+            ["Weather_Condition"],
         )
     ],
     input_data=X_copy
 )
 step3_column_transform = ("ColumnTransformer_step3", transformers)
 
-step4_pipeline_estimator = ('Model', rf)
+step4_pipeline_estimator = (ModelName.RANDOMFORESTCLASSIFIER.value, rf)
 
 # define pipline
 pipeline = Pipeline(

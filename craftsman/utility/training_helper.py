@@ -54,9 +54,9 @@ class CraftsmanColumnTransformer(ColumnTransformer):
         self.feature_names_out_ = []
         features_trans = []
         for idx, (trans_name, fitted_trans, trans_features) in enumerate(self.transformers):
-            module_name = self.__camel_to_snake(trans_name)
+            module_name = self.__camel_to_snake(trans_name.split('_')[0])
             transform_module = importlib.import_module(PREPROCESS_PACKAGE_PATH + module_name)
-            operator_class = getattr(transform_module, trans_name + 'SQLOperator')
+            operator_class = getattr(transform_module, trans_name.split('_')[0] + 'SQLOperator')
 
             # replace the trans_features for the last expand operator
             new_trans_features = []

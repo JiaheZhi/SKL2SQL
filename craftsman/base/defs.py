@@ -1,6 +1,7 @@
 from enum import Enum
 
 PREPROCESS_PACKAGE_PATH = 'craftsman.preprocess.'
+MODEL_PACKAGE_PATH = 'craftsman.model.'
 
 class DataType(Enum):
     CON = 1
