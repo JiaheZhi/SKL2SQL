@@ -31,10 +31,10 @@ def merge_sql_operator_by_rules(preprocessing_graph: PrepGraph) -> PrepGraph:
     return new_prep_graph
 
 
-def _merge(first_op: OperationType, second_op: OperationType):
+def _merge(first_op: Operator, second_op: Operator):
     rule_table_content = [
         ["apply", "simply", "disable", "disable"],
-        ["apply", "apply", "apply", "simply"],
+        ["apply", "apply", "apply", "unsure"],
         ["apply", "apply", "apply", "simply"],
         ["apply", "apply", "apply", "disable"],
     ]
@@ -58,5 +58,5 @@ def _merge(first_op: OperationType, second_op: OperationType):
         return second_op.apply(first_op)
     elif choice == "simply":
         return first_op.simply(second_op)
-    elif choice == "disable":
+    elif choice == "disable" | choice == 'unsure':
         return None

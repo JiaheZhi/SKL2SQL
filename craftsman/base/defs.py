@@ -49,6 +49,9 @@ class OperatorName(Enum):
 
     # Merged Operator
     CON_C_CAT_Merged_OP = 'con_c_cat_merged_op'
+    EXPAND_Merged_OP = 'expand_merged_op'
+    CON_A_CON_Merged_OP = 'con_a_con_merged_op'
+    CAT_C_CAT_Merged_OP = 'cat_c_cat_merged_op'
 
 
 class ModelName(Enum):

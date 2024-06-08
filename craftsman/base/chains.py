@@ -1,13 +1,13 @@
 import re
 import importlib
-from craftsman.base.operator import OperationType
+from craftsman.base.operator import Operator
 from craftsman.base.defs import PREPROCESS_PACKAGE_PATH
 
 class PrepChain(object):
 
     def __init__(self, feature: str, pipeline: dict = None) -> None:
         self.feature: str = feature
-        self.prep_operators: list[OperationType] = []
+        self.prep_operators: list[Operator] = []
         if pipeline is not None:
             self.__build_chain(pipeline)
 

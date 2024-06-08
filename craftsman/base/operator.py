@@ -1,7 +1,8 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Type, Union
+from typing import Type
 
+from numpy import vectorize
 from pandas import DataFrame, Series
 from sympy import Eq, solve, lambdify
 from craftsman.base.defs import DataType, CalculationType, OperatorType, OperatorName
@@ -20,14 +21,14 @@ class SQLOperator(ABC):
         self.features_out: list[str] = []
 
     @abstractmethod
-    def apply(self, first_op: OperationType):
+    def apply(self, first_op: Operator):
         """constant propagation
         Args:
             first_op (SQLOperator): _description_
         """
 
     @abstractmethod
-    def simply(self, second_op: OperationType):
+    def simply(self, second_op: Operator):
         """algebraic simplification
 
         Args:
@@ -63,6 +64,9 @@ class SQLOperator(ABC):
         pass
 
 
+Operator = Type[SQLOperator]
+
+
 class CAT_C_CAT(SQLOperator):
 
     def __init__(self, op_name: OperatorName):
@@ -74,10 +78,18 @@ class CAT_C_CAT(SQLOperator):
 
         self.mappings: list[Series] = []
 
-    def apply(self, first_op: OperationType):
-        return None
+    def apply(self, first_op: Operator):
+        if first_op.op_type == OperatorType.CON_C_CAT:
+            merged_op = CON_C_CAT_Merged_OP(first_op)
+            merged_op.bin_edges = first_op.bin_edges
+            for idx, mapping in enumerate(self.mappings):
+                merged_op.categories.append(mapping[first_op.categories[idx]].values())
+            return merged_op
+        
+        else:
+            return None
 
-    def simply(self, second_op: OperationType):
+    def simply(self, second_op: Operator):
         return None
 
     def get_sql(self, dbms: str):
@@ -105,10 +117,10 @@ class EXPAND(SQLOperator):
 
         self.mapping: DataFrame | Series
 
-    def apply(self, first_op: OperationType):
+    def apply(self, first_op: Operator):
         return None
 
-    def simply(self, second_op: OperationType):
+    def simply(self, second_op: Operator):
         return None
 
     def get_sql(self, dbms: str):
@@ -123,7 +135,7 @@ class EXPAND(SQLOperator):
             sorted_categories_list = categories_list.apply(
                 lambda x: len(x)
             ).sort_values(ascending=True)
-            categories_list = categories_list.iloc[sorted_categories_list.index]
+            categories_list = categories_list[sorted_categories_list.index]
             for enc_value in categories_list.index.tolist()[:-1]:
                 if len(categories_list[enc_value]) == 1:
                     col_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, feature)} = '{categories_list[enc_value][0]}' THEN {enc_value} "
@@ -145,35 +157,88 @@ class CON_A_CON(SQLOperator):
         self.calculation_type = CalculationType.ARITHMETIC
         self.op_type = OperatorType[self._get_op_type()]
 
-        self.accepted_secdond_op_types = [
-            OperatorType.CON_A_CON,
-            OperatorType.CON_C_CAT,
-        ]
-
         self.equation: Eq
         self.symbols: dict = {}
         self.parameter_values: list = []
 
-    def apply(self, first_op: OperationType):
-        return None
+    def apply(self, first_op: Operator):
+        if first_op.op_type == OperatorType.CON_C_CAT:
+            merged_op = CON_C_CAT_Merged_OP(first_op)
+            merged_op.bin_edges = first_op.bin_edges
+            for idx, category_list in enumerate(first_op.categories):
+                sub_equation = self.equation.rhs.subs(
+                    {
+                        self.symbols[sym_name]: self.parameter_values[idx][sym_name]
+                        for sym_name in self.parameter_values[idx]
+                    }
+                )
+                f = lambdify(self.symbols["x"], sub_equation, "numpy")
+                merged_op.categories.append(f(category_list))
+            return merged_op
+        
+        elif first_op.op_type == OperatorType.CAT_C_CAT:
+            merged_op = CAT_C_CAT_Merged_OP(first_op)
+            for idx, mapping in enumerate(first_op.mappings):
+                sub_equation = self.equation.rhs.subs(
+                    {
+                        self.symbols[sym_name]: self.parameter_values[idx][sym_name]
+                        for sym_name in self.parameter_values[idx]
+                    }
+                )
+                f = lambdify(self.symbols["x"], sub_equation, "numpy")   
+                merged_op.mappings.append(Series(f(mapping), index=mapping.index))
+            return merged_op
+        
+        elif first_op.op_type == OperatorType.EXPAND:
+            merged_op = EXPAND_Merged_OP(first_op)
+            merged_op.mapping = first_op.mapping
+            for idx, col in enumerate(first_op.mapping.columns):
+                sub_equation = self.equation.rhs.subs(
+                    {
+                        self.symbols[sym_name]: self.parameter_values[idx][sym_name]
+                        for sym_name in self.parameter_values[idx]
+                    }
+                )
+                f = lambdify(self.symbols["x"], sub_equation, "numpy")   
+                merged_op.mapping[col] = f(merged_op.mapping[col])
+            return merged_op
+        
+        else:
+            return None
 
-    def simply(self, second_op: OperationType):
-        if second_op.op_type in self.accepted_secdond_op_types:
-            if second_op.op_type == OperatorType.CON_A_CON:
-                return None
-            elif second_op.op_type == OperatorType.CON_C_CAT:
-                merged_op = CON_C_CAT_Merged_OP(second_op)
-                reversed_equation = solve(self.equation, self.symbols["x"])[0]
-                for idx in range(len(self.features)):
-                    sub_equation = reversed_equation.subs(
-                        {
-                            self.symbols[sym_name]: self.parameter_values[idx][sym_name]
-                            for sym_name in self.parameter_values[idx]
-                        }
-                    )
-                    f = lambdify(self.symbols["y"], sub_equation, "numpy")
-                    merged_op.bin_edges.append(f(second_op.bin_edges[idx]))
-                return merged_op
+    def simply(self, second_op: Operator):
+        if second_op.op_type == OperatorType.CON_A_CON:
+            merged_op = CON_A_CON_Merged_OP(second_op)
+            merged_op.equation = Eq(
+                second_op.equation.lhs,
+                second_op.equation.rhs.subs(
+                    {second_op.symbols["x"]: self.equation.rhs}
+                ),
+            )
+            merged_op.symbols = {**second_op.symbols, **self.symbols}
+            merged_op.parameter_values = [
+                {**second_op.parameter_values[idx], **self.parameter_values[idx]}
+                for idx in range(len(self.parameter_values))
+            ]
+            return merged_op
+
+        elif second_op.op_type == OperatorType.CON_C_CAT:
+            merged_op = CON_C_CAT_Merged_OP(second_op)
+            merged_op.categories = second_op.categories
+            reversed_equation = solve(self.equation, self.symbols["x"])[0]
+            for idx, bin_edge in enumerate(second_op.bin_edges):
+                sub_equation = reversed_equation.subs(
+                    {
+                        self.symbols[sym_name]: self.parameter_values[idx][sym_name]
+                        for sym_name in self.parameter_values[idx]
+                    }
+                )
+                f = lambdify(self.symbols["y"], sub_equation, "numpy")
+                merged_op.bin_edges.append(bin_edge)
+            return merged_op
+
+        else:
+            return None
 
     def get_sql(self, dbms: str):
         sqls = []
@@ -208,10 +273,44 @@ class CON_C_CAT(SQLOperator):
         self.n_bins: list = []
         self.categories: list = []
 
-    def apply(self, first_op: OperationType):
-        return None
+    def __judge_feature_value(self, x, feature_idx):
+        for i in range(self.n_bins[feature_idx]):
+            if (
+                x >= self.bin_edges[feature_idx][i]
+                and x <= self.bin_edges[feature_idx][i + 1]
+            ):
+                return self.categories[feature_idx][i]
 
-    def simply(self, second_op: OperationType):
+    def apply(self, first_op: Operator):
+        if first_op.op_type == OperatorType.EXPAND:
+            merged_op = EXPAND_Merged_OP(first_op)
+            merged_op.mapping = first_op.mapping
+            for idx, column in enumerate(merged_op.mapping.columns):
+                merged_op.mapping[column] = merged_op.mapping[column].apply(
+                    lambda x: self.__judge_feature_value(x, idx)
+                )
+
+            return merged_op
+        
+        elif first_op.op_type == OperatorType.CON_C_CAT:
+            merged_op = CON_C_CAT_Merged_OP(first_op)
+            merged_op.bin_edges = first_op.bin_edges    
+            vectorized_function = vectorize(self.__judge_feature_value)
+            for idx, category_list in self.categories:
+                merged_op.categories.append(vectorized_function(category_list, idx))
+
+            return merged_op
+        
+        elif first_op.op_type == OperatorType.CAT_C_CAT:
+            merged_op = CAT_C_CAT_Merged_OP(first_op)
+            vectorized_function = vectorize(self.__judge_feature_value)
+            for idx, mapping in first_op.mappings:
+                merged_op.mappings.append(Series(vectorized_function(mapping.values, idx)), index=mapping.index)
+        
+        else:
+            return None
+
+    def simply(self, second_op: Operator):
         return None
 
     def get_sql(self, dbms: str):
@@ -236,9 +335,40 @@ class CON_C_CAT_Merged_OP(CON_C_CAT):
         self.n_bins = op.n_bins
         self.categories = op.categories
         self.features = op.features
+        self.features_out = op.features_out
 
     def _extract(self, fitted_transform) -> None:
         pass
 
 
-OperationType = Type[SQLOperator]
+class EXPAND_Merged_OP(EXPAND):
+
+    def __init__(self, op: Type[EXPAND]):
+        super().__init__(OperatorName.EXPAND_Merged_OP)
+        self.features = op.features
+        self.features_out = op.features_out
+
+    def _extract(self, fitted_transform) -> None:
+        pass
+
+
+class CON_A_CON_Merged_OP(CON_A_CON):
+
+    def __init__(self, op: Type[CON_A_CON]):
+        super().__init__(OperatorName.CON_A_CON_Merged_OP)
+        self.features = op.features
+        self.features_out = op.features_out
+
+    def _extract(self, fitted_transform) -> None:
+        pass
+
+
+class CAT_C_CAT_Merged_OP(CAT_C_CAT):
+
+    def __init__(self, op: Type[CAT_C_CAT]):
+        super().__init__(OperatorName.CAT_C_CAT_Merged_OP)
+        self.features = op.features
+        self.features_out = op.features_out
+
+    def _extract(self, fitted_transform) -> None:
+        pass
