@@ -5,6 +5,9 @@ class EqualWidthDiscretizationSQL(object):
     def __init__(self):
         self.dbms = None
         self.params = None
+        self.type = "<=" # con-c-cat's type is "<=" or ">="
+        self.variant_params = []
+        self.constant_params = []
     
     def set_dbms(self, dbms: str):
         self.dbms = dbms
@@ -37,7 +40,10 @@ class EqualWidthDiscretizationSQL(object):
                 bins = infos[attr_name]['bins']
                 labels = infos[attr_name]['labels']
                 query += "CASE "
+                
                 for i in range(len(bins)):
+                    self.variant_params.append(bins[i])
+                    self.constant_params.append(labels[i])
                     query += f"WHEN {dbms_util.get_delimited_col(self.dbms, attr_name)} <= {bins[i]} THEN {labels[i]} "
                 query += f"ELSE {labels[-1]} "
                 query += f"END AS {dbms_util.get_delimited_col(self.dbms, attr_name)}, "
