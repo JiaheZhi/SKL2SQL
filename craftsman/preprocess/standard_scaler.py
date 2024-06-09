@@ -10,9 +10,9 @@ class StandardScalerSQLOperator(CON_A_CON):
     This class implements the SQL wrapper for a Sklearn StardardScaler object.
     """
 
-    def __init__(self, featrue: list[str], fitted_transform):
+    def __init__(self, featrues: list[str], fitted_transform):
         super().__init__(OperatorName.STANDARDSCALER)
-        self.features = featrue
+        self.features = featrues
         self._extract(fitted_transform)
 
     def _extract(self, fitted_transform) -> None:
