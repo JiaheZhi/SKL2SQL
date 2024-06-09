@@ -1,16 +1,8 @@
 # 1. Selector's input (a.k.a,rewriter's output) is an eDAG (extend DAG), it looks like:
 eDAG = {
-        'field_1': {
-            'op_1': specific_op, # maybe a python object
-            'op_2': specific_op
-        },
-        'field_2': {
-            'op_1': op_name,
-            'op_2': op_name
-        }
-        'model':{
-            Decision_Tree_Model
-        }
+        'Source': [CountEncoderSQLOperator],
+        'Timezone': [CountEncoderSQLOperator],
+        'model':[Decision_Tree_Model]
     }
 
 # 2. Invoke functions to get candidate strategies of a sub-chain (preprocessors on field_1)
