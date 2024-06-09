@@ -21,6 +21,7 @@ class OperatorType(Enum):
     CAT_C_CAT = 4
     EXPAND = 5
     IMPUTE = 6
+    TEMP = 7 # con-c-cat fuse expand
 
 
 class OperatorName(Enum):

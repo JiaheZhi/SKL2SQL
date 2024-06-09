@@ -7,6 +7,7 @@ from pandas import DataFrame, Series
 from sympy import Eq, solve, lambdify
 from craftsman.base.defs import DataType, CalculationType, OperatorType, OperatorName
 from craftsman.utility.dbms_utils import DBMSUtils
+from craftsman.cost_model.MetaCost import OperatorCost, ExpandCost, CON_C_CATCost, CAT_C_CATCost
 
 
 class SQLOperator(ABC):
@@ -19,6 +20,7 @@ class SQLOperator(ABC):
         self.op_type: OperatorType
         self.features: list[str]
         self.features_out: list[str] = []
+        self.cost: list[OperatorCost] = [] # special case expand
 
     @abstractmethod
     def apply(self, first_op: Operator):
@@ -91,7 +93,16 @@ class CAT_C_CAT(SQLOperator):
 
     def simply(self, second_op: Operator):
         return None
-
+    
+    def get_cost(self):
+        for idx in range(len(self.features)):
+            op_cost = CAT_C_CATCost()
+            mapping = self.mappings[idx]
+            for path_cost in range(1,len( mapping.index)+1):
+                op_cost.set_cost(path_cost)
+            self.cost.append(op_cost)
+        return self.cost
+                
     def get_sql(self, dbms: str):
         sqls = []
         for idx in range(len(self.features)):
@@ -122,6 +133,9 @@ class EXPAND(SQLOperator):
 
     def simply(self, second_op: Operator):
         return None
+
+    def get_cost(self):
+        pass
 
     def get_sql(self, dbms: str):
         sqls = []
@@ -312,7 +326,15 @@ class CON_C_CAT(SQLOperator):
 
     def simply(self, second_op: Operator):
         return None
-
+    
+    def get_cost(self):
+        for idx in range(len(self.features)):
+            op_cost = CON_C_CATCost()
+            for path_cost in range(1,len(self.n_bins[idx])+1):
+                op_cost.set_cost(path_cost)
+            self.cost.append(op_cost)
+        return self.cost
+    
     def get_sql(self, dbms: str):
         sqls = []
 
