@@ -6,18 +6,18 @@ class meta_cost(Object):
         self.filed_idx = filed_idx
         self.stats = {"<=":0,"in":{},"or":{}}
 
-     def set_cost(self, primitive="<=", length=1, count):
+    def set_cost(self, primitive="<=", length=1, count):
         # self.primitive = primitive
         # self.length = length
         # self.count = count
-        if primitive = "<=" #TODO: extend "<=" to others:
+        if primitive == "<=" :#TODO: extend "<=" to others:
             self.stats["<="] = count
-        elif primitive = "in":
+        elif primitive == "in":
             if self.stats["in"][length] is None:
                 self.stats["in"][length] = 1
             else:
                 self.stats["in"][length] += 1
-        elif primitive = "or":
+        elif primitive == "or":
             if self.stats["or"][length] is None:
                 self.stats["or"][length] = 1
             else:
@@ -31,7 +31,7 @@ class op_cost(Object):
         # self.identifier = identifier
         self.stats = {"<=":{},"in":{},"or":{}}
 
-     def set_cost(self,identifier,length):
+    def set_cost(self,identifier,length):
         if self.type == "Expand":
             self.stats["in"][identifier] = length
         elif self.type == "Con-c-Cat" or self.type == "Cat-c-Cat":
