@@ -83,14 +83,36 @@ class CAT_C_CAT(SQLOperator):
             merged_op = CON_C_CAT_Merged_OP(first_op)
             merged_op.bin_edges = first_op.bin_edges
             for idx, mapping in enumerate(self.mappings):
-                merged_op.categories.append(mapping[first_op.categories[idx]].values())
+                merged_op.categories.append(mapping[first_op.categories[idx]].values)
+            return merged_op
+        
+        elif first_op.op_type == OperatorType.CAT_C_CAT:
+            merged_op = CAT_C_CAT_Merged_OP(first_op)
+            for idx, mapping in enumerate(first_op.mappings):
+                merged_op.mappings.append(Series(self.mappings[idx][mapping].values, index=mapping.index))
+            return merged_op
+        
+        elif first_op.op_type == OperatorType.EXPAND:
+            merged_op = EXPAND_Merged_OP(first_op)
+            merged_op.mapping = first_op.mapping
+            for idx, col in enumerate(first_op.mapping.columns):
+                merged_op.mapping[col] = self.mappings[idx][merged_op.mapping[col]]
             return merged_op
         
         else:
             return None
 
     def simply(self, second_op: Operator):
-        return None
+        if second_op.op_type == OperatorType.EXPAND:
+            merged_op = EXPAND_Merged_OP(second_op)
+            merged_op.mapping = second_op.mapping
+            index_mapping = self.mappings[0]
+            reverse_index_mapping = Series(data=index_mapping.index, index=index_mapping) 
+            merged_op.mapping.index = reverse_index_mapping[merged_op.mapping.index]
+            return merged_op
+                
+        else:
+            return None
 
     def get_sql(self, dbms: str):
         sqls = []

@@ -33,7 +33,7 @@ def merge_sql_operator_by_rules(preprocessing_graph: PrepGraph) -> PrepGraph:
 
 def _merge(first_op: Operator, second_op: Operator):
     rule_table_content = [
-        ["apply", "simply", "disable", "disable"],
+        ["simply", "simply", "disable", "disable"],
         ["apply", "apply", "apply", "unsure"],
         ["apply", "apply", "apply", "simply"],
         ["apply", "apply", "apply", "disable"],
