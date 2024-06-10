@@ -21,6 +21,7 @@ class SQLOperator(ABC):
         self.features: list[str]
         self.features_out: list[str] = []
         self.cost: list[OperatorCost] = [] # special case expand
+        self.stats =  []
 
     @abstractmethod
     def apply(self, first_op: Operator):
@@ -118,7 +119,7 @@ class CAT_C_CAT(SQLOperator):
 
         return None
     
-    def get_cost(self):
+    def get_cost_info(self):
         for idx in range(len(self.features)):
             op_cost = CAT_C_CATCost()
             mapping = self.mappings[idx]
@@ -159,8 +160,25 @@ class EXPAND(SQLOperator):
     def simply(self, second_op: Operator):
         return None
 
-    def get_cost(self):
-        pass
+    def get_cost_info(self):
+        op_cost = ExpandCost()
+        sub_field_cost = []
+        for col in self.mapping.columns:
+            col_mapping = self.mapping[col]
+            categories_list = col_mapping.groupby(col_mapping).apply(
+                lambda x: x.index.tolist()
+            )
+            sorted_categories_list = categories_list.apply(
+                lambda x: len(x)
+            ).sort_values(ascending=True)
+            categories_list = categories_list[sorted_categories_list.index]
+            for enc_value in categories_list.index.tolist()[:-1]:
+                sub_field_cost.append(len(categories_list[enc_value]))
+            op_cost.set_cost(sub_field_cost)
+        self.cost.append(op_cost)
+        return self.cost
+                
+        
 
     def get_sql(self, dbms: str):
         sqls = []
@@ -385,7 +403,7 @@ class CON_C_CAT(SQLOperator):
         else:
             return None
 
-    def get_cost(self):
+    def get_cost_info(self):
         for idx in range(len(self.features)):
             op_cost = CON_C_CATCost()
             for path_cost in range(1,len(self.n_bins[idx])+1):
@@ -393,6 +411,11 @@ class CON_C_CAT(SQLOperator):
             self.cost.append(op_cost)
         return self.cost
 
+    def get_stats(self,dbms:str):
+        pass
+        
+        
+    
     def get_sql(self, dbms: str):
         sqls = []
 

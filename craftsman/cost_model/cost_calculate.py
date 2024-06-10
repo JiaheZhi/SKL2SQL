@@ -15,24 +15,6 @@ from craftsman.cost_model import utils
 Operator's Cost calculation
 '''
 
-def set_sub_field_cost_expand(cost,sub_const,threshold,org_length,primitive):
-    in_length = 0
-    if sub_const <= threshold:# max value
-        if sub_const == 0:
-            in_length = org_length
-        else:
-            pass # always true
-    else:
-        if sub_const == 0:
-            pass # always false
-        else:
-            in_length = org_length # not in (Assuming that not_in and in have the same cost)
-    
-    cost.set_cost(primitive,in_length)
-
-    return cost
-                                
-
 def get_expand_cost(op,downstream_op = None):
     op_cost = None
     if downstream_op is None:        
@@ -95,6 +77,24 @@ def get_expand_cost(op,downstream_op = None):
 """
     cost for a field in a tree
 """
+
+def set_sub_field_cost_expand(cost,sub_const,threshold,org_length,primitive):
+    in_length = 0
+    if sub_const <= threshold:# max value
+        if sub_const == 0:
+            in_length = org_length
+        else:
+            pass # always true
+    else:
+        if sub_const == 0:
+            pass # always false
+        else:
+            in_length = org_length # not in (Assuming that not_in and in have the same cost)
+    
+    cost.set_cost(primitive,in_length)
+
+    return cost
+
 def get_tree_cost(tree, attribute_index):
         
         tree_cost = []
