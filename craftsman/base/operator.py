@@ -151,6 +151,7 @@ class EXPAND(SQLOperator):
         self.op_type = OperatorType[self._get_op_type()]
 
         self.mapping: DataFrame | Series
+        self.con_c_cat_mapping = None # using for the merge of the con_c_cat and expand
 
     def apply(self, first_op: Operator):
         return None
@@ -167,6 +168,8 @@ class EXPAND(SQLOperator):
         for col in self.mapping.columns:
             col_sql = "CASE "
             col_mapping = self.mapping[col]
+            col_mapping = col_mapping[~col_mapping.index.isnull()]
+            col_mapping = col_mapping[[idx for idx in col_mapping.index if idx != 'NaN']]
             categories_list = col_mapping.groupby(col_mapping).apply(
                 lambda x: x.index.tolist()
             )
@@ -174,17 +177,31 @@ class EXPAND(SQLOperator):
                 lambda x: len(x)
             ).sort_values(ascending=True)
             categories_list = categories_list[sorted_categories_list.index]
-            for enc_value in categories_list.index.tolist()[:-1]:
-                if len(categories_list[enc_value]) == 1:
-                    col_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, feature)} = '{categories_list[enc_value][0]}' THEN {enc_value} "
-                else:
-                    in_str = ",".join([f"'{c}'" for c in categories_list[enc_value]])
-                    col_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, feature)} in ({in_str}) THEN {enc_value} "
+            if self.con_c_cat_mapping is None:
+                for enc_value in categories_list.index.tolist()[:-1]:
+                    if len(categories_list[enc_value]) == 1:
+                        col_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, feature)} = '{categories_list[enc_value][0]}' THEN {enc_value} "
+                    else:
+                        in_str = ",".join(
+                            [f"'{c}'" for c in categories_list[enc_value]]
+                        )
+                        col_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, feature)} in ({in_str}) THEN {enc_value} "
+            else:
+                for enc_value in categories_list.index.tolist()[:-1]:
+                    and_str = " OR ".join(
+                        [
+                            self.con_c_cat_mapping[c].format(
+                                DBMSUtils.get_delimited_col(dbms, feature),
+                                DBMSUtils.get_delimited_col(dbms, feature)
+                            )
+                            for c in categories_list[enc_value]
+                        ]
+                    )
+                    col_sql += f"WHEN {and_str} THEN {enc_value} "
             col_sql += f"ELSE {categories_list.index.tolist()[-1]} END AS {DBMSUtils.get_delimited_col(dbms, col)}"
             sqls.append(col_sql)
 
         return ",".join(sqls)
-
 
 class CON_A_CON(SQLOperator):
 
@@ -329,7 +346,7 @@ class CON_C_CAT(SQLOperator):
                 )
 
             return merged_op
-        
+
         elif first_op.op_type == OperatorType.CON_C_CAT:
             merged_op = CON_C_CAT_Merged_OP(first_op)
             merged_op.bin_edges = first_op.bin_edges    
@@ -338,19 +355,36 @@ class CON_C_CAT(SQLOperator):
                 merged_op.categories.append(vectorized_function(category_list, idx))
 
             return merged_op
-        
+
         elif first_op.op_type == OperatorType.CAT_C_CAT:
             merged_op = CAT_C_CAT_Merged_OP(first_op)
             vectorized_function = vectorize(self.__judge_feature_value)
             for idx, mapping in first_op.mappings:
                 merged_op.mappings.append(Series(vectorized_function(mapping.values, idx)), index=mapping.index)
-        
+
         else:
             return None
 
     def simply(self, second_op: Operator):
-        return None
-    
+        if second_op.op_type == OperatorType.EXPAND:
+            merged_op = EXPAND_Merged_OP(second_op)
+            merged_op.mapping = second_op.mapping
+            merged_op.con_c_cat_mapping = Series(
+                [
+                    "{}"
+                    + f" >= {self.bin_edges[0][i]}"
+                    + " and "
+                    + "{}"
+                    + f" <= {self.bin_edges[0][i + 1]}"
+                    for i in range(len(self.categories[0]))
+                ],
+                index=self.categories[0],
+            )
+            return merged_op
+
+        else:
+            return None
+
     def get_cost(self):
         for idx in range(len(self.features)):
             op_cost = CON_C_CATCost()
@@ -358,7 +392,7 @@ class CON_C_CAT(SQLOperator):
                 op_cost.set_cost(path_cost)
             self.cost.append(op_cost)
         return self.cost
-    
+
     def get_sql(self, dbms: str):
         sqls = []
 

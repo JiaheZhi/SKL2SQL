@@ -19,7 +19,7 @@ class KBinsDiscretizerSQLOperator(CON_C_CAT):
             feature_idx = fitted_transform.feature_names_in_.tolist().index(feature)
             self.bin_edges.append(fitted_transform.bin_edges_[feature_idx])
             self.n_bins.append(fitted_transform.n_bins_[feature_idx])
-            self.categories.append(array(list(range(1, fitted_transform.n_bins_[feature_idx] + 1))))
+            self.categories.append(array(list(range(fitted_transform.n_bins_[feature_idx]))))
 
 
     @staticmethod

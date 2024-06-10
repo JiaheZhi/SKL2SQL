@@ -30,8 +30,9 @@ class BinaryEncoderSQLOperator(EXPAND):
     def trans_feature_names_in(input_data: DataFrame):
         feature_names_out = []
 
-        binary_encoder = BinaryEncoder()
+        binary_encoder = BinaryEncoder(cols=input_data.columns)
         binary_encoder.fit(input_data)
+        binary_encoder.transform(input_data)
 
         for feature in input_data.columns:
             for m in binary_encoder.mapping:
