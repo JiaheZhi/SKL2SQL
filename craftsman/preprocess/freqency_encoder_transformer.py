@@ -52,6 +52,7 @@ class FrequencyEncoderSQL(object):
                 for item in count:
                     ele, freq = item
                     self.variant_params.append(ele)
+                    
                     self.constant_params.append(freq)
                     query += f"WHEN {f} = '{ele}' THEN {freq} "
                 query += "ELSE 0 "

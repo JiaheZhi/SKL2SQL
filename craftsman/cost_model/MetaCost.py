@@ -12,37 +12,37 @@ class MetaCost(object):
     def __init__(self, path_idx, filed_idx):
         self.path_idx = path_idx
         self.filed_idx = filed_idx
-        self.stats = {"<=":0,"in":{},"or":{}}
+        self.infos = {"<=":0,"in":{},"or":{}}
 
     def set_cost(self, primitive="<=", length=1, count = 0):
         # self.primitive = primitive
         # self.length = length
         # self.count = count
         if primitive == "<=": #TODO: extend "<=" to others:
-            self.stats["<="] = count
+            self.infos["<="] = count
         elif primitive == "in":
-            if self.stats["in"][length] is None:
-                self.stats["in"][length] = 1
+            if self.infos["in"][length] is None:
+                self.infos["in"][length] = 1
             else:
-                self.stats["in"][length] += 1
+                self.infos["in"][length] += 1
         elif primitive == "or":
-            if self.stats["or"][length] is None:
-                self.stats["or"][length] = 1
+            if self.infos["or"][length] is None:
+                self.infos["or"][length] = 1
             else:
-                self.stats["or"][length] += 1
+                self.infos["or"][length] += 1
 
 # OP: each path's cost
 class OperatorCost(object):
     
     def __init__(self,primitive_type):
         self.primitive_type = primitive_type
-        self.stats = []
+        self.infos = []
     
     # def set_cost(self,identifier,length):
     #     self.stats[identifier] = length
     
     def set_cost(self,length):
-        self.stats.append(length)
+        self.infos.append(length)
       
     # def set_cost(self,identifier,length):
     #     if self.type == "Expand":
