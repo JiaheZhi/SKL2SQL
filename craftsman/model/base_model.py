@@ -23,3 +23,13 @@ class SQLModel(ABC):
             str: _description_
         """
         pass
+    
+    @abstractmethod
+    def modify_model(self, feature: str, sql_operator: Operator):
+        """_summary_
+
+        Args:
+            feature (str): _description_
+            sql_operator (Operator): _description_
+        """
+        pass

@@ -1,6 +1,7 @@
 from sklearn.ensemble import RandomForestClassifier
 from craftsman.model.decision_tree_classifier import DecisionTreeClassifierSQLModel
 from craftsman.model.base_model import SQLModel
+from craftsman.base.operator import Operator
 
 class RandomForestClassifierSQLModel(SQLModel):
     """
@@ -19,10 +20,13 @@ class RandomForestClassifierSQLModel(SQLModel):
         self.decision_tree_classifiers: list[DecisionTreeClassifierSQLModel] = []
         for estimator in self.estimators:
             decision_tree_classifier = DecisionTreeClassifierSQLModel(estimator)
-            decision_tree_classifier.trained_model.feature_names_in_ = trained_model.feature_names_in_
+            decision_tree_classifier.set_features(trained_model.feature_names_in_)
             self.decision_tree_classifiers.append(decision_tree_classifier)
         
-
+    def modify_model(self, feature: str, sql_operator: Operator):
+        for decision_tree_classifier in self.decision_tree_classifiers:
+            decision_tree_classifier.modify_model(feature, sql_operator)
+            
 
     def query(self, imput_table: str, dbms: str) -> str:
 

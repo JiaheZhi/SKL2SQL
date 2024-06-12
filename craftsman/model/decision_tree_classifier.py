@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.tree import DecisionTreeClassifier  
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.model.base_model import SQLModel
+from craftsman.base.operator import Operator
 
 
 class DecisionTreeClassifierSQLModel(SQLModel):
@@ -16,19 +17,25 @@ class DecisionTreeClassifierSQLModel(SQLModel):
         self.right = self.trained_model.tree_.children_right  # right child for each node
         self.thresholds = self.trained_model.tree_.threshold  # test threshold for each node
         self.classes = self.trained_model.classes_
+        self.ops = ['<='] * len(self.classes)
+        if hasattr(self.trained_model, 'feature_names_in_'):
+            self.input_features = self.trained_model.feature_names_in_
+            self.features = [self.input_features[i] for i in self.trained_model.tree_.feature]
 
-    
-    def get_case_sql(self, dbms: str) -> str:
+    def set_features(self, feature_names_in):
+        self.trained_model.feature_names_in_ = feature_names_in
         self.input_features = self.trained_model.feature_names_in_
         self.features = [self.input_features[i] for i in self.trained_model.tree_.feature]
+
+    def get_case_sql(self, dbms: str) -> str:
 
         def visit_tree(node):
             # leaf node
             if self.left[node] == -1 and self.right[node] == -1:
                 return " {} ".format(self.classes[np.argmax(self.trained_model.tree_.value[node][0])])
-                
+
             # internal node
-            op = '<='
+            op = self.ops[node]
             feature = DBMSUtils.get_delimited_col(dbms, self.features[node])
             thr = self.thresholds[node]
 
@@ -54,6 +61,12 @@ class DecisionTreeClassifierSQLModel(SQLModel):
 
         return sql_dtm_rules
 
+    def modify_model(self, feature: str, sql_operator: Operator):
+        for idx, node in enumerate(self.trained_model.tree_.features):
+            if self.input_features[node] == feature:
+                self.features[idx], self.ops[idx], self.thresholds[idx] == sql_operator.modify_leaf(
+                    self.features[idx], self.ops[idx], self.thresholds[idx]
+                )
 
     def query(self, imput_table: str, dbms: str) -> str:
         query = "SELECT {} AS Score".format(self.get_case_sql(dbms))

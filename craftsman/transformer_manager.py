@@ -56,21 +56,29 @@ class TransformerManager(object):
         preprocessing_graph = PrepGraph(pipeline_features_in, pipeline)
 
         # merge operators by rules
-        new_prep_graph =  merge_sql_operator_by_rules(preprocessing_graph)
+        new_prep_graph = merge_sql_operator_by_rules(preprocessing_graph)
 
         # generate sql through the merged graph
-        query_str = self.compose_sql(new_prep_graph, table_name, dbms, pre_sql)
+        query_str = self.__compose_sql(new_prep_graph, table_name, dbms, pre_sql)
 
         return query_str
 
 
-    def compose_sql(self, graph: PrepGraph, table_name: str, dbms: str, pre_sql: str) -> str:
+    def __compose_sql(self, graph: PrepGraph, table_name: str, dbms: str, pre_sql: str) -> str:
+        input_table = table_name
+        
+        # compose join sqls
+        join_feature_sqls = {}
+        for op in graph.join_operators:
+            input_table, feature_sql = op.get_join_sql(dbms, input_table, table_name)
+            join_feature_sqls[op.features[0]] = feature_sql
+        
+        # compose preprocessing sqls
         max_level = 0
         for _, chain in graph.chains.items():
             max_level = max(max_level, len(chain.prep_operators))
         
         expend_features = {}
-
         prep_sqls = []
         for prep_level in range(max_level):
             perp_level_sqls = []
@@ -83,13 +91,12 @@ class TransformerManager(object):
                 else:
                     if expend_features.get(feature):
                         perp_level_sqls.append(','.join([DBMSUtils.get_delimited_col(dbms, f) for f in expend_features[feature]]))
+                    elif join_feature_sqls.get(feature):
+                        perp_level_sqls.append(join_feature_sqls[feature])
                     else:
                         perp_level_sqls.append(DBMSUtils.get_delimited_col(dbms, feature))
             prep_sqls.append(','.join(perp_level_sqls))
 
-        input_table = table_name
-
-        # compose preprocessing sqls
         for prep_sql in prep_sqls:
             # the input table for the possible next transformer is the output of the current transformer
             input_table = "({}) AS data".format('SELECT ' + prep_sql + f' FROM {input_table}')

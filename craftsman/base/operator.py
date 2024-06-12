@@ -5,8 +5,10 @@ from typing import Type
 from numpy import vectorize
 from pandas import DataFrame, Series
 from sympy import Eq, solve, lambdify
-from craftsman.base.defs import DataType, CalculationType, OperatorType, OperatorName
+from craftsman.base.defs import *
+from craftsman.base.graph import PrepGraph
 from craftsman.utility.dbms_utils import DBMSUtils
+from craftsman.utility.join_utils import insert_db, df_type2db_type
 from craftsman.cost_model.MetaCost import OperatorCost, ExpandCost, CON_C_CATCost, CAT_C_CATCost
 
 
@@ -22,6 +24,7 @@ class SQLOperator(ABC):
         self.features_out: list[str] = []
         self.cost: list[OperatorCost] = [] # special case expand
         self.stats =  []
+        self.is_encoder: bool = False
 
     @abstractmethod
     def apply(self, first_op: Operator):
@@ -65,12 +68,34 @@ class SQLOperator(ABC):
     @abstractmethod
     def get_sql(self, dbms: str):
         pass
+    
+    def fusion(self, graph: PrepGraph):
+        for feature in self.features_out:
+            graph.model.modify_model(feature, self)
+    
+    @abstractmethod
+    def modify_leaf(self, feature, op, thr):
+        pass
+
+
+class EncoderOperator(SQLOperator):
+    
+    def __init__(self, op_name: OperatorName):
+        super().__init__(op_name)
+        self.is_encoder = True
+    
+    def join(self, graph: PrepGraph):
+        graph.add_join_operator(self)
+        
+    @abstractmethod
+    def get_join_sql(self, dbms: str, input_table: str, table_name: str):
+        pass
 
 
 Operator = Type[SQLOperator]
 
 
-class CAT_C_CAT(SQLOperator):
+class CAT_C_CAT(EncoderOperator):
 
     def __init__(self, op_name: OperatorName):
         super().__init__(op_name)
@@ -116,8 +141,6 @@ class CAT_C_CAT(SQLOperator):
                 
         else:
             return None
-
-        return None
     
     def get_cost_info(self):
         for idx in range(len(self.features)):
@@ -140,9 +163,31 @@ class CAT_C_CAT(SQLOperator):
             )
             sqls.append(feature_sql)
         return ",".join(sqls)
+    
+    def get_join_sql(self, dbms: str, input_table: str, table_name: str):
+        feature = self.features[0]
+        mapping = self.mappings[0]
+        join_table_name = feature + CAT_C_CAT_JOIN_POSTNAME
+        cols = {feature: DBDataType.VARCHAR.value}
+        cols[CAT_C_CAT_JOIN_COL_NAME] = df_type2db_type(mapping.dtype, dbms)
+        data = [(idx, mapping[idx]) for idx in mapping.index]
+        insert_db(dbms, join_table_name, cols, data)
+        delimitied_feature = DBMSUtils.get_delimited_col(dbms, feature)
+        input_table = f"{input_table} left join {join_table_name} on {table_name}.{delimitied_feature}={join_table_name}.{delimitied_feature}"
+        featuer_sql = f"{DBMSUtils.get_delimited_col(dbms, CAT_C_CAT_JOIN_COL_NAME)} AS {delimitied_feature}"
+        return input_table, featuer_sql
+    
+    def modify_leaf(self, feature, op, thr):
+        mapping = self.mappings[self.features_out.index(feature)]
+        in_list = []
+        for idx, enc_value in mapping.items():
+            if enc_value <= thr:
+                in_list.append(f'\'{idx}\'')
+        return feature, 'in', f"({','.join(in_list)})" 
+                
+    
 
-
-class EXPAND(SQLOperator):
+class EXPAND(EncoderOperator):
 
     def __init__(self, op_name: OperatorName):
         super().__init__(op_name)
@@ -177,8 +222,6 @@ class EXPAND(SQLOperator):
             op_cost.set_cost(sub_field_cost)
         self.cost.append(op_cost)
         return self.cost
-                
-        
 
     def get_sql(self, dbms: str):
         sqls = []
@@ -220,6 +263,30 @@ class EXPAND(SQLOperator):
             sqls.append(col_sql)
 
         return ",".join(sqls)
+
+    def get_join_sql(self, dbms: str, input_table: str, table_name: str):
+        feature = self.features[0]
+        join_table_name = feature + EXPAND_JOIN_POSTNAME
+        cols = {feature: DBDataType.VARCHAR.value}
+        for col in self.mapping.columns:
+            cols[col] = df_type2db_type(self.mapping[col].dtype, dbms)
+        data = []
+        for idx in self.mapping.indexs:
+            data.append((idx,) + tuple(self.mapping[idx]))
+        insert_db(dbms, join_table_name, cols, data)
+        delimitied_feature = DBMSUtils.get_delimited_col(dbms, feature)
+        input_table = f"{input_table} left join {join_table_name} on {table_name}.{delimitied_feature}={join_table_name}.{delimitied_feature}"
+        feature_sql = ','.join(self.mapping.columns.tolist())
+        return input_table, feature_sql
+    
+    def modify_leaf(self, feature, op, thr):
+        mapping = self.mapping[feature]
+        in_list = []
+        for idx, enc_value in mapping.items():
+            if enc_value <= thr:
+                in_list.append(f'\'{idx}\'')
+        return feature, 'in', f"({','.join(in_list)})" 
+
 
 class CON_A_CON(SQLOperator):
 
@@ -307,7 +374,7 @@ class CON_A_CON(SQLOperator):
                     }
                 )
                 f = lambdify(self.symbols["y"], sub_equation, "numpy")
-                merged_op.bin_edges.append(bin_edge)
+                merged_op.bin_edges.append(f(bin_edge))
             return merged_op
 
         else:
@@ -331,6 +398,18 @@ class CON_A_CON(SQLOperator):
             sqls.append(feature_sql)
 
         return ",".join(sqls)
+    
+    def modify_leaf(self, feature, op, thr):
+        reversed_equation = solve(self.equation, self.symbols["x"])[0]
+        idx = self.features_out.index(feature)
+        sub_equation = reversed_equation.subs(
+            {
+                self.symbols[sym_name]: self.parameter_values[idx][sym_name]
+                for sym_name in self.parameter_values[idx]
+            }
+        )
+        thr = sub_equation.subs(self.symbols['y'], thr)
+        return feature, op, thr
 
 
 class CON_C_CAT(SQLOperator):
@@ -429,6 +508,16 @@ class CON_C_CAT(SQLOperator):
             sqls.append(feature_sql)
 
         return ",".join(sqls)
+    
+    def modify_leaf(self, feature, op, thr):
+        bin_edge = self.bin_edges[self.features_out.index(feature)]
+        categoiry_list = self.categories[self.features_out.index(feature)]
+        for i, category in enumerate(categoiry_list):
+            if category > thr:
+                thr = bin_edge[i]
+                break
+            
+        return feature, op, thr
 
 
 class CON_C_CAT_Merged_OP(CON_C_CAT):
