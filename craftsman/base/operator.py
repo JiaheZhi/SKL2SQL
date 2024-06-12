@@ -355,7 +355,7 @@ class EXPAND(SQLOperator):
                     for interval in merged__intervals
                 ]
             )
-            return all_intervals, '', ''
+            return condition_str, '', ''
 
 
 class CON_A_CON(SQLOperator):
