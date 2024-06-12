@@ -1,5 +1,6 @@
 from enum import Enum
 
+DBMS = ''
 PREPROCESS_PACKAGE_PATH = 'craftsman.preprocess.'
 MODEL_PACKAGE_PATH = 'craftsman.model.'
 

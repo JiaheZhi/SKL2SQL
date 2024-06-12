@@ -17,7 +17,7 @@ class DecisionTreeClassifierSQLModel(SQLModel):
         self.right = self.trained_model.tree_.children_right  # right child for each node
         self.thresholds = self.trained_model.tree_.threshold  # test threshold for each node
         self.classes = self.trained_model.classes_
-        self.ops = ['<='] * len(self.classes)
+        self.ops = ['<='] * len(self.trained_model.tree_.feature)
         if hasattr(self.trained_model, 'feature_names_in_'):
             self.input_features = self.trained_model.feature_names_in_
             self.features = [self.input_features[i] for i in self.trained_model.tree_.feature]

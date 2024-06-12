@@ -4,12 +4,15 @@ from category_encoders import TargetEncoder
 data = [
     ['PhD', 28300],
     ['HighSchool', 4500],
-    ['Bachelor', 7500],
     ['Master', 12500],
     ['HighSchool', 4200],
+         ['Bachelor', 7500],
     ['Master', 15000],
     ['PhD', 25000],
-    ['Bachelor', 7200]
+    ['Bachelor', 7200],
+    ['Bachelor', 7200],
+    ['Bachelor', 7200],
+    ['Bachelor', 7200],
 ]
 df = pd.DataFrame(data, columns=['Education', 'Income'])
 

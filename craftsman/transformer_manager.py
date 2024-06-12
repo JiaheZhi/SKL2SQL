@@ -2,6 +2,7 @@ from craftsman.base.graph import PrepGraph
 from craftsman.rule_based_optimize.merge import merge_sql_operator_by_rules
 from craftsman.utility.loader import load_model
 from craftsman.utility.dbms_utils import DBMSUtils
+import craftsman.base.defs as defs
 
 
 class TransformerManager(object):
@@ -48,6 +49,7 @@ class TransformerManager(object):
     def generate_query(self, model_file, table_name, dbms, pre_sql=None):
 
         # some load and extract tasks
+        defs.DBMS = dbms
         model = load_model(model_file)
         pipeline_features_in = model.feature_names_in_.tolist()
         pipeline = self.__extract_pipeline(model)
@@ -57,6 +59,9 @@ class TransformerManager(object):
 
         # merge operators by rules
         new_prep_graph = merge_sql_operator_by_rules(preprocessing_graph)
+        
+        # new_prep_graph.add_join_operator(new_prep_graph.chains['Timezone'].prep_operators[0])
+        # new_prep_graph.chains['Timezone'].prep_operators.remove(new_prep_graph.chains['Timezone'].prep_operators[0])
 
         # generate sql through the merged graph
         query_str = self.__compose_sql(new_prep_graph, table_name, dbms, pre_sql)

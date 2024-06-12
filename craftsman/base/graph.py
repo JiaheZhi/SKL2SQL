@@ -40,11 +40,12 @@ class PrepGraph(object):
         
         new_graph = PrepGraph()
         new_graph.model = self.model
+        new_graph.join_operators = self.join_operators
         for feature, _ in self.chains.items():
             new_graph.chains[feature] = PrepChain(feature)
 
         return new_graph
     
-    def add_join_operator(self, op: Operator):
+    def add_join_operator(self, op):
         self.join_operators.append(op)
 

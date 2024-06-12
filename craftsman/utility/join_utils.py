@@ -259,15 +259,15 @@ def insert_db(db, table_name, cols, data):
 def df_type2db_type(df_type, db):
     if db in ('duckdb', 'postgresql'):
         if is_string_dtype(df_type):
-            return DBDataType.VARCHAR
+            return DBDataType.VARCHAR.value
         elif df_type == np.int8:
-            return DBDataType.SMALLINT
+            return DBDataType.SMALLINT.value
         elif is_integer_dtype(df_type):
-            return DBDataType.INT
+            return DBDataType.INT.value
         elif is_float_dtype(df_type):
-            return DBDataType.FLOAT
+            return DBDataType.FLOAT.value
         elif is_bool_dtype(df_type):
-            return DBDataType.BOOLEAN
+            return DBDataType.BOOLEAN.value
     return None
 
 

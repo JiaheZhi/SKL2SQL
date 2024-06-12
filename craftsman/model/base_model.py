@@ -3,6 +3,8 @@ from typing import Union
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 
+from craftsman.base.operator import Operator
+
 ModelType = Union[DecisionTreeClassifier, RandomForestClassifier]
 
 class SQLModel(ABC):
