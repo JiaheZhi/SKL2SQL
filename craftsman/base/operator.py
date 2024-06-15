@@ -9,6 +9,7 @@ from craftsman.base.defs import *
 
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.utility.join_utils import insert_db, df_type2db_type
+from craftsman.utility.base_utils import merge_intervals
 from craftsman.cost_model.MetaCost import OperatorCost, ExpandCost, CON_C_CATCost, CAT_C_CATCost
 
 
@@ -76,6 +77,14 @@ class SQLOperator(ABC):
     @abstractmethod
     def modify_leaf(self, feature, op, thr):
         pass
+    
+    def push(self, graph):
+        for feature in self.features_out:
+            graph.model.modify_model_p(feature, self)
+    
+    @abstractmethod
+    def modify_leaf_p(self, feature, op, thr):
+        pass
 
 
 class EncoderOperator(SQLOperator):
@@ -142,7 +151,6 @@ class CAT_C_CAT(SQLOperator):
         else:
             return None
 
-        return None
     
     def get_cost_info(self):
         for idx in range(len(self.features)):
@@ -187,28 +195,14 @@ class CAT_C_CAT(SQLOperator):
             if enc_value <= thr:
                 in_list.append(f'\'{idx}\'')
         return feature, 'in', f"({','.join(in_list)})" 
-                
-
-    def get_join_sql(self, dbms: str, input_table: str, table_name: str):
-        feature = self.features[0]
-        mapping = self.mappings[0]
-        join_table_name = feature + CAT_C_CAT_JOIN_POSTNAME
-        cols = {feature: DBDataType.VARCHAR.value}
-        cols[CAT_C_CAT_JOIN_COL_NAME] = df_type2db_type(mapping.dtype, dbms)
-        data = [(idx, mapping[idx]) for idx in mapping.index]
-        insert_db(dbms, join_table_name, cols, data)
-        delimitied_feature = DBMSUtils.get_delimited_col(dbms, feature)
-        input_table = f"{input_table} left join {join_table_name} on {table_name}.{delimitied_feature}={join_table_name}.{delimitied_feature}"
-        featuer_sql = f"{DBMSUtils.get_delimited_col(dbms, CAT_C_CAT_JOIN_COL_NAME)} AS {delimitied_feature}"
-        return input_table, featuer_sql
     
-    def modify_leaf(self, feature, op, thr):
+    def modify_leaf_p(self, feature, op, thr):
         mapping = self.mappings[self.features_out.index(feature)]
-        in_list = []
-        for idx, enc_value in mapping.items():
-            if enc_value <= thr:
-                in_list.append(f'\'{idx}\'')
-        return feature, 'in', f"({','.join(in_list)})" 
+        feature_sub_sql = 'CASE '
+        for idx, val in mapping.items()[:-1]:
+            feature_sub_sql += f'WHEN {feature} = {idx} THEN {val} '
+        feature_sub_sql += 'ELSE {} END '.format(mapping[-1])       
+        return feature_sub_sql, op, thr  
 
 
 class EXPAND(SQLOperator):
@@ -276,26 +270,13 @@ class EXPAND(SQLOperator):
                     intervals = []
                     for c in categories_list[enc_value]:
                         intervals.extend(self.con_c_cat_mapping[c]) 
-                    # Convert an interval list to a set to de-duplicate it, then convert it back to a list
-                    unique_intervals = list(set(intervals)) 
-                    # Sorting intervals by their starting point
-                    unique_intervals.sort(key=lambda x: x[0])
-                    unique_intervals = [list(interval) for interval in unique_intervals]
-                    # Merge intervals with [left, right) interval
-                    merged__intervals = [unique_intervals[0]]
-                    for current in unique_intervals[1:]:
-                        prev = merged__intervals[-1]
-                        # If the start of the current interval is less than or equal to the end of the previous interval
-                        if current[0] <= prev[1]:  
-                            prev[1] = max(prev[1], current[1])  # merged interval
-                        else:
-                            merged__intervals.append(current)  # Otherwise, add a new interval
+                    merged_intervals = merge_intervals(intervals)
                     condition_str = " OR ".join(
                         [
                             f"{DBMSUtils.get_delimited_col(dbms, feature)} >= {interval[0]}"
                             + " AND "
                             + f"{DBMSUtils.get_delimited_col(dbms, feature)} < {interval[1]}"
-                            for interval in merged__intervals
+                            for interval in merged_intervals
                         ]
                     )
                     col_sql += f"WHEN {condition_str} THEN {enc_value} "
@@ -333,29 +314,54 @@ class EXPAND(SQLOperator):
             for enc_value, intervals in self.con_c_cat_mapping.items():
                 if enc_value <= thr:
                     all_intervals.extend(intervals)
-            # Convert an interval list to a set to de-duplicate it, then convert it back to a list
-            unique_intervals = list(set(all_intervals)) 
-            # Sorting intervals by their starting point
-            unique_intervals.sort(key=lambda x: x[0])
-            unique_intervals = [list(interval) for interval in unique_intervals]
-            # Merge intervals with [left, right) interval
-            merged__intervals = [unique_intervals[0]]
-            for current in unique_intervals[1:]:
-                prev = merged__intervals[-1]
-                # If the start of the current interval is less than or equal to the end of the previous interval
-                if current[0] <= prev[1]:  
-                    prev[1] = max(prev[1], current[1])  # merged interval
-                else:
-                    merged__intervals.append(current)  # Otherwise, add a new interval
+            merged_intervals = merge_intervals(all_intervals)
             condition_str = " OR ".join(
                 [
-                    f"{DBMSUtils.get_delimited_col(dbms, feature)} >= {interval[0]}"
+                    f"{DBMSUtils.get_delimited_col(DBMS, feature)} >= {interval[0]}"
                     + " AND "
-                    + f"{DBMSUtils.get_delimited_col(dbms, feature)} < {interval[1]}"
-                    for interval in merged__intervals
+                    + f"{DBMSUtils.get_delimited_col(DBMS, feature)} < {interval[1]}"
+                    for interval in merged_intervals
                 ]
             )
             return condition_str, '', ''
+        
+    def modify_leaf_p(self, feature, op, thr):
+        mapping = self.mapping[feature]
+        if self.con_c_cat_mapping is None:
+            feature_sub_sql = 'CASE '
+            for idx, val in mapping.items()[:-1]:
+                feature_sub_sql += f'WHEN {feature} = {idx} THEN {val} '
+            feature_sub_sql += 'ELSE {} END '.format(mapping[-1])       
+            return feature_sub_sql, op, thr  
+        
+        else:
+            col_sql = "CASE "
+            col_mapping = self.mapping[feature]
+            col_mapping = col_mapping[~col_mapping.index.isnull()]
+            col_mapping = col_mapping[[idx for idx in col_mapping.index if idx != 'NaN']]
+            categories_list = col_mapping.groupby(col_mapping).apply(
+                lambda x: x.index.tolist()
+            )
+            sorted_categories_list = categories_list.apply(
+                lambda x: len(x)
+            ).sort_values(ascending=True)
+            categories_list = categories_list[sorted_categories_list.index]
+            for enc_value in categories_list.index.tolist()[:-1]:
+                intervals = []
+                for c in categories_list[enc_value]:
+                    intervals.extend(self.con_c_cat_mapping[c]) 
+                merged_intervals = merge_intervals(intervals)
+                condition_str = " OR ".join(
+                    [
+                        f"{DBMSUtils.get_delimited_col(DBMS, feature)} >= {interval[0]}"
+                        + " AND "
+                        + f"{DBMSUtils.get_delimited_col(DBMS, feature)} < {interval[1]}"
+                        for interval in merged_intervals
+                    ]
+                )
+                col_sql += f"WHEN {condition_str} THEN {enc_value} "
+            col_sql += f"ELSE {categories_list.index.tolist()[-1]} END "
+            return col_sql, op, thr
 
 
 class CON_A_CON(SQLOperator):
@@ -444,7 +450,7 @@ class CON_A_CON(SQLOperator):
                     }
                 )
                 f = lambdify(self.symbols["y"], sub_equation, "numpy")
-                merged_op.bin_edges.append(bin_edge)
+                merged_op.bin_edges.append(f(bin_edge))
             return merged_op
 
         else:
@@ -481,19 +487,16 @@ class CON_A_CON(SQLOperator):
         )
         thr = sub_equation.subs(self.symbols['y'], thr)
         return feature, op, thr
-
-
-    def modify_leaf(self, feature, op, thr):
-        reversed_equation = solve(self.equation, self.symbols["x"])[0]
-        idx = self.features_out.index(feature)
-        sub_equation = reversed_equation.subs(
+    
+    def modify_leaf_p(self, feature, op, thr):
+        equation = self.equation.rhs.subs(
             {
                 self.symbols[sym_name]: self.parameter_values[idx][sym_name]
                 for sym_name in self.parameter_values[idx]
             }
         )
-        thr = sub_equation.subs(self.symbols['y'], thr)
-        return feature, op, thr
+        feature_sql = str(equation).replace('x', f'{DBMSUtils.get_delimited_col(DBMS, feature)}') + ' '
+        return feature_sql, op, thr
 
 
 class CON_C_CAT(SQLOperator):
@@ -556,7 +559,7 @@ class CON_C_CAT(SQLOperator):
                 lambda x: x.index.tolist()
             )
             merged_op.con_c_cat_mapping = cat_interval_map
-            
+
             return merged_op
 
         else:
@@ -572,32 +575,55 @@ class CON_C_CAT(SQLOperator):
 
     def get_stats(self,dbms:str):
         pass
-        
-        
-    
+
     def get_sql(self, dbms: str):
         sqls = []
 
         for idx in range(len(self.features)):
             feature_sql = "CASE "
             for i in range(self.n_bins[idx] - 1):
-                feature_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} >= {self.bin_edges[idx][i]} AND {DBMSUtils.get_delimited_col(dbms, self.features[idx])} < {self.bin_edges[idx][i+1]} THEN {self.categories[idx][i]} "
-            feature_sql += (
-                f"ELSE {self.bin_edges[idx][-1]} END AS {DBMSUtils.get_delimited_col(dbms, self.features[idx])} "
-            )
+                feature_sql += (
+                    f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} >= {self.bin_edges[idx][i]}"
+                    + " AND "
+                    + f"{DBMSUtils.get_delimited_col(dbms, self.features[idx])} < {self.bin_edges[idx][i+1]} THEN {self.categories[idx][i]} "
+                )
+            feature_sql += f"ELSE {self.bin_edges[idx][-1]} END AS {DBMSUtils.get_delimited_col(dbms, self.features[idx])} "
             sqls.append(feature_sql)
 
         return ",".join(sqls)
-    
+
     def modify_leaf(self, feature, op, thr):
         bin_edge = self.bin_edges[self.features_out.index(feature)]
         categoiry_list = self.categories[self.features_out.index(feature)]
+        intervals = []
         for i, category in enumerate(categoiry_list):
-            if category > thr:
-                thr = bin_edge[i]
-                break
-            
-        return feature, op, thr
+            if category <= thr:
+                intervals.append((bin_edge[i], bin_edge[i+1]))
+        merged_intervals = merge_intervals(intervals)
+
+        condition_sqls = []
+        for interval in merged_intervals:
+            condition_sql += (
+                f"{DBMSUtils.get_delimited_col(DBMS, feature)} >= {interval[0]}"
+                + " AND "
+                + f"{DBMSUtils.get_delimited_col(DBMS, feature)} < {interval[1]}"
+            )
+            condition_sqls.append(condition_sql)
+
+        return ' OR '.join(condition_sqls), '', ''
+
+    def modify_leaf_p(self, feature, op, thr):
+        idx = self.features_out.index(feature)
+        feature_sql = "CASE "
+        for i in range(self.n_bins[idx] - 1):
+            feature_sql += (
+                f"WHEN {DBMSUtils.get_delimited_col(DBMS, self.features[idx])} >= {self.bin_edges[idx][i]}"
+                + " AND "
+                + f"{DBMSUtils.get_delimited_col(DBMS, self.features[idx])} < {self.bin_edges[idx][i+1]} THEN {self.categories[idx][i]} "
+            )
+        feature_sql += f"ELSE {self.bin_edges[idx][-1]} END "
+        
+        return feature_sql, op, thr
 
 
 class CON_C_CAT_Merged_OP(CON_C_CAT):
