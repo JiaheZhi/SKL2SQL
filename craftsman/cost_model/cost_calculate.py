@@ -15,43 +15,43 @@ from craftsman.cost_model import utils
 Operator's Cost calculation
 '''
 
-def get_expand_cost(op,downstream_op = None):
-    op_cost = None
-    if downstream_op is None:        
-        op_cost = op_cost("Expand")
-        if op.op_name == "BinaryEncoder":
-            index = 0
-            for field_name, value in op.constant_params.item(): # traverse each sub_field
-                op_cost.set_cost(field_name,op.variant_len[index])
-                index += 1
-        else:
-            pass
-    else:
-        if op.op_name == "BinaryEncoder":
-            # transform list to dict
-            params_dict = {}
-            index = 0
-            op_cost = op_cost("cfe")
-            for param in downstream_op.constant_params:
-                if params_dict[param] is None:
-                    params_dict[param] = [index]
-                else:
-                    params_dict[param].append(index)
-                index += 1
+# def get_expand_cost(op,downstream_op = None):
+#     op_cost = None
+#     if downstream_op is None:        
+#         op_cost = op_cost("Expand")
+#         if op.op_name == "BinaryEncoder":
+#             index = 0
+#             for field_name, value in op.constant_params.item(): # traverse each sub_field
+#                 op_cost.set_cost(field_name,op.variant_len[index])
+#                 index += 1
+#         else:
+#             pass
+#     else:
+#         if op.op_name == "BinaryEncoder":
+#             # transform list to dict
+#             params_dict = {}
+#             index = 0
+#             op_cost = op_cost("cfe")
+#             for param in downstream_op.constant_params:
+#                 if params_dict[param] is None:
+#                     params_dict[param] = [index]
+#                 else:
+#                     params_dict[param].append(index)
+#                 index += 1
             
-            comp_lens = []
+#             comp_lens = []
 
-            field_name_idx = 0
-            field_names = list(op.variant_params.keys())
-            for variant_param in op.variant_params: # traverse each sub_field
-                idx_list = [params_dict.get(p) for p in variant_param]
-                idx_list_merge = sum(idx_list,[]).sort()
-                comp_len = count_interval(idx_list_merge) # TODO: or表达式的计算代价目前采用“平均”启发式策略，其计算方式可能需要提高(如，建立统计信息)
-                op_cost.set_cost(field_names[field_name_idx],comp_lens)
-        else:
-            pass
+#             field_name_idx = 0
+#             field_names = list(op.variant_params.keys())
+#             for variant_param in op.variant_params: # traverse each sub_field
+#                 idx_list = [params_dict.get(p) for p in variant_param]
+#                 idx_list_merge = sum(idx_list,[]).sort()
+#                 comp_len = count_interval(idx_list_merge) # TODO: or表达式的计算代价目前采用“平均”启发式策略，其计算方式可能需要提高(如，建立统计信息)
+#                 op_cost.set_cost(field_names[field_name_idx],comp_len)
+#         else:
+#             pass
 
-    return op_cost
+#     return op_cost
             
 
 # def get_conccat_cost(op):
@@ -74,112 +74,7 @@ def get_expand_cost(op,downstream_op = None):
 #     return op_cost
 
 
-"""
-    cost for a field in a tree
-"""
 
-def set_sub_field_cost_expand(cost,sub_const,threshold,org_length,primitive):
-    in_length = 0
-    if sub_const <= threshold:# max value
-        if sub_const == 0:
-            in_length = org_length
-        else:
-            pass # always true
-    else:
-        if sub_const == 0:
-            pass # always false
-        else:
-            in_length = org_length # not in (Assuming that not_in and in have the same cost)
-    
-    cost.set_cost(primitive,in_length)
-
-    return cost
-
-def get_tree_cost(tree, attribute_index):
-        
-        tree_cost = []
-        path_idx = 0
-        edag = eDAG # global variable
-        chain = edag[attribute_index]
-        ops = list(chain.values())
-        
-        for path in tree_paths(tree):
-            meta_cost = meta_cost(path_idx,attribute_index)
-            no_fusion_count = 0
-            for node in path:
-                if tree.feature[node] == attribute_index:
-                    # no fusion
-                    no_fusion_count += 1
-                    # fusion (in)
-                    # expand将x转换为x_0,x_1,...,x_n (sub_field),但在树上仍以x_i进行统计
-                    # 一条元组的expand的代价是求和其走过的path_i上的所有出现的x_i的代价
-                    if len(chain) == 1: #cat-c-cat/expand/con-c-cat
-                        #  calculate new cost of the tree if fuse op and the tree
-                        key = list(chain.keys())[0]
-                        op = ops[0]
-                        if key == "cat-c-cat":
-                            in_length = sum(i<=threshold[node] for i in op.constant_params)
-                            meta_cost.set_cost("in",in_length)
-                        elif key == "expand_sub":
-                            #binaryencoder
-                            meta_cost = set_sub_field_cost_expand(meta_cost,op.constant_params[attribute_index],threshold[node],op.variant_len[attribute_index],"in")          
-                        # fusion (or)
-                        elif key == "con-c-cat": # TODO:max/min的边界情况考虑
-                            match_idx = []
-                            idx = 0
-                            for i in op.constant_params:
-                                if i <= threshold[node]:
-                                    match_idx.append(idx)
-                                    idx += 1
-                            avglen = count_interval(match_idx) # TODO: or表达式的计算代价目前采用“平均”启发式策略，其计算方式可能需要提高(如，建立统计信息)
-                            meta_cost.set_cost("or",avglen)
-                    elif len(edag[attribute_index]) == 2:
-                        # (con-c-cat -> expand) -> tree
-                        if chain["cfe_cost"] is not None:
-                            cfe_cost = chain["cfe_cost"]
-                            meta_cost = set_sub_field_cost_expand(meta_cost,op.constant_params[attribute_index],threshold[node],cfe_cost["or"][attribute_index],"or") 
-                        else:
-                            pass
-                        
-                        
-          
-            # no fusion
-            meta_cost.set_cost(no_fusion_count)
-            tree_cost.append(meta_cost)
-            path_idx += 1
-        
-        # Returns cost for a attribute_index in a tree (per path) 
-        return tree_cost,fused_expand_cost
-
-
-"""
-    cost for a field in a tree model (DT,RT,etc)
-"""
-def get_tree_model_cost(model, model_name,attribute_index):
-    cost = None
-    # iterate over each tree 
-    if model_name == 'DecisionTreeClassifier':
-        cost = get_tree_cost(model,attribute_index)
-    elif model_name == 'RandomForestClassifier':
-        trees = model.estimators_
-        cost = []
-        for tree_model in trees:
-            cost.append(get_tree_cost(tree_model,attribute_index))
-    
-    # Returns cost for a attribute_index in a tree/ forest
-    return cost
-
-
-'''
-Tree cost's entry function
-'''
-def get_global_cost(model, model_name,fields):
-    global_cost = []
-    for field in fields:
-        global_cost.append(get_tree_model_cost(model,model_name,field))
-    
-    # Returns cost for all fields in a tree/forest
-    return global_cost
 
 def get_chain_cost_info (model_name,model,field,chain):
     # op+Tree

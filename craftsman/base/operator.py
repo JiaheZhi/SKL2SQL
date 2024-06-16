@@ -9,7 +9,7 @@ from craftsman.base.defs import *
 
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.utility.join_utils import insert_db, df_type2db_type
-from craftsman.cost_model.MetaCost import OperatorCost, ExpandCost, CON_C_CATCost, CAT_C_CATCost
+from craftsman.cost_model.MetaCost import OperatorCost, ExpandCost, CON_C_CATCost, CAT_C_CATCost, CFECost
 
 
 class SQLOperator(ABC):
@@ -209,6 +209,15 @@ class CAT_C_CAT(SQLOperator):
             if enc_value <= thr:
                 in_list.append(f'\'{idx}\'')
         return feature, 'in', f"({','.join(in_list)})" 
+    
+    def get_in_tree_len(self,feature,thr):
+        mapping = self.mappings[self.features_out.index(feature)]
+        list_len = 0
+        for idx, enc_value in mapping.items():
+            if enc_value <= thr:
+                list_len += 1
+        return list_len
+        
 
 
 class EXPAND(SQLOperator):
@@ -568,12 +577,7 @@ class CON_C_CAT(SQLOperator):
             for path_cost in range(1,len(self.n_bins[idx])+1):
                 op_cost.set_cost(path_cost)
             self.cost.append(op_cost)
-        return self.cost
-
-    def get_stats(self,dbms:str):
-        pass
-        
-        
+        return self.cost        
     
     def get_sql(self, dbms: str):
         sqls = []
@@ -598,6 +602,14 @@ class CON_C_CAT(SQLOperator):
                 break
             
         return feature, op, thr
+    
+    def get_or_tree_len(self,feature,thr):
+        mapping = self.mappings[self.features_out.index(feature)]
+        list_len = 0
+        for idx, enc_value in mapping.items():
+            if enc_value <= thr:
+                list_len += 1
+        return list_len
 
 
 class CON_C_CAT_Merged_OP(CON_C_CAT):
@@ -622,7 +634,12 @@ class EXPAND_Merged_OP(EXPAND):
 
     def _extract(self, fitted_transform) -> None:
         pass
-
+    
+    #TODO: get stats
+    def get_cost_info(self,stats):
+        op_cost = CFECost()
+        op_cost.info = stats
+        return op_cost
 
 class CON_A_CON_Merged_OP(CON_A_CON):
 
