@@ -67,6 +67,13 @@ class DecisionTreeClassifierSQLModel(SQLModel):
                 self.features[idx], self.ops[idx], self.thresholds[idx] == sql_operator.modify_leaf(
                     self.features[idx], self.ops[idx], self.thresholds[idx]
                 )
+                
+    def modify_model_p(self, feature: str, sql_operator: Operator):
+        for idx, node in enumerate(self.trained_model.tree_.features):
+            if self.input_features[node] == feature:
+                self.features[idx], self.ops[idx], self.thresholds[idx] == sql_operator.modify_leaf_p(
+                    self.features[idx], self.ops[idx], self.thresholds[idx]
+                )
 
     def query(self, imput_table: str, dbms: str) -> str:
         query = "SELECT {} AS Score".format(self.get_case_sql(dbms))

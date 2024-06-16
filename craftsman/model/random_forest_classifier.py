@@ -27,6 +27,9 @@ class RandomForestClassifierSQLModel(SQLModel):
         for decision_tree_classifier in self.decision_tree_classifiers:
             decision_tree_classifier.modify_model(feature, sql_operator)
             
+    def modify_model_p(self, feature: str, sql_operator: Operator):
+        for decision_tree_classifier in self.decision_tree_classifiers:
+            decision_tree_classifier.modify_model_p(feature, sql_operator)
 
     def query(self, imput_table: str, dbms: str) -> str:
 
