@@ -208,15 +208,7 @@ class CAT_C_CAT(SQLOperator):
         for idx, enc_value in mapping.items():
             if enc_value <= thr:
                 in_list.append(f'\'{idx}\'')
-        return feature, 'in', f"({','.join(in_list)})" 
-    
-    def get_in_tree_len(self,feature,thr):
-        mapping = self.mappings[self.features_out.index(feature)]
-        list_len = 0
-        for idx, enc_value in mapping.items():
-            if enc_value <= thr:
-                list_len += 1
-        return list_len
+        return feature, 'in', f"({','.join(in_list)})"
         
 
 
@@ -479,19 +471,6 @@ class CON_A_CON(SQLOperator):
         return ",".join(sqls)
     
     
-    def modify_leaf(self, feature, op, thr):
-        reversed_equation = solve(self.equation, self.symbols["x"])[0]
-        idx = self.features_out.index(feature)
-        sub_equation = reversed_equation.subs(
-            {
-                self.symbols[sym_name]: self.parameter_values[idx][sym_name]
-                for sym_name in self.parameter_values[idx]
-            }
-        )
-        thr = sub_equation.subs(self.symbols['y'], thr)
-        return feature, op, thr
-
-
     def modify_leaf(self, feature, op, thr):
         reversed_equation = solve(self.equation, self.symbols["x"])[0]
         idx = self.features_out.index(feature)
