@@ -96,7 +96,8 @@ class TreeCost(object):
                                 #         match_idx.append(idx)
                                 #         idx += 1
                                 # avglen = count_interval(match_idx) # TODO: or表达式的计算代价目前采用“平均”启发式策略，其计算方式可能需要提高(如，建立统计信息)
-                                meta_cost.set_cost("or",avglen)
+                                avg_len = op.get_or_tree_len(field_name,threshold[node])
+                                meta_cost.set_cost(PrimitiveType.OR,avg_len)
                         elif len(chain) == 2:
                             # (con-c-cat -> expand) -> tree
                             if chain["cfe_cost"] is not None:
