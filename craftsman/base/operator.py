@@ -303,11 +303,19 @@ class EXPAND(SQLOperator):
 
     def modify_leaf(self, feature, op, thr):
         mapping = self.mapping[feature]
+        feature = self.features[0]
         if self.con_c_cat_mapping is None:
             in_list = []
+            not_in_list = []
             for idx, enc_value in mapping.items():
                 if enc_value <= thr:
                     in_list.append(f'\'{idx}\'')
+                else:
+                    not_in_list.append(f'\'{idx}\'')
+            if len(in_list) == 1:
+                return feature, '=', f"{in_list[0]}" 
+            elif len(not_in_list) == 1:
+                return feature, '<>', f"{not_in_list[0]}" 
             return feature, 'in', f"({','.join(in_list)})" 
         else:
             all_intervals = []
@@ -489,6 +497,7 @@ class CON_A_CON(SQLOperator):
         return feature, op, thr
     
     def modify_leaf_p(self, feature, op, thr):
+        idx = self.features_out.index(feature)
         equation = self.equation.rhs.subs(
             {
                 self.symbols[sym_name]: self.parameter_values[idx][sym_name]

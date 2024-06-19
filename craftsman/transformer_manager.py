@@ -61,7 +61,15 @@ class TransformerManager(object):
         new_prep_graph = merge_sql_operator_by_rules(preprocessing_graph)
         
         # new_prep_graph.add_join_operator(new_prep_graph.chains['Timezone'].prep_operators[0])
+        
+        # new_prep_graph.chains['Timezone'].prep_operators[0].fusion(new_prep_graph)
         # new_prep_graph.chains['Timezone'].prep_operators.remove(new_prep_graph.chains['Timezone'].prep_operators[0])
+        # new_prep_graph.chains['Pressure(in)'].prep_operators[0].fusion(new_prep_graph)
+        # new_prep_graph.chains['Pressure(in)'].prep_operators.remove(new_prep_graph.chains['Pressure(in)'].prep_operators[0])
+        # new_prep_graph.chains['Source'].prep_operators[0].fusion(new_prep_graph)
+        # new_prep_graph.chains['Source'].prep_operators.remove(new_prep_graph.chains['Source'].prep_operators[0])
+        # new_prep_graph.chains['Weather_Condition'].prep_operators[0].fusion(new_prep_graph)
+        # new_prep_graph.chains['Weather_Condition'].prep_operators.remove(new_prep_graph.chains['Weather_Condition'].prep_operators[0])
 
         # generate sql through the merged graph
         query_str = self.__compose_sql(new_prep_graph, table_name, dbms, pre_sql)

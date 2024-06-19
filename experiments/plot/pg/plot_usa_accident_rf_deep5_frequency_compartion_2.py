@@ -38,7 +38,7 @@ for i, fusion in enumerate(fusions):
 
 plt.xlabel('Data amount (row)', fontsize=14)
 plt.ylabel('Execution Time (s)', fontsize=14)
-plt.title('Execution Time for Frequency Encoder Implementation Methods in PG(Max Worker={})'.format(thread), fontsize=16)
+plt.title('Execution Time for CountEncoder Implementation Methods in PG(Max Worker={})'.format(thread), fontsize=16)
 plt.legend(fontsize=12)
 plt.grid(True)
 

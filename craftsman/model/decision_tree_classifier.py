@@ -15,7 +15,7 @@ class DecisionTreeClassifierSQLModel(SQLModel):
         # get for each node, left, right child nodes, thresholds and features
         self.left = self.trained_model.tree_.children_left  # left child for each node
         self.right = self.trained_model.tree_.children_right  # right child for each node
-        self.thresholds = self.trained_model.tree_.threshold  # test threshold for each node
+        self.thresholds = self.trained_model.tree_.threshold.tolist()  # test threshold for each node
         self.classes = self.trained_model.classes_
         self.ops = ['<='] * len(self.trained_model.tree_.feature)
         if hasattr(self.trained_model, 'feature_names_in_'):
@@ -62,16 +62,16 @@ class DecisionTreeClassifierSQLModel(SQLModel):
         return sql_dtm_rules
 
     def modify_model(self, feature: str, sql_operator: Operator):
-        for idx, node in enumerate(self.trained_model.tree_.features):
+        for idx, node in enumerate(self.trained_model.tree_.feature):
             if self.input_features[node] == feature:
-                self.features[idx], self.ops[idx], self.thresholds[idx] == sql_operator.modify_leaf(
+                self.features[idx], self.ops[idx], self.thresholds[idx] = sql_operator.modify_leaf(
                     self.features[idx], self.ops[idx], self.thresholds[idx]
                 )
                 
     def modify_model_p(self, feature: str, sql_operator: Operator):
-        for idx, node in enumerate(self.trained_model.tree_.features):
+        for idx, node in enumerate(self.trained_model.tree_.feature):
             if self.input_features[node] == feature:
-                self.features[idx], self.ops[idx], self.thresholds[idx] == sql_operator.modify_leaf_p(
+                self.features[idx], self.ops[idx], self.thresholds[idx] = sql_operator.modify_leaf_p(
                     self.features[idx], self.ops[idx], self.thresholds[idx]
                 )
 
