@@ -203,6 +203,14 @@ class CAT_C_CAT(SQLOperator):
             feature_sub_sql += f'WHEN {feature} = {idx} THEN {val} '
         feature_sub_sql += 'ELSE {} END '.format(mapping[-1])       
         return feature_sub_sql, op, thr  
+    
+    def get_in_tree_len(self,feature,thr):
+        mapping = self.mappings[self.features_out.index(feature)]
+        list_len = 0
+        for idx, enc_value in mapping.items():
+            if enc_value <= thr:
+                list_len += 1
+        return list_len
 
 
 class EXPAND(SQLOperator):
@@ -633,6 +641,19 @@ class CON_C_CAT(SQLOperator):
         feature_sql += f"ELSE {self.bin_edges[idx][-1]} END "
         
         return feature_sql, op, thr
+    
+    def get_or_tree_len(self,feature,thr):
+        or_len = 0 
+        bin_edge = self.bin_edges[self.features_out.index(feature)]
+        categoiry_list = self.categories[self.features_out.index(feature)]
+        intervals = []
+        for i, category in enumerate(categoiry_list):
+            if category <= thr:
+                intervals.append((bin_edge[i], bin_edge[i+1]))
+        merged_intervals = merge_intervals(intervals)
+        or_len  = len(merged_intervals)
+
+        return or_len
 
 
 class CON_C_CAT_Merged_OP(CON_C_CAT):
@@ -657,7 +678,12 @@ class EXPAND_Merged_OP(EXPAND):
 
     def _extract(self, fitted_transform) -> None:
         pass
-
+    
+    #TODO: get stats
+    def get_cost_info(self,stats):
+        op_cost = CFECost()
+        op_cost.info = stats
+        return op_cost
 
 class CON_A_CON_Merged_OP(CON_A_CON):
 

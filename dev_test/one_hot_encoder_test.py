@@ -12,6 +12,7 @@ encoder = OneHotEncoder(sparse=False)
 # 拟合数据并转换
 X_encoded = encoder.fit_transform(X)
 
+
 # 获取转换后特征的名称
 feature_names = encoder.get_feature_names_out(input_features=['Gender', 'Order'])
 

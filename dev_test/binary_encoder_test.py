@@ -5,8 +5,14 @@ data_path = '/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv'
 df = pd.read_csv(data_path, nrows=100)
 binary_encode_cols = ['City', 'County']
 
+
+
 be = ce.BinaryEncoder(cols=binary_encode_cols)
 be.fit(df[binary_encode_cols])
+
+print(type(be))
+
+# print(be.get_params()['mapping'][0]['mapping'].shape[1]) 
 
 for f in binary_encode_cols:
     for m in be.ordinal_encoder.category_mapping:
@@ -17,6 +23,7 @@ for f in binary_encode_cols:
     for m in be.mapping:
         if m['col'] == f:
             binary_mapping = m['mapping']
+            # print(binary_mapping.shape[1])
             break
     data = []
     for value, order in order_mapping.items():
