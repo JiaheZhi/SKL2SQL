@@ -2,6 +2,8 @@ from sklearn.ensemble import RandomForestClassifier
 from craftsman.model.decision_tree_classifier import DecisionTreeClassifierSQLModel
 from craftsman.model.base_model import SQLModel
 from craftsman.base.operator import Operator
+from craftsman.base.defs import ModelName
+from craftsman.cost_model.cost import TreeCost
 
 class RandomForestClassifierSQLModel(SQLModel):
     """
@@ -13,6 +15,7 @@ class RandomForestClassifierSQLModel(SQLModel):
     """
 
     def __init__(self, trained_model: RandomForestClassifier):
+        self.model_name = ModelName.RANDOMFORESTCLASSIFIER
         self.trained_model = trained_model
         self.input_features = trained_model.feature_names_in_
         self.estimators = trained_model.estimators_
@@ -30,6 +33,22 @@ class RandomForestClassifierSQLModel(SQLModel):
     def modify_model_p(self, feature: str, sql_operator: Operator):
         for decision_tree_classifier in self.decision_tree_classifiers:
             decision_tree_classifier.modify_model_p(feature, sql_operator)
+            
+    def get_tree_costs(self, feature, operator):
+        tree_costs = []
+        for dtc in self.decision_tree_classifiers:
+            tree_cost = TreeCost(feature, operator, dtc)
+            tree_cost.analyze_path_fusion_cost(feature, operator, dtc)
+            tree_costs.append(tree_cost)
+        return tree_costs
+    
+    def get_tree_costs_p(self, feature, operator):
+        tree_costs = []
+        for dtc in self.decision_tree_classifiers:
+            tree_cost = TreeCost(feature, operator, dtc)
+            tree_cost.analyze_path_push_cost(feature, operator, dtc)
+            tree_costs.append(tree_cost)
+        return tree_costs
 
     def query(self, imput_table: str, dbms: str) -> str:
 

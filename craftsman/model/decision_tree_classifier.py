@@ -3,6 +3,8 @@ from sklearn.tree import DecisionTreeClassifier
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.model.base_model import SQLModel
 from craftsman.base.operator import Operator
+from craftsman.base.defs import ModelName
+from craftsman.cost_model.cost import TreeCost
 
 
 class DecisionTreeClassifierSQLModel(SQLModel):
@@ -11,6 +13,7 @@ class DecisionTreeClassifierSQLModel(SQLModel):
     """
 
     def __init__(self, trained_model: DecisionTreeClassifier):
+        self.model_name = ModelName.DECISIONTREECLASSIFIER
         self.trained_model = trained_model
         # get for each node, left, right child nodes, thresholds and features
         self.left = self.trained_model.tree_.children_left  # left child for each node
@@ -60,6 +63,16 @@ class DecisionTreeClassifierSQLModel(SQLModel):
         sql_dtm_rules = visit_tree(root)
 
         return sql_dtm_rules
+    
+    def get_tree_costs(self, feature, operator):
+        tree_cost = TreeCost(feature, operator, self)
+        tree_cost.analyze_path_fusion_cost(feature, operator, self)
+        return [tree_cost]
+    
+    def get_tree_costs_p(self, feature, operator):
+        tree_cost = TreeCost(feature, operator, self)
+        tree_cost.analyze_path_push_cost(feature, operator, self)
+        return [tree_cost]
 
     def modify_model(self, feature: str, sql_operator: Operator):
         for idx, node in enumerate(self.trained_model.tree_.feature):

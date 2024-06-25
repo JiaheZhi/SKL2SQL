@@ -1,5 +1,6 @@
 from craftsman.base.graph import PrepGraph
 from craftsman.rule_based_optimize.merge import merge_sql_operator_by_rules
+from craftsman.cost_model.merge import merge_by_cost_model
 from craftsman.utility.loader import load_model
 from craftsman.utility.dbms_utils import DBMSUtils
 import craftsman.base.defs as defs
@@ -46,7 +47,7 @@ class TransformerManager(object):
         }
 
 
-    def generate_query(self, model_file, table_name, dbms, pre_sql=None):
+    def generate_query(self, model_file, table_name, dbms, train_data, pre_sql=None):
 
         # some load and extract tasks
         defs.DBMS = dbms
@@ -60,8 +61,11 @@ class TransformerManager(object):
         # merge operators by rules
         new_prep_graph = merge_sql_operator_by_rules(preprocessing_graph)
         
-        # new_prep_graph.add_join_operator(new_prep_graph.chains['Timezone'].prep_operators[0])
+        # merge operators by cost model
+        new_prep_graph = merge_by_cost_model(new_prep_graph, train_data)
         
+        # ---------------test code -----------------------------------------------------------------------
+        # new_prep_graph.add_join_operator(new_prep_graph.chains['Timezone'].prep_operators[0])
         # new_prep_graph.chains['Timezone'].prep_operators[0].fusion(new_prep_graph)
         # new_prep_graph.chains['Timezone'].prep_operators.remove(new_prep_graph.chains['Timezone'].prep_operators[0])
         # new_prep_graph.chains['Pressure(in)'].prep_operators[0].fusion(new_prep_graph)
@@ -70,6 +74,7 @@ class TransformerManager(object):
         # new_prep_graph.chains['Source'].prep_operators.remove(new_prep_graph.chains['Source'].prep_operators[0])
         # new_prep_graph.chains['Weather_Condition'].prep_operators[0].fusion(new_prep_graph)
         # new_prep_graph.chains['Weather_Condition'].prep_operators.remove(new_prep_graph.chains['Weather_Condition'].prep_operators[0])
+        # ---------------test code -----------------------------------------------------------------------
 
         # generate sql through the merged graph
         query_str = self.__compose_sql(new_prep_graph, table_name, dbms, pre_sql)

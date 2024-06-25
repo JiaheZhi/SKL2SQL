@@ -4,6 +4,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 
 from craftsman.base.operator import Operator
+from craftsman.base.defs import ModelName
 
 ModelType = Union[DecisionTreeClassifier, RandomForestClassifier]
 
@@ -12,6 +13,7 @@ class SQLModel(ABC):
     def __init__(self) -> None:
         self.trained_model: ModelType
         self.input_features: list[str]
+        self.model_name: ModelName
 
     @abstractmethod
     def query(self, imput_table: str, dbms: str) -> str:

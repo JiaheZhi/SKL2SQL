@@ -1,6 +1,7 @@
 from enum import Enum
 
 DBMS = ''
+SAMPLE_RATE = 1
 PREPROCESS_PACKAGE_PATH = 'craftsman.preprocess.'
 MODEL_PACKAGE_PATH = 'craftsman.model.'
 
@@ -73,3 +74,38 @@ class DBDataType(Enum):
     FLOAT = 'FLOAT'
     BOOLEAN = 'BOOLEAN'
     
+    
+class SQLPlanType(Enum):
+    CASE = 'case'
+    FUSION = 'fusion'
+    JOIN = 'join'
+    PUSH = 'push'
+    
+class PrimitiveType(Enum):
+    IN = 'in'
+    OR = 'or'
+    LE = 'le'
+    # CASE = 'case'
+    EQUAL = 'equal'
+    INEQUAL = 'inequal'
+    GE = 'ge'
+    LE_EQ = 'le_eq'
+    GE_EQ = 'ge_eq'
+    
+
+def in_cost_func(length):
+    if length == 1:
+        return 3.4
+    else:
+        return 1.7 * length
+
+class PrimitiveCost(Enum):
+    IN = in_cost_func
+    OR = 25.5 # OR = GE_EQ + LE
+    LE = 12.75
+    # CASE = 'case'
+    EQUAL = 3.4
+    INEQUAL = 3.4
+    GE = 12.75
+    LE_EQ = 12.75
+    GE_EQ = 12.75

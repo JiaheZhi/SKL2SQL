@@ -48,4 +48,3 @@ class PrepGraph(object):
     
     def add_join_operator(self, op):
         self.join_operators.append(op)
-

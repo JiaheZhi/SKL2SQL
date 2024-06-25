@@ -10,7 +10,7 @@ from craftsman.base.defs import *
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.utility.join_utils import insert_db, df_type2db_type
 from craftsman.utility.base_utils import merge_intervals
-from craftsman.cost_model.MetaCost import OperatorCost, ExpandCost, CON_C_CATCost, CAT_C_CATCost
+from craftsman.cost_model.utils import calc_join_cost_by_sample_data
 
 
 class SQLOperator(ABC):
@@ -23,7 +23,7 @@ class SQLOperator(ABC):
         self.op_type: OperatorType
         self.features: list[str]
         self.features_out: list[str] = []
-        self.cost: list[OperatorCost] = [] # special case expand
+        self.costs: dict
         self.stats =  []
         self.is_encoder: bool = False
 
@@ -85,6 +85,73 @@ class SQLOperator(ABC):
     @abstractmethod
     def modify_leaf_p(self, feature, op, thr):
         pass
+    
+    @abstractmethod
+    def _get_op_cost(self, feature, sample_data):
+        pass
+    
+    def __get_case_cost(self, feature, graph, train_data):
+        tree_costs = graph.model.get_tree_costs(feature, self)
+        total_tree_cost = sum([tree_cost.calculate_no_fusion_cost() for tree_cost in tree_costs])
+        sample_data = train_data.sample(SAMPLE_RATE)
+        op_cost = self._get_op_cost(feature, sample_data) / SAMPLE_RATE
+        return total_tree_cost + op_cost
+    
+    def __get_fusion_cost(self, feature, graph):
+        tree_costs = graph.model.get_tree_costs(feature, self)
+        total_fusion_cost = sum([tree_cost.calculate_tree_cost() for tree_cost in tree_costs])
+        return total_fusion_cost
+    
+    def __get_push_cost(self, feature, graph):
+        tree_costs = graph.model.get_tree_costs_p(feature, self)
+        total_push_cost = sum([tree_cost.calculate_tree_cost() for tree_cost in tree_costs])
+        return total_push_cost
+    
+    def get_best_plan(self, graph, train_data) -> SQLPlanType:
+        if graph.model.model_name in (ModelName.DECISIONTREECLASSIFIER, ModelName.RANDOMFORESTCLASSIFIER):
+            fusion_cost = 0
+            push_cost = 0
+            for feature in self.features_out:
+                fusion_cost += self.__get_fusion_cost(feature, graph)
+                push_cost += self.__get_push_cost(feature, graph)
+        else:
+            fusion_cost = float('inf')
+            push_cost = float('inf')
+            
+        
+        case_cost = 0
+        for feature in self.features_out:
+            case_cost += self.__get_case_cost(feature, graph, train_data)
+
+        self.costs = {
+            SQLPlanType.FUSION.value: fusion_cost,
+            SQLPlanType.CASE.value: case_cost,
+            SQLPlanType.PUSH.value: push_cost
+        }
+        
+        if self.is_encoder:
+            join_cost = self._get_join_cost(feature, graph, train_data)
+            self.costs[SQLPlanType.JOIN.value] = join_cost
+            
+        sorted_costs = sorted(self.costs.items(), key=lambda item: item[1])
+
+        return SQLPlanType(sorted_costs[0][0])
+    
+    @abstractmethod
+    def get_fusion_primitive_type(self, feature, thr):
+        pass
+    
+    @abstractmethod
+    def get_fusion_primitive_length(self, feature, thr):
+        pass
+    
+    @abstractmethod
+    def get_push_primitive_type(self, feature, thr):
+        pass
+    
+    @abstractmethod
+    def get_push_primitive_length(self, feature, thr):
+        pass
 
 
 class EncoderOperator(SQLOperator):
@@ -99,12 +166,16 @@ class EncoderOperator(SQLOperator):
     @abstractmethod
     def get_join_sql(self, dbms: str, input_table: str, table_name: str):
         pass
+    
+    @abstractmethod
+    def _get_join_cost(self, feature, graph, train_data):
+        pass
 
 
 Operator = Type[SQLOperator]
 
 
-class CAT_C_CAT(SQLOperator):
+class CAT_C_CAT(EncoderOperator):
 
     def __init__(self, op_name: OperatorName):
         super().__init__(op_name)
@@ -122,20 +193,20 @@ class CAT_C_CAT(SQLOperator):
             for idx, mapping in enumerate(self.mappings):
                 merged_op.categories.append(mapping[first_op.categories[idx]].values)
             return merged_op
-        
+
         elif first_op.op_type == OperatorType.CAT_C_CAT:
             merged_op = CAT_C_CAT_Merged_OP(first_op)
             for idx, mapping in enumerate(first_op.mappings):
                 merged_op.mappings.append(Series(self.mappings[idx][mapping].values, index=mapping.index))
             return merged_op
-        
+
         elif first_op.op_type == OperatorType.EXPAND:
             merged_op = EXPAND_Merged_OP(first_op)
             merged_op.mapping = first_op.mapping
             for idx, col in enumerate(first_op.mapping.columns):
                 merged_op.mapping[col] = self.mappings[idx][merged_op.mapping[col]]
             return merged_op
-        
+
         else:
             return None
 
@@ -147,20 +218,19 @@ class CAT_C_CAT(SQLOperator):
             reverse_index_mapping = Series(data=index_mapping.index, index=index_mapping) 
             merged_op.mapping.index = reverse_index_mapping[merged_op.mapping.index]
             return merged_op
-                
+
         else:
             return None
 
-    
-    def get_cost_info(self):
-        for idx in range(len(self.features)):
-            op_cost = CAT_C_CATCost()
-            mapping = self.mappings[idx]
-            for path_cost in range(1,len( mapping.index)+1):
-                op_cost.set_cost(path_cost)
-            self.cost.append(op_cost)
-        return self.cost
-                
+    # def get_cost_info(self):
+    #     for idx in range(len(self.features)):
+    #         op_cost = CAT_C_CATCost()
+    #         mapping = self.mappings[idx]
+    #         for path_cost in range(1,len( mapping.index)+1):
+    #             op_cost.set_cost(path_cost)
+    #         self.cost.append(op_cost)
+    #     return self.cost
+
     def get_sql(self, dbms: str):
         sqls = []
         for idx in range(len(self.features)):
@@ -173,8 +243,7 @@ class CAT_C_CAT(SQLOperator):
             )
             sqls.append(feature_sql)
         return ",".join(sqls)
-    
-    
+
     def get_join_sql(self, dbms: str, input_table: str, table_name: str):
         feature = self.features[0]
         mapping = self.mappings[0]
@@ -187,7 +256,7 @@ class CAT_C_CAT(SQLOperator):
         input_table = f"{input_table} left join {join_table_name} on {table_name}.{delimitied_feature}={join_table_name}.{delimitied_feature}"
         featuer_sql = f"{DBMSUtils.get_delimited_col(dbms, CAT_C_CAT_JOIN_COL_NAME)} AS {delimitied_feature}"
         return input_table, featuer_sql
-    
+
     def modify_leaf(self, feature, op, thr):
         mapping = self.mappings[self.features_out.index(feature)]
         in_list = []
@@ -195,7 +264,7 @@ class CAT_C_CAT(SQLOperator):
             if enc_value <= thr:
                 in_list.append(f'\'{idx}\'')
         return feature, 'in', f"({','.join(in_list)})" 
-    
+
     def modify_leaf_p(self, feature, op, thr):
         mapping = self.mappings[self.features_out.index(feature)]
         feature_sub_sql = 'CASE '
@@ -203,17 +272,55 @@ class CAT_C_CAT(SQLOperator):
             feature_sub_sql += f'WHEN {feature} = {idx} THEN {val} '
         feature_sub_sql += 'ELSE {} END '.format(mapping[-1])       
         return feature_sub_sql, op, thr  
-    
-    def get_in_tree_len(self,feature,thr):
-        mapping = self.mappings[self.features_out.index(feature)]
-        list_len = 0
-        for idx, enc_value in mapping.items():
+
+    # def get_in_tree_len(self, feature, thr):
+    #     mapping = self.mappings[self.features_out.index(feature)]
+    #     list_len = 0
+    #     for idx, enc_value in mapping.items():
+    #         if enc_value <= thr:
+    #             list_len += 1
+    #     return list_len
+
+    def _get_join_cost(self, feature, graph, train_data):
+        tree_costs = graph.model.get_tree_costs(feature, self)
+        total_tree_cost = sum(
+            [tree_cost.calculate_no_fusion_cost() for tree_cost in tree_costs]
+        )
+        sample_data = train_data.sample(SAMPLE_RATE)
+        join_cost = (
+            calc_join_cost_by_sample_data(
+                sample_data, len(self.mappings[self.features_out.index(feature)]), 2
+            )
+            / SAMPLE_RATE
+        )
+        return total_tree_cost + join_cost
+
+    def get_fusion_primitive_type(self, feature, thr):
+        return PrimitiveType.IN
+
+    def get_fusion_primitive_length(self, feature, thr):
+        mapping = self.mappings[self.features.index(feature)]
+        in_length = 0
+        for enc_value in mapping:
             if enc_value <= thr:
-                list_len += 1
-        return list_len
+                in_length += 1
+        return in_length
+
+    def _get_op_cost(self, feature, sample_data):
+        mapping = self.mappings[self.features.index(feature)]
+        data_primitive_lengths = sample_data[feature].apply(lambda x: mapping.index.get_loc(x) + 1)
+        return sum(data_primitive_lengths) * PrimitiveCost.EQUAL.value
+
+    def get_push_primitive_type(self, feature, thr):
+        return PrimitiveType.EQUAL
+
+    def get_push_primitive_length(self, feature, thr):
+        mapping = self.mappings[self.features.index(feature)]
+        return len(mapping)
+        # TODO: use more accurate length
 
 
-class EXPAND(SQLOperator):
+class EXPAND(EncoderOperator):
 
     def __init__(self, op_name: OperatorName):
         super().__init__(op_name)
@@ -231,23 +338,23 @@ class EXPAND(SQLOperator):
     def simply(self, second_op: Operator):
         return None
 
-    def get_cost_info(self):
-        op_cost = ExpandCost()
-        sub_field_cost = []
-        for col in self.mapping.columns:
-            col_mapping = self.mapping[col]
-            categories_list = col_mapping.groupby(col_mapping).apply(
-                lambda x: x.index.tolist()
-            )
-            sorted_categories_list = categories_list.apply(
-                lambda x: len(x)
-            ).sort_values(ascending=True)
-            categories_list = categories_list[sorted_categories_list.index]
-            for enc_value in categories_list.index.tolist()[:-1]:
-                sub_field_cost.append(len(categories_list[enc_value]))
-            op_cost.set_cost(sub_field_cost)
-        self.cost.append(op_cost)
-        return self.cost
+    # def get_cost_info(self):
+    #     op_cost = ExpandCost()
+    #     sub_field_cost = []
+    #     for col in self.mapping.columns:
+    #         col_mapping = self.mapping[col]
+    #         categories_list = col_mapping.groupby(col_mapping).apply(
+    #             lambda x: x.index.tolist()
+    #         )
+    #         sorted_categories_list = categories_list.apply(
+    #             lambda x: len(x)
+    #         ).sort_values(ascending=True)
+    #         categories_list = categories_list[sorted_categories_list.index]
+    #         for enc_value in categories_list.index.tolist()[:-1]:
+    #             sub_field_cost.append(len(categories_list[enc_value]))
+    #         op_cost.set_cost(sub_field_cost)
+    #     self.cost.append(op_cost)
+    #     return self.cost
 
     def get_sql(self, dbms: str):
         sqls = []
@@ -306,7 +413,7 @@ class EXPAND(SQLOperator):
         insert_db(dbms, join_table_name, cols, data)
         delimitied_feature = DBMSUtils.get_delimited_col(dbms, feature)
         input_table = f"{input_table} left join {join_table_name} on {table_name}.{delimitied_feature}={join_table_name}.{delimitied_feature}"
-        feature_sql = ','.join(self.mapping.columns.tolist())
+        feature_sql = ','.join([DBMSUtils.get_delimited_col(dbms, c) for c in self.mapping.columns.tolist()] )
         return input_table, feature_sql
 
     def modify_leaf(self, feature, op, thr):
@@ -343,25 +450,29 @@ class EXPAND(SQLOperator):
         
     def modify_leaf_p(self, feature, op, thr):
         mapping = self.mapping[feature]
+        mapping = mapping[~mapping.index.isnull()]
+        mapping = mapping[[idx for idx in mapping.index if idx != 'NaN']]
+        categories_list = mapping.groupby(mapping).apply(
+            lambda x: x.index.tolist()
+        )
+        sorted_categories_list = categories_list.apply(
+            lambda x: len(x)
+        ).sort_values(ascending=True)
+        categories_list = categories_list[sorted_categories_list.index]
         if self.con_c_cat_mapping is None:
             feature_sub_sql = 'CASE '
-            for idx, val in mapping.items()[:-1]:
-                feature_sub_sql += f'WHEN {feature} = {idx} THEN {val} '
-            feature_sub_sql += 'ELSE {} END '.format(mapping[-1])       
+            for enc_value in categories_list.index.tolist()[:-1]:
+                if len(categories_list[enc_value]) == 1:
+                    col_sql += f"WHEN {DBMSUtils.get_delimited_col(DBMS, feature)} = '{categories_list[enc_value][0]}' THEN {enc_value} "
+                else:
+                    in_str = ",".join(
+                        [f"'{c}'" for c in categories_list[enc_value]]
+                    )
+                    col_sql += f"WHEN {DBMSUtils.get_delimited_col(DBMS, feature)} in ({in_str}) THEN {enc_value} "     
             return feature_sub_sql, op, thr  
         
         else:
             col_sql = "CASE "
-            col_mapping = self.mapping[feature]
-            col_mapping = col_mapping[~col_mapping.index.isnull()]
-            col_mapping = col_mapping[[idx for idx in col_mapping.index if idx != 'NaN']]
-            categories_list = col_mapping.groupby(col_mapping).apply(
-                lambda x: x.index.tolist()
-            )
-            sorted_categories_list = categories_list.apply(
-                lambda x: len(x)
-            ).sort_values(ascending=True)
-            categories_list = categories_list[sorted_categories_list.index]
             for enc_value in categories_list.index.tolist()[:-1]:
                 intervals = []
                 for c in categories_list[enc_value]:
@@ -378,6 +489,138 @@ class EXPAND(SQLOperator):
                 col_sql += f"WHEN {condition_str} THEN {enc_value} "
             col_sql += f"ELSE {categories_list.index.tolist()[-1]} END "
             return col_sql, op, thr
+
+    def get_fusion_primitive_type(self, feature, thr):
+        if self.con_c_cat_mapping:
+            PrimitiveType.OR
+        else:
+            mapping = self.mapping[feature]
+            in_length = 0
+            not_in_length = 0
+            for enc_value in mapping:
+                if enc_value <= thr:
+                    in_length += 1
+                else:
+                    not_in_length += 1
+            if in_length == 1:
+                return PrimitiveType.EQUAL
+            elif not_in_length == 1:
+                return PrimitiveType.INEQUAL
+            return PrimitiveType.IN 
+            
+    def get_fusion_primitive_length(self, feature, thr):
+        mapping = self.mapping[feature]
+        
+        if self.con_c_cat_mapping:
+            intervals = []
+            for enc_value in mapping:
+                if enc_value <= thr:
+                    intervals.extend(self.con_c_cat_mapping[enc_value])
+            merged_intervals = merge_intervals(intervals)
+            return len(merged_intervals)
+        else:
+            in_length = 0
+            not_in_length = 0
+            for enc_value in mapping:
+                if enc_value <= thr:
+                    in_length += 1
+                else:
+                    not_in_length += 1
+            if in_length == 1:
+                return 1
+            elif not_in_length == 1:
+                return 1
+            return in_length
+            
+    def _get_op_cost(self, feature, sample_data):
+        mapping = self.mapping[feature]
+        mapping = mapping[~mapping.index.isnull()]
+        mapping = mapping[[idx for idx in mapping.index if idx != 'NaN']]
+        categories_list = mapping.groupby(mapping).apply(
+            lambda x: x.index.tolist()
+        )
+        sorted_categories_list = categories_list.apply(
+            lambda x: len(x)
+        ).sort_values(ascending=True)
+        categories_list = categories_list[sorted_categories_list.index]
+        
+        if self.con_c_cat_mapping is None:
+            def calc_cost_e(x):
+                cost = 0
+                for in_list in categories_list:
+                    cost += PrimitiveCost.IN(len(in_list))
+                    if x in in_list:
+                        break
+                return cost
+            data_primitive_costs = sample_data['_'.join(feature.split('_')[:-1])].apply(lambda x: calc_cost_e(x))
+            return sum(data_primitive_costs)
+        
+        else:
+            def calc_cost_c(x):
+                cost = 0
+                contain = False
+                for _, in_list in categories_list:
+                    intervals = []
+                    for in_value in in_list:
+                        intervals.extend(self.con_c_cat_mapping[in_value])
+                    merged_intervals = merge_intervals(intervals)
+                    for interval in merged_intervals:
+                        cost += PrimitiveCost.OR.value
+                        if x >= interval[0] and x < interval[1]:
+                            contain = True
+                            break
+                    if contain:
+                        break
+            
+            data_primitive_costs = sample_data[feature].apply(lambda x: calc_cost_c(x))
+            return sum(data_primitive_costs)
+        
+    def get_push_primitive_type(self, feature, thr):
+        if self.con_c_cat_mapping:
+            return PrimitiveType.OR
+        else:
+            return PrimitiveType.IN
+        
+    def get_push_primitive_length(self, feature, thr):
+        mapping = self.mapping[feature]
+        mapping = mapping[~mapping.index.isnull()]
+        mapping = mapping[[idx for idx in mapping.index if idx != 'NaN']]
+        categories_list = mapping.groupby(mapping).apply(
+            lambda x: x.index.tolist()
+        )
+        sorted_categories_list = categories_list.apply(
+            lambda x: len(x)
+        ).sort_values(ascending=True)
+        categories_list = categories_list[sorted_categories_list.index]
+        if self.con_c_cat_mapping:
+            or_length = 0
+            for enc_value in categories_list.index.tolist()[:-1]:
+                intervals = []
+                for c in categories_list[enc_value]:
+                    intervals.extend(self.con_c_cat_mapping[c]) 
+                merged_intervals = merge_intervals(intervals)
+                or_length += len(merged_intervals)
+            return or_length
+        else:
+            in_length = 0
+            for enc_value in categories_list.index.tolist()[:-1]:
+                in_length += len(categories_list[enc_value])
+            return in_length 
+        # TODO: need use accutate length  
+        
+    def _get_join_cost(self, feature, graph, train_data):
+        tree_costs = graph.model.get_tree_costs(feature, self)
+        total_tree_cost = sum(
+            [tree_cost.calculate_no_fusion_cost() for tree_cost in tree_costs]
+        )
+        sample_data = train_data.sample(SAMPLE_RATE)
+        join_cost = (
+            calc_join_cost_by_sample_data(
+                sample_data, len(self.mapping), len(self.mapping.columns) + 1
+            )
+            / SAMPLE_RATE
+        )
+        return total_tree_cost + join_cost
 
 
 class CON_A_CON(SQLOperator):
@@ -514,6 +757,21 @@ class CON_A_CON(SQLOperator):
         )
         feature_sql = str(equation).replace('x', f'{DBMSUtils.get_delimited_col(DBMS, feature)}') + ' '
         return feature_sql, op, thr
+    
+    def get_fusion_primitive_type(self, feature, feature_value):
+        return PrimitiveType.LE_EQ
+    
+    def get_fusion_primitive_length(self, feature, feature_value):
+        return 1
+    
+    def _get_op_cost(self, feature, sample_data):
+        pass
+    
+    def get_push_primitive_type(self, feature, thr):
+        return PrimitiveType.LE_EQ
+    
+    def get_push_primitive_length(self, feature, thr):
+        return 1
 
 
 class CON_C_CAT(SQLOperator):
@@ -582,13 +840,13 @@ class CON_C_CAT(SQLOperator):
         else:
             return None
 
-    def get_cost_info(self):
-        for idx in range(len(self.features)):
-            op_cost = CON_C_CATCost()
-            for path_cost in range(1,len(self.n_bins[idx])+1):
-                op_cost.set_cost(path_cost)
-            self.cost.append(op_cost)
-        return self.cost
+    # def get_cost_info(self):
+    #     for idx in range(len(self.features)):
+    #         op_cost = CON_C_CATCost()
+    #         for path_cost in range(1,len(self.n_bins[idx])+1):
+    #             op_cost.set_cost(path_cost)
+    #         self.cost.append(op_cost)
+    #     return self.cost
 
     def get_stats(self,dbms:str):
         pass
@@ -606,7 +864,7 @@ class CON_C_CAT(SQLOperator):
                 )
             feature_sql += f"ELSE {self.bin_edges[idx][-1]} END AS {DBMSUtils.get_delimited_col(dbms, self.features[idx])} "
             sqls.append(feature_sql)
-
+ 
         return ",".join(sqls)
 
     def modify_leaf(self, feature, op, thr):
@@ -642,8 +900,23 @@ class CON_C_CAT(SQLOperator):
         
         return feature_sql, op, thr
     
-    def get_or_tree_len(self,feature,thr):
-        or_len = 0 
+    # def get_or_tree_len(self,feature,thr):
+    #     or_len = 0 
+    #     bin_edge = self.bin_edges[self.features_out.index(feature)]
+    #     categoiry_list = self.categories[self.features_out.index(feature)]
+    #     intervals = []
+    #     for i, category in enumerate(categoiry_list):
+    #         if category <= thr:
+    #             intervals.append((bin_edge[i], bin_edge[i+1]))
+    #     merged_intervals = merge_intervals(intervals)
+    #     or_len  = len(merged_intervals)
+
+    #     return or_len
+    
+    def get_fusion_primitive_type(self, feature, thr):
+        return PrimitiveType.OR
+    
+    def get_fusion_primitive_length(self, feature, thr):
         bin_edge = self.bin_edges[self.features_out.index(feature)]
         categoiry_list = self.categories[self.features_out.index(feature)]
         intervals = []
@@ -651,9 +924,26 @@ class CON_C_CAT(SQLOperator):
             if category <= thr:
                 intervals.append((bin_edge[i], bin_edge[i+1]))
         merged_intervals = merge_intervals(intervals)
-        or_len  = len(merged_intervals)
-
-        return or_len
+        return len(merged_intervals)
+    
+    def _get_op_cost(self, feature, sample_data):
+        idx = self.features_out.index(feature)
+        def calc_cost(x):
+            cost = 0
+            for i in range(len(self.categories[idx])):
+                cost += PrimitiveCost.OR.value
+                if x >= self.bin_edges[idx][i] and x < self.bin_edges[idx][i+1]:
+                    break
+            return cost
+        
+        data_primitive_costs = sample_data[feature].apply(lambda x: calc_cost(x))
+        return sum(data_primitive_costs)
+        
+    def get_push_primitive_type(self, feature, thr):
+        return PrimitiveType.OR
+    
+    def get_push_primitive_length(self, feature, thr):
+        return len(self.categories)
 
 
 class CON_C_CAT_Merged_OP(CON_C_CAT):
@@ -679,11 +969,11 @@ class EXPAND_Merged_OP(EXPAND):
     def _extract(self, fitted_transform) -> None:
         pass
     
-    #TODO: get stats
-    def get_cost_info(self,stats):
-        op_cost = CFECost()
-        op_cost.info = stats
-        return op_cost
+    # #TODO: get stats
+    # def get_cost_info(self,stats):
+    #     op_cost = CFECost()
+    #     op_cost.info = stats
+    #     return op_cost
 
 class CON_A_CON_Merged_OP(CON_A_CON):
 

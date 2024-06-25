@@ -4,7 +4,7 @@
 lengths=(1 10 100 1000 10000 100000 1000000) 
 
 # Python脚本名称
-python_script="/root/volume/SKL2SQL/experiments/scripts/pg/sql_metrics/gen_equal_metric_sql.py"
+python_script="/root/volume/SKL2SQL/experiments/scripts/pg/sql_metrics/gen_inequal_metric_sql.py"
 
 # SQL文件执行命令，这里假设是psql
 sql_executor="psql"
@@ -12,7 +12,7 @@ sql_executor="psql"
 db_connection_options=" -U postgres -d postgres"
 
 # CSV文件名
-csv_file="/home/postgres/SKL2SQL/experiments/scripts/pg/sql_metrics/equal_metric.csv"
+csv_file="/home/postgres/SKL2SQL/experiments/scripts/pg/sql_metrics/inequal_metric.csv"
 echo "length,start_cost,total_cost" > "$csv_file"
 
 # 遍历第一个参数数组
@@ -21,7 +21,7 @@ for length in "${lengths[@]}"; do
     python "$python_script" "--lines" "$length"
     
     # 获取生成的SQL文件名，假设为output.sql
-    sql_file="/home/postgres/SKL2SQL/experiments/scripts/pg/sql_metrics/equal_metric.sql"
+    sql_file="/home/postgres/SKL2SQL/experiments/scripts/pg/sql_metrics/inequal_metric.sql"
     
     # 检查SQL文件是否存在
     if [ -f "$sql_file" ]; then
