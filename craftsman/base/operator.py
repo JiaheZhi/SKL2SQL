@@ -73,42 +73,55 @@ class SQLOperator(ABC):
     def fusion(self, graph):
         for feature in self.features_out:
             graph.model.modify_model(feature, self)
-    
+
     @abstractmethod
     def modify_leaf(self, feature, op, thr):
         pass
-    
+
     def push(self, graph):
         for feature in self.features_out:
             graph.model.modify_model_p(feature, self)
-    
+
     @abstractmethod
     def modify_leaf_p(self, feature, op, thr):
         pass
-    
+
     @abstractmethod
     def _get_op_cost(self, feature, sample_data):
         pass
-    
+
     def __get_case_cost(self, feature, graph, train_data):
-        tree_costs = graph.model.get_tree_costs(feature, self)
-        total_tree_cost = sum([tree_cost.calculate_no_fusion_cost() for tree_cost in tree_costs])
+        if graph.model.model_name in (
+            ModelName.DECISIONTREECLASSIFIER,
+            ModelName.RANDOMFORESTCLASSIFIER,
+            ModelName.DECISIONTREEREGRESSOR,
+            ModelName.RANDOMFORESTREGRESSOR,
+        ):
+            tree_costs = graph.model.get_tree_costs(feature, self)
+            total_model_cost = sum([tree_cost.calculate_no_fusion_cost() for tree_cost in tree_costs])
+        else:
+            total_model_cost = 0
         sample_data = train_data.sample(SAMPLE_RATE)
         op_cost = self._get_op_cost(feature, sample_data) / SAMPLE_RATE
-        return total_tree_cost + op_cost
-    
+        return total_model_cost + op_cost
+
     def __get_fusion_cost(self, feature, graph):
         tree_costs = graph.model.get_tree_costs(feature, self)
         total_fusion_cost = sum([tree_cost.calculate_tree_cost() for tree_cost in tree_costs])
         return total_fusion_cost
-    
+
     def __get_push_cost(self, feature, graph):
         tree_costs = graph.model.get_tree_costs_p(feature, self)
         total_push_cost = sum([tree_cost.calculate_tree_cost() for tree_cost in tree_costs])
         return total_push_cost
-    
+
     def get_best_plan(self, graph, train_data) -> SQLPlanType:
-        if graph.model.model_name in (ModelName.DECISIONTREECLASSIFIER, ModelName.RANDOMFORESTCLASSIFIER):
+        if graph.model.model_name in (
+            ModelName.DECISIONTREECLASSIFIER,
+            ModelName.RANDOMFORESTCLASSIFIER,
+            ModelName.DECISIONTREEREGRESSOR,
+            ModelName.RANDOMFORESTREGRESSOR,
+        ):
             fusion_cost = 0
             push_cost = 0
             for feature in self.features_out:
@@ -117,8 +130,7 @@ class SQLOperator(ABC):
         else:
             fusion_cost = float('inf')
             push_cost = float('inf')
-            
-        
+
         case_cost = 0
         for feature in self.features_out:
             case_cost += self.__get_case_cost(feature, graph, train_data)
@@ -128,27 +140,27 @@ class SQLOperator(ABC):
             SQLPlanType.CASE.value: case_cost,
             SQLPlanType.PUSH.value: push_cost
         }
-        
+
         if self.is_encoder:
             join_cost = self._get_join_cost(feature, graph, train_data)
             self.costs[SQLPlanType.JOIN.value] = join_cost
-            
+
         sorted_costs = sorted(self.costs.items(), key=lambda item: item[1])
 
         return SQLPlanType(sorted_costs[0][0])
-    
+
     @abstractmethod
     def get_fusion_primitive_type(self, feature, thr):
         pass
-    
+
     @abstractmethod
     def get_fusion_primitive_length(self, feature, thr):
         pass
-    
+
     @abstractmethod
     def get_push_primitive_type(self, feature, thr):
         pass
-    
+
     @abstractmethod
     def get_push_primitive_length(self, feature, thr):
         pass
@@ -248,13 +260,16 @@ class CAT_C_CAT(EncoderOperator):
         feature = self.features[0]
         mapping = self.mappings[0]
         join_table_name = feature + CAT_C_CAT_JOIN_POSTNAME
-        cols = {feature: DBDataType.VARCHAR.value}
-        cols[CAT_C_CAT_JOIN_COL_NAME] = df_type2db_type(mapping.dtype, dbms)
-        data = [(idx, mapping[idx]) for idx in mapping.index]
+        join_table_name = join_table_name.lower()
+        cols = {feature.lower(): DBDataType.VARCHAR.value}
+        col_name = feature + CAT_C_CAT_JOIN_COL_POSTNAME
+        col_name = col_name.lower()
+        cols[col_name] = df_type2db_type(mapping.dtype, dbms)
+        data = [(idx, mapping.tolist()[mapping.index.get_loc(idx)]) for idx in mapping.index]
         insert_db(dbms, join_table_name, cols, data)
         delimitied_feature = DBMSUtils.get_delimited_col(dbms, feature)
-        input_table = f"{input_table} left join {join_table_name} on {table_name}.{delimitied_feature}={join_table_name}.{delimitied_feature}"
-        featuer_sql = f"{DBMSUtils.get_delimited_col(dbms, CAT_C_CAT_JOIN_COL_NAME)} AS {delimitied_feature}"
+        input_table = f"{input_table} left join {join_table_name} on {table_name}.{delimitied_feature}={join_table_name}.{DBMSUtils.get_delimited_col(dbms, feature.lower())}"
+        featuer_sql = f"{DBMSUtils.get_delimited_col(dbms, col_name)} AS {delimitied_feature}"
         return input_table, featuer_sql
 
     def modify_leaf(self, feature, op, thr):
@@ -282,10 +297,18 @@ class CAT_C_CAT(EncoderOperator):
     #     return list_len
 
     def _get_join_cost(self, feature, graph, train_data):
-        tree_costs = graph.model.get_tree_costs(feature, self)
-        total_tree_cost = sum(
-            [tree_cost.calculate_no_fusion_cost() for tree_cost in tree_costs]
-        )
+        if graph.model.model_name in (
+            ModelName.DECISIONTREECLASSIFIER,
+            ModelName.RANDOMFORESTCLASSIFIER,
+            ModelName.DECISIONTREEREGRESSOR,
+            ModelName.RANDOMFORESTREGRESSOR,
+        ):
+            tree_costs = graph.model.get_tree_costs(feature, self)
+            total_tree_cost = sum(
+                [tree_cost.calculate_no_fusion_cost() for tree_cost in tree_costs]
+            )
+        else:
+            total_tree_cost = 0
         sample_data = train_data.sample(SAMPLE_RATE)
         join_cost = (
             calc_join_cost_by_sample_data(
@@ -404,16 +427,17 @@ class EXPAND(EncoderOperator):
     def get_join_sql(self, dbms: str, input_table: str, table_name: str):
         feature = self.features[0]
         join_table_name = feature + EXPAND_JOIN_POSTNAME
-        cols = {feature: DBDataType.VARCHAR.value}
+        join_table_name = join_table_name.lower()
+        cols = {feature.lower(): DBDataType.VARCHAR.value}
         for col in self.mapping.columns:
-            cols[col] = df_type2db_type(self.mapping[col].dtype, dbms)
+            cols[col.lower()] = df_type2db_type(self.mapping[col].dtype, dbms)
         data = []
         for idx in self.mapping.index:
             data.append((idx,) + tuple(self.mapping.loc[idx]))
         insert_db(dbms, join_table_name, cols, data)
         delimitied_feature = DBMSUtils.get_delimited_col(dbms, feature)
-        input_table = f"{input_table} left join {join_table_name} on {table_name}.{delimitied_feature}={join_table_name}.{delimitied_feature}"
-        feature_sql = ','.join([DBMSUtils.get_delimited_col(dbms, c) for c in self.mapping.columns.tolist()] )
+        input_table = f"{input_table} left join {join_table_name} on {table_name}.{delimitied_feature}={join_table_name}.{DBMSUtils.get_delimited_col(dbms, feature.lower())}"
+        feature_sql = ','.join([f'{DBMSUtils.get_delimited_col(dbms, c.lower())} AS {DBMSUtils.get_delimited_col(dbms, c)}'  for c in self.mapping.columns.tolist()] )
         return input_table, feature_sql
 
     def modify_leaf(self, feature, op, thr):
@@ -491,7 +515,7 @@ class EXPAND(EncoderOperator):
             return col_sql, op, thr
 
     def get_fusion_primitive_type(self, feature, thr):
-        if self.con_c_cat_mapping:
+        if self.con_c_cat_mapping is not None:
             PrimitiveType.OR
         else:
             mapping = self.mapping[feature]
@@ -609,10 +633,18 @@ class EXPAND(EncoderOperator):
         # TODO: need use accutate length  
         
     def _get_join_cost(self, feature, graph, train_data):
-        tree_costs = graph.model.get_tree_costs(feature, self)
-        total_tree_cost = sum(
-            [tree_cost.calculate_no_fusion_cost() for tree_cost in tree_costs]
-        )
+        if graph.model.model_name in (
+            ModelName.DECISIONTREECLASSIFIER,
+            ModelName.RANDOMFORESTCLASSIFIER,
+            ModelName.DECISIONTREEREGRESSOR,
+            ModelName.RANDOMFORESTREGRESSOR,
+        ):
+            tree_costs = graph.model.get_tree_costs(feature, self)
+            total_tree_cost = sum(
+                [tree_cost.calculate_no_fusion_cost() for tree_cost in tree_costs]
+            )
+        else:
+            total_tree_cost = 0
         sample_data = train_data.sample(SAMPLE_RATE)
         join_cost = (
             calc_join_cost_by_sample_data(

@@ -1,11 +1,11 @@
 from sklearn.ensemble import RandomForestClassifier
 from craftsman.model.decision_tree_classifier import DecisionTreeClassifierSQLModel
-from craftsman.model.base_model import SQLModel
+from craftsman.model.base_model import TreeModel
 from craftsman.base.operator import Operator
 from craftsman.base.defs import ModelName
 from craftsman.cost_model.cost import TreeCost
 
-class RandomForestClassifierSQLModel(SQLModel):
+class RandomForestClassifierSQLModel(TreeModel):
     """
     This class implements the SQL wrapper for a Sklearn's Random Forest Model (RFM).
 
@@ -15,6 +15,7 @@ class RandomForestClassifierSQLModel(SQLModel):
     """
 
     def __init__(self, trained_model: RandomForestClassifier):
+        super().__init__()
         self.model_name = ModelName.RANDOMFORESTCLASSIFIER
         self.trained_model = trained_model
         self.input_features = trained_model.feature_names_in_
@@ -50,7 +51,7 @@ class RandomForestClassifierSQLModel(SQLModel):
             tree_costs.append(tree_cost)
         return tree_costs
 
-    def query(self, imput_table: str, dbms: str) -> str:
+    def query(self, input_table: str, dbms: str) -> str:
 
         query = "SELECT "
         # loop over the trees and create a CASE statement for each tree
@@ -62,7 +63,7 @@ class RandomForestClassifierSQLModel(SQLModel):
 
         query = query[:-1]  # remove the last ","
 
-        query += " FROM {}".format(imput_table)
+        query += " FROM {}".format(input_table)
 
         # count the number of trees that have predicted the same class label
         majority_class_query = "SELECT "

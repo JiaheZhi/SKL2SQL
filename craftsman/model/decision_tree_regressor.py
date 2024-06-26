@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.tree import DecisionTreeClassifier  
+from sklearn.tree import DecisionTreeRegressor  
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.model.base_model import TreeModel
 from craftsman.base.operator import Operator
@@ -7,12 +7,12 @@ from craftsman.base.defs import ModelName
 from craftsman.cost_model.cost import TreeCost
 
 
-class DecisionTreeClassifierSQLModel(TreeModel):
+class DecisionTreeRegressorSQLModel(TreeModel):
     """
     This class implements the SQL wrapper for a Sklearn's Decision Tree Model (DTM).
     """
 
-    def __init__(self, trained_model: DecisionTreeClassifier):
+    def __init__(self, trained_model: DecisionTreeRegressor):
         super().__init__()
         self.model_name = ModelName.DECISIONTREECLASSIFIER
         self.trained_model = trained_model
@@ -20,7 +20,6 @@ class DecisionTreeClassifierSQLModel(TreeModel):
         self.left = self.trained_model.tree_.children_left  # left child for each node
         self.right = self.trained_model.tree_.children_right  # right child for each node
         self.thresholds = self.trained_model.tree_.threshold.tolist()  # test threshold for each node
-        self.classes = self.trained_model.classes_
         self.ops = ['<='] * len(self.trained_model.tree_.feature)
         if hasattr(self.trained_model, 'feature_names_in_'):
             self.input_features = self.trained_model.feature_names_in_
@@ -36,7 +35,7 @@ class DecisionTreeClassifierSQLModel(TreeModel):
         def visit_tree(node):
             # leaf node
             if self.left[node] == -1 and self.right[node] == -1:
-                return " {} ".format(self.classes[np.argmax(self.trained_model.tree_.value[node][0])])
+                return " {} ".format(self.trained_model.tree_.value[node][0][0])
 
             # internal node
             op = self.ops[node]

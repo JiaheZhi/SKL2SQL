@@ -1,12 +1,14 @@
 import sys
 
 sys.path.append("/root/volume/SKL2SQL/")
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.metrics import accuracy_score, mean_squared_error, mean_absolute_error, r2_score
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, KBinsDiscretizer
 from sklearn.pipeline import Pipeline
 
 import pandas as pd
+import numpy as np
 import category_encoders as ce
 from craftsman.utility.loader import save_model
 from craftsman.base.defs import OperatorName, ModelName
@@ -14,7 +16,7 @@ from craftsman.utility.training_helper import CraftsmanColumnTransformer, Crafts
 
 # files
 tran_data_path = "/root/volume/SKL2SQL/dataset/US_Accidents_March23_train.csv"
-pipeline_save_path = "/root/volume/SKL2SQL/trained_model/usa_rf_dp5_1catenc_source_dev.joblib"
+pipeline_save_path = "/root/volume/SKL2SQL/trained_model/usa_lgr_dp5_1catenc_source_dev.joblib"
 test_data_path = "/root/volume/SKL2SQL/dataset/US_Accidents_March23_test_noshf.csv"
 
 
@@ -45,7 +47,8 @@ k_bins_discretizer = KBinsDiscretizer(encode="ordinal")
 binary_encoder = ce.BinaryEncoder()
 
 # define model
-rf = RandomForestClassifier(max_depth=5, n_estimators=4, random_state=24)
+# rf = RandomForestRegressor(max_depth=5, n_estimators=4, random_state=24)
+lgr = LogisticRegression()
 
 # define steps
 step1_simple_imputer = ('Imputer', imputer)
@@ -100,7 +103,7 @@ transformers = CraftsmanColumnTransformer(
 )
 step3_column_transform = ("ColumnTransformer_step3", transformers)
 
-step4_pipeline_estimator = (ModelName.RANDOMFORESTCLASSIFIER.value, rf)
+step4_pipeline_estimator = (ModelName.LOGISTICREGRESSION.value, lgr)
 
 # define pipline
 pipeline = Pipeline(
@@ -120,12 +123,24 @@ pipeline.fit(X, y)
 save_model(pipeline, pipeline_save_path)
 
 # test model
-data_test = pd.read_csv(test_data_path)
+data_test = pd.read_csv(test_data_path, nrows=100)
 y_test = data_test["Severity"]
 X_test = data_test.drop("Severity", axis=1)
 X_test = X_test[all_cols]
 
 # evaluate the test result
 y_predict = pipeline.predict(X_test)
-accuracy = accuracy_score(y_test, y_predict)
-print("Accuracy on test set:", accuracy)
+# accuracy = accuracy_score(y_test, y_predict)
+# print("Accuracy on test set:", accuracy)
+print(y_predict)
+
+# 计算评估指标
+# mse = mean_squared_error(y_test, y_predict)
+# rmse = np.sqrt(mse)
+# mae = mean_absolute_error(y_test, y_predict)
+# r2 = r2_score(y_test, y_predict)
+
+# print(f'MSE: {mse}')
+# print(f'RMSE: {rmse}')
+# print(f'MAE: {mae}')
+# print(f'R²: {r2}')

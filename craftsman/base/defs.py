@@ -42,6 +42,7 @@ class OperatorName(Enum):
     LEAVEONEOUTENCODER = 'LeaveOneOutEncoder'
     ORDINALENCODER = 'OrdinalEncoder'
     TARGETENCODER = 'TargetEncoder'
+    LABELENCODER = 'LabelEncoder'
 
     # EXPAND
     ONEHOTENCODER = 'OneHotEncoder'
@@ -60,11 +61,15 @@ class OperatorName(Enum):
 class ModelName(Enum):
     RANDOMFORESTCLASSIFIER = 'RandomForestClassifier'
     DECISIONTREECLASSIFIER = 'DecisionTreeClassifier'
+    DECISIONTREEREGRESSOR = 'DecisionTreeRegressor'
+    RANDOMFORESTREGRESSOR = 'RandomForestRegressor'
+    LINEARREGRESSION = 'LinearRegression'
+    LOGISTICREGRESSION = 'LogisticRegression'
 
 
 EXPAND_JOIN_POSTNAME = '_expand'
 CAT_C_CAT_JOIN_POSTNAME = '_cat_c_cat'
-CAT_C_CAT_JOIN_COL_NAME = 'encoded_col'
+CAT_C_CAT_JOIN_COL_POSTNAME = '_cat_c_cat_col'
 
 
 class DBDataType(Enum):

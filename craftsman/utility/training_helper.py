@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
+from scipy import sparse
 
 from craftsman.base.defs import PREPROCESS_PACKAGE_PATH
 
@@ -83,13 +84,19 @@ class CraftsmanColumnTransformer(ColumnTransformer):
     def transform(self, X):
         X = pd.DataFrame(X, columns=self.feature_names_in_)
         trans_data = super().transform(X)
-        return pd.DataFrame(trans_data, columns=self.feature_names_out_)
+        if isinstance(trans_data, sparse.spmatrix):
+            return pd.DataFrame(trans_data.toarray(), columns=self.feature_names_out_)
+        else:
+            return pd.DataFrame(trans_data, columns=self.feature_names_out_)
 
 
     def fit_transform(self, X, y=None):
         X = pd.DataFrame(X, columns=self.feature_names_in_)
         trans_data = super().fit_transform(X, y)
-        return pd.DataFrame(trans_data, columns=self.feature_names_out_)
+        if isinstance(trans_data, sparse.spmatrix):
+            return pd.DataFrame(trans_data.toarray(), columns=self.feature_names_out_)
+        else:
+            return pd.DataFrame(trans_data, columns=self.feature_names_out_)
 
 
 
