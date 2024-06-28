@@ -12,6 +12,7 @@ class TransformerManager(object):
         steps = pipeline.steps
         column_transformer_start_idx = 0
 
+        fitted_imputer = None
         # if contain imputer extract it
         if 'Imputer' == steps[0][0]:
             fitted_imputer = steps[0][1]
@@ -47,10 +48,11 @@ class TransformerManager(object):
         }
 
 
-    def generate_query(self, model_file, table_name, dbms, train_data, pre_sql=None):
+    def generate_query(self, model_file, table_name, dbms, train_data, merge_flag=True, cost_flag=True, just_push_flag=False, masq=False, pre_sql=None):
 
         # some load and extract tasks
         defs.DBMS = dbms
+        defs.set_JUST_PUSH_FLAG(just_push_flag)
         model = load_model(model_file)
         pipeline_features_in = model.feature_names_in_.tolist()
         pipeline = self.__extract_pipeline(model)
@@ -59,10 +61,11 @@ class TransformerManager(object):
         preprocessing_graph = PrepGraph(pipeline_features_in, pipeline)
 
         # merge operators by rules
-        new_prep_graph = merge_sql_operator_by_rules(preprocessing_graph)
+        if merge_flag and not masq:
+            preprocessing_graph = merge_sql_operator_by_rules(preprocessing_graph)
         
         # merge operators by cost model
-        new_prep_graph = merge_by_cost_model(new_prep_graph, train_data)
+        preprocessing_graph = merge_by_cost_model(preprocessing_graph, train_data, merge_flag, cost_flag, masq)
         
         # ---------------test code -----------------------------------------------------------------------
         # new_prep_graph.add_join_operator(new_prep_graph.chains['Timezone'].prep_operators[0])
@@ -77,7 +80,7 @@ class TransformerManager(object):
         # ---------------test code -----------------------------------------------------------------------
 
         # generate sql through the merged graph
-        query_str = self.__compose_sql(new_prep_graph, table_name, dbms, pre_sql)
+        query_str = self.__compose_sql(preprocessing_graph, table_name, dbms, pre_sql)
 
         return query_str
 

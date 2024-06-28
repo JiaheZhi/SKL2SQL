@@ -6,7 +6,7 @@ from numpy import vectorize
 from pandas import DataFrame, Series
 from sympy import Eq, solve, lambdify
 from craftsman.base.defs import *
-
+import craftsman.base.defs as defs
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.utility.join_utils import insert_db, df_type2db_type
 from craftsman.utility.base_utils import merge_intervals
@@ -122,6 +122,8 @@ class SQLOperator(ABC):
             ModelName.DECISIONTREEREGRESSOR,
             ModelName.RANDOMFORESTREGRESSOR,
         ):
+            if defs.JUST_PUSH_FLAG:
+                return SQLPlanType.PUSH
             fusion_cost = 0
             push_cost = 0
             for feature in self.features_out:
@@ -203,7 +205,7 @@ class CAT_C_CAT(EncoderOperator):
             merged_op = CON_C_CAT_Merged_OP(first_op)
             merged_op.bin_edges = first_op.bin_edges
             for idx, mapping in enumerate(self.mappings):
-                merged_op.categories.append(mapping[first_op.categories[idx]].values)
+                merged_op.categories[idx] = mapping[first_op.categories[idx]].values
             return merged_op
 
         elif first_op.op_type == OperatorType.CAT_C_CAT:
@@ -464,9 +466,9 @@ class EXPAND(EncoderOperator):
             merged_intervals = merge_intervals(all_intervals)
             condition_str = " OR ".join(
                 [
-                    f"{DBMSUtils.get_delimited_col(DBMS, feature)} >= {interval[0]}"
+                    f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} >= {interval[0]}"
                     + " AND "
-                    + f"{DBMSUtils.get_delimited_col(DBMS, feature)} < {interval[1]}"
+                    + f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} < {interval[1]}"
                     for interval in merged_intervals
                 ]
             )
@@ -487,12 +489,12 @@ class EXPAND(EncoderOperator):
             feature_sub_sql = 'CASE '
             for enc_value in categories_list.index.tolist()[:-1]:
                 if len(categories_list[enc_value]) == 1:
-                    col_sql += f"WHEN {DBMSUtils.get_delimited_col(DBMS, feature)} = '{categories_list[enc_value][0]}' THEN {enc_value} "
+                    col_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} = '{categories_list[enc_value][0]}' THEN {enc_value} "
                 else:
                     in_str = ",".join(
                         [f"'{c}'" for c in categories_list[enc_value]]
                     )
-                    col_sql += f"WHEN {DBMSUtils.get_delimited_col(DBMS, feature)} in ({in_str}) THEN {enc_value} "     
+                    col_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} in ({in_str}) THEN {enc_value} "     
             return feature_sub_sql, op, thr  
         
         else:
@@ -504,9 +506,9 @@ class EXPAND(EncoderOperator):
                 merged_intervals = merge_intervals(intervals)
                 condition_str = " OR ".join(
                     [
-                        f"{DBMSUtils.get_delimited_col(DBMS, feature)} >= {interval[0]}"
+                        f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} >= {interval[0]}"
                         + " AND "
-                        + f"{DBMSUtils.get_delimited_col(DBMS, feature)} < {interval[1]}"
+                        + f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} < {interval[1]}"
                         for interval in merged_intervals
                     ]
                 )
@@ -787,7 +789,7 @@ class CON_A_CON(SQLOperator):
                 for sym_name in self.parameter_values[idx]
             }
         )
-        feature_sql = str(equation).replace('x', f'{DBMSUtils.get_delimited_col(DBMS, feature)}') + ' '
+        feature_sql = str(equation).replace('x', f'{DBMSUtils.get_delimited_col(defs.DBMS, feature)}') + ' '
         return feature_sql, op, thr
     
     def get_fusion_primitive_type(self, feature, feature_value):
@@ -894,7 +896,7 @@ class CON_C_CAT(SQLOperator):
                     + " AND "
                     + f"{DBMSUtils.get_delimited_col(dbms, self.features[idx])} < {self.bin_edges[idx][i+1]} THEN {self.categories[idx][i]} "
                 )
-            feature_sql += f"ELSE {self.bin_edges[idx][-1]} END AS {DBMSUtils.get_delimited_col(dbms, self.features[idx])} "
+            feature_sql += f"ELSE {self.categories[idx][-1]} END AS {DBMSUtils.get_delimited_col(dbms, self.features[idx])} "
             sqls.append(feature_sql)
  
         return ",".join(sqls)
@@ -902,33 +904,38 @@ class CON_C_CAT(SQLOperator):
     def modify_leaf(self, feature, op, thr):
         bin_edge = self.bin_edges[self.features_out.index(feature)]
         categoiry_list = self.categories[self.features_out.index(feature)]
-        intervals = []
-        for i, category in enumerate(categoiry_list):
-            if category <= thr:
-                intervals.append((bin_edge[i], bin_edge[i+1]))
-        merged_intervals = merge_intervals(intervals)
+        if self.op_name != OperatorName.KBINSDISCRETIZER:
+            intervals = []
+            for i, category in enumerate(categoiry_list):
+                if category <= thr:
+                    intervals.append((bin_edge[i], bin_edge[i+1]))
+            merged_intervals = merge_intervals(intervals)
 
-        condition_sqls = []
-        for interval in merged_intervals:
-            condition_sql += (
-                f"{DBMSUtils.get_delimited_col(DBMS, feature)} >= {interval[0]}"
-                + " AND "
-                + f"{DBMSUtils.get_delimited_col(DBMS, feature)} < {interval[1]}"
-            )
-            condition_sqls.append(condition_sql)
+            condition_sqls = []
+            for interval in merged_intervals:
+                condition_sql += (
+                    f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} >= {interval[0]}"
+                    + " AND "
+                    + f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} < {interval[1]}"
+                )
+                condition_sqls.append(condition_sql)
 
-        return ' OR '.join(condition_sqls), '', ''
+            return ' OR '.join(condition_sqls), '', ''
+        else:
+            for i, category in enumerate(categoiry_list):
+                if category > thr:
+                    return DBMSUtils.get_delimited_col(defs.DBMS, feature), op, bin_edge[i]
 
     def modify_leaf_p(self, feature, op, thr):
         idx = self.features_out.index(feature)
         feature_sql = "CASE "
         for i in range(self.n_bins[idx] - 1):
             feature_sql += (
-                f"WHEN {DBMSUtils.get_delimited_col(DBMS, self.features[idx])} >= {self.bin_edges[idx][i]}"
+                f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, self.features[idx])} >= {self.bin_edges[idx][i]}"
                 + " AND "
-                + f"{DBMSUtils.get_delimited_col(DBMS, self.features[idx])} < {self.bin_edges[idx][i+1]} THEN {self.categories[idx][i]} "
+                + f"{DBMSUtils.get_delimited_col(defs.DBMS, self.features[idx])} < {self.bin_edges[idx][i+1]} THEN {self.categories[idx][i]} "
             )
-        feature_sql += f"ELSE {self.bin_edges[idx][-1]} END "
+        feature_sql += f"ELSE {self.categories[idx][-1]} END "
         
         return feature_sql, op, thr
     
@@ -946,18 +953,24 @@ class CON_C_CAT(SQLOperator):
     #     return or_len
     
     def get_fusion_primitive_type(self, feature, thr):
-        return PrimitiveType.OR
+        if self.op_name == OperatorName.KBINSDISCRETIZER:
+            return PrimitiveType.LE
+        else:
+            return PrimitiveType.OR
     
     def get_fusion_primitive_length(self, feature, thr):
-        bin_edge = self.bin_edges[self.features_out.index(feature)]
-        categoiry_list = self.categories[self.features_out.index(feature)]
-        intervals = []
-        for i, category in enumerate(categoiry_list):
-            if category <= thr:
-                intervals.append((bin_edge[i], bin_edge[i+1]))
-        merged_intervals = merge_intervals(intervals)
-        return len(merged_intervals)
-    
+        if self.op_name == OperatorName.KBINSDISCRETIZER:
+            return 1
+        else:
+            bin_edge = self.bin_edges[self.features_out.index(feature)]
+            categoiry_list = self.categories[self.features_out.index(feature)]
+            intervals = []
+            for i, category in enumerate(categoiry_list):
+                if category <= thr:
+                    intervals.append((bin_edge[i], bin_edge[i+1]))
+            merged_intervals = merge_intervals(intervals)
+            return len(merged_intervals)
+        
     def _get_op_cost(self, feature, sample_data):
         idx = self.features_out.index(feature)
         def calc_cost(x):

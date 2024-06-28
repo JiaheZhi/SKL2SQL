@@ -22,12 +22,12 @@ class LogisticRegressionSQLModel(LinearModel):
             plus_items = []
             for i in range(len(self.input_features)):
                 col = DBMSUtils.get_delimited_col(dbms, self.input_features[i])
-                plus_item = " {} * {} ".format(col, self.weights[i], col)
+                plus_item = " {} * {} ".format(col, self.weights[0][i], col)
                 plus_items.append(plus_item)
             
-            sum_sql =  '(' + '+'.join(plus_items) + f'+ {self.bias}' + ')'   
-            query += f'1 / (1 + EXP(-{sum_sql})) > 0.5 THEN {self.classes[0]} ELSE {self.classes[1]} ' 
-            query += " FROM ({}) AS F".format(input_table)
+            sum_sql =  '(' + '+'.join(plus_items) + f'+ {self.bias[0]}' + ')'   
+            query += f'1 / (1 + EXP(-{sum_sql})) <= 0.5 THEN {self.classes[0]} ELSE {self.classes[1]} END ' 
+            query += " FROM {}".format(input_table)
             return query
         
         else:

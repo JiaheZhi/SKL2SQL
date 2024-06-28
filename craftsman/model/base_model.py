@@ -37,18 +37,6 @@ class SQLModel(ABC):
         """
         pass
 
-
-class LinearModel(SQLModel):
-
-    def __init__(self) -> None:
-        super().__init__()
-
-
-class TreeModel(SQLModel):
-
-    def __init__(self) -> None:
-        super().__init__()
-
     @abstractmethod
     def modify_model(self, feature: str, sql_operator: Operator):
         """_summary_
@@ -68,6 +56,24 @@ class TreeModel(SQLModel):
             sql_operator (Operator): _description_
         """
         pass
+
+
+class LinearModel(SQLModel):
+
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def modify_model(self, feature: str, sql_operator: Operator):
+        pass
+    
+    def modify_model_p(self, feature: str, sql_operator: Operator):
+        pass
+
+
+class TreeModel(SQLModel):
+
+    def __init__(self) -> None:
+        super().__init__()
 
     @abstractmethod
     def get_tree_costs(self, feature, operator):

@@ -4,6 +4,7 @@ from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.model.base_model import TreeModel
 from craftsman.base.operator import Operator
 from craftsman.base.defs import ModelName
+import craftsman.base.defs as defs
 from craftsman.cost_model.cost import TreeCost
 
 
@@ -23,12 +24,14 @@ class DecisionTreeRegressorSQLModel(TreeModel):
         self.ops = ['<='] * len(self.trained_model.tree_.feature)
         if hasattr(self.trained_model, 'feature_names_in_'):
             self.input_features = self.trained_model.feature_names_in_
-            self.features = [self.input_features[i] for i in self.trained_model.tree_.feature]
+            self.features = [DBMSUtils.get_delimited_col(defs.DBMS, self.input_features[i]) for i in self.trained_model.tree_.feature]
+            self.features_origin = [self.input_features[i] for i in self.trained_model.tree_.feature]
 
     def set_features(self, feature_names_in):
         self.trained_model.feature_names_in_ = feature_names_in
         self.input_features = self.trained_model.feature_names_in_
-        self.features = [self.input_features[i] for i in self.trained_model.tree_.feature]
+        self.features = [DBMSUtils.get_delimited_col(defs.DBMS, self.input_features[i]) for i in self.trained_model.tree_.feature]
+        self.features_origin = [self.input_features[i] for i in self.trained_model.tree_.feature]
 
     def get_case_sql(self, dbms: str) -> str:
 
@@ -39,10 +42,9 @@ class DecisionTreeRegressorSQLModel(TreeModel):
 
             # internal node
             op = self.ops[node]
-            feature = DBMSUtils.get_delimited_col(dbms, self.features[node])
             thr = self.thresholds[node]
 
-            sql_dtm_rule = f" CASE WHEN {feature} {op} {thr} THEN"
+            sql_dtm_rule = f" CASE WHEN {self.features[node]} {op} {thr} THEN"
 
             # check if current node has a left child
             if self.left[node] != -1:
@@ -78,14 +80,14 @@ class DecisionTreeRegressorSQLModel(TreeModel):
         for idx, node in enumerate(self.trained_model.tree_.feature):
             if self.input_features[node] == feature:
                 self.features[idx], self.ops[idx], self.thresholds[idx] = sql_operator.modify_leaf(
-                    self.features[idx], self.ops[idx], self.thresholds[idx]
+                    self.features_origin[idx], self.ops[idx], self.thresholds[idx]
                 )
                 
     def modify_model_p(self, feature: str, sql_operator: Operator):
         for idx, node in enumerate(self.trained_model.tree_.feature):
             if self.input_features[node] == feature:
                 self.features[idx], self.ops[idx], self.thresholds[idx] = sql_operator.modify_leaf_p(
-                    self.features[idx], self.ops[idx], self.thresholds[idx]
+                    self.features_origin[idx], self.ops[idx], self.thresholds[idx]
                 )
 
     def query(self, input_table: str, dbms: str) -> str:

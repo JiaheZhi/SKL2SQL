@@ -19,8 +19,10 @@ class TargetEncoderSQLOperator(CAT_C_CAT):
             for m in oe.mapping:
                 if m['col'] == feature:
                     oe_mapping = m['mapping']
+                    oe_mapping = oe_mapping[~oe_mapping.index.isnull()]
+                    oe_mapping = oe_mapping[[idx for idx in oe_mapping.index if idx != 'NaN']]
                     break
-            self.mappings.append(Series(target_mapping[oe_mapping], index=oe_mapping.index))
+            self.mappings.append(Series(target_mapping[oe_mapping].tolist(), index=oe_mapping.index.tolist()))
 
 
     @staticmethod

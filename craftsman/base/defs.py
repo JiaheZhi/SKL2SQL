@@ -1,6 +1,11 @@
 from enum import Enum
 
 DBMS = ''
+JUST_PUSH_FLAG = None
+
+def set_JUST_PUSH_FLAG(flag):
+    global JUST_PUSH_FLAG
+    JUST_PUSH_FLAG = flag
 SAMPLE_RATE = 1
 PREPROCESS_PACKAGE_PATH = 'craftsman.preprocess.'
 MODEL_PACKAGE_PATH = 'craftsman.model.'

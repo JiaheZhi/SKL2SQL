@@ -1,4 +1,5 @@
-from pandas import DataFrame
+from pandas import DataFrame, Series
+import numpy as np
 
 from craftsman.base.operator import CAT_C_CAT
 from craftsman.base.defs import OperatorName
@@ -12,10 +13,12 @@ class OrdinalEncoderSQLOperator(CAT_C_CAT):
 
 
     def _extract(self, fitted_transform) -> None:
+        
         for idx, feature in enumerate(self.features):
             self.features_out.append(feature)
-            ordinal_mapping = fitted_transform.categories_[idx]
-            self.mappings.append(ordinal_mapping)
+            categories = fitted_transform.categories_[idx]
+            encs = fitted_transform.transform(categories.reshape(-1, 1))
+            self.mappings.append(Series(np.array(encs).reshape(-1)  ,index=categories)) 
 
 
     @staticmethod

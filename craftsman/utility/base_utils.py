@@ -6,6 +6,8 @@ def merge_intervals(intervals: list[tuple]):
     unique_intervals.sort(key=lambda x: x[0])
     unique_intervals = [list(interval) for interval in unique_intervals]
     # Merge intervals with [left, right) interval
+    if not unique_intervals:
+        return []
     merged_intervals = [unique_intervals[0]]
     for current in unique_intervals[1:]:
         prev = merged_intervals[-1]

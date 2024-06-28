@@ -21,7 +21,7 @@ class PrepChain(object):
         transforms = pipeline['transforms']
         for transform in transforms:
             transform_features = transform['transform_features']
-            after_expand_features = [f for f in transform_features if self.feature in f]
+            after_expand_features = [f for f in transform_features if self.feature in f.split('_')]
             if self.feature in transform_features or after_expand_features:
                 transform_name = transform['transform_name']
                 fitted_transform = transform['fitted_transform']

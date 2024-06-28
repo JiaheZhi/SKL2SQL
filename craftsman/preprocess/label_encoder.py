@@ -15,8 +15,8 @@ class LabelEncoderSQLOperator(CAT_C_CAT):
         for idx, feature in enumerate(self.features):
             self.features_out.append(feature)
             label_mapping = Series(
-                fitted_transform.classes_,
-                index=fitted_transform.inverse_transform(fitted_transform.classes_),
+                fitted_transform.transform(fitted_transform.classes_).index,
+                index=fitted_transform.classes_
             )
             self.mappings.append(label_mapping)
 
