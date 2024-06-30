@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Type
 
-from numpy import vectorize
+import numpy as np
 from pandas import DataFrame, Series
 from sympy import Eq, solve, lambdify
 from craftsman.base.defs import *
@@ -251,7 +251,10 @@ class CAT_C_CAT(EncoderOperator):
             feature_sql = "CASE "
             mapping = self.mappings[idx]
             for category in mapping.index:
-                feature_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} = '{category}' THEN {mapping[category]} "
+                if type(category) == str:
+                    feature_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} = '{category}' THEN {mapping[category]} "
+                else:
+                    feature_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} = {category} THEN {mapping[category]} "
             feature_sql += (
                 f"END AS {DBMSUtils.get_delimited_col(dbms, self.features[idx])}"
             )
@@ -280,14 +283,14 @@ class CAT_C_CAT(EncoderOperator):
         for idx, enc_value in mapping.items():
             if enc_value <= thr:
                 in_list.append(f'\'{idx}\'')
-        return feature, 'in', f"({','.join(in_list)})" 
+        return DBMSUtils.get_delimited_col(defs.DBMS, feature), 'in', f"({','.join(in_list)})" 
 
     def modify_leaf_p(self, feature, op, thr):
         mapping = self.mappings[self.features_out.index(feature)]
         feature_sub_sql = 'CASE '
-        for idx, val in mapping.items()[:-1]:
-            feature_sub_sql += f'WHEN {feature} = {idx} THEN {val} '
-        feature_sub_sql += 'ELSE {} END '.format(mapping[-1])       
+        for idx, val in mapping[:-1].items():
+            feature_sub_sql += f'WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} = \'{idx}\' THEN {val} '
+        feature_sub_sql += 'ELSE {} END '.format(mapping.iloc[-1])       
         return feature_sub_sql, op, thr  
 
     # def get_in_tree_len(self, feature, thr):
@@ -420,8 +423,11 @@ class EXPAND(EncoderOperator):
                         ]
                     )
                     col_sql += f"WHEN {condition_str} THEN {enc_value} "
-                    
-            col_sql += f"ELSE {categories_list.index.tolist()[-1]} END AS {DBMSUtils.get_delimited_col(dbms, col)}"
+            
+            if col_sql == "CASE ":
+                col_sql = f"{categories_list.index.tolist()[-1]} AS {DBMSUtils.get_delimited_col(dbms, col)}"
+            else:
+                col_sql += f"ELSE {categories_list.index.tolist()[-1]} END AS {DBMSUtils.get_delimited_col(dbms, col)}"
             sqls.append(col_sql)
 
         return ",".join(sqls)
@@ -454,10 +460,10 @@ class EXPAND(EncoderOperator):
                 else:
                     not_in_list.append(f'\'{idx}\'')
             if len(in_list) == 1:
-                return feature, '=', f"{in_list[0]}" 
+                return DBMSUtils.get_delimited_col(defs.DBMS, feature), '=', f"{in_list[0]}" 
             elif len(not_in_list) == 1:
-                return feature, '<>', f"{not_in_list[0]}" 
-            return feature, 'in', f"({','.join(in_list)})" 
+                return DBMSUtils.get_delimited_col(defs.DBMS, feature), '<>', f"{not_in_list[0]}" 
+            return DBMSUtils.get_delimited_col(defs.DBMS, feature), 'in', f"({','.join(in_list)})" 
         else:
             all_intervals = []
             for enc_value, intervals in self.con_c_cat_mapping.items():
@@ -486,7 +492,7 @@ class EXPAND(EncoderOperator):
         ).sort_values(ascending=True)
         categories_list = categories_list[sorted_categories_list.index]
         if self.con_c_cat_mapping is None:
-            feature_sub_sql = 'CASE '
+            col_sql = 'CASE '
             for enc_value in categories_list.index.tolist()[:-1]:
                 if len(categories_list[enc_value]) == 1:
                     col_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} = '{categories_list[enc_value][0]}' THEN {enc_value} "
@@ -494,8 +500,9 @@ class EXPAND(EncoderOperator):
                     in_str = ",".join(
                         [f"'{c}'" for c in categories_list[enc_value]]
                     )
-                    col_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} in ({in_str}) THEN {enc_value} "     
-            return feature_sub_sql, op, thr  
+                    col_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} in ({in_str}) THEN {enc_value} "  
+            col_sql += f"ELSE {categories_list.index.tolist()[-1]} END "   
+            return col_sql, op, thr  
         
         else:
             col_sql = "CASE "
@@ -682,7 +689,7 @@ class CON_A_CON(SQLOperator):
                     }
                 )
                 f = lambdify(self.symbols["x"], sub_equation, "numpy")
-                merged_op.categories.append(f(category_list))
+                merged_op.categories[idx] = f(category_list)
             return merged_op
         
         elif first_op.op_type == OperatorType.CAT_C_CAT:
@@ -821,40 +828,41 @@ class CON_C_CAT(SQLOperator):
         self.n_bins: list = []
         self.categories: list = []
 
-    def __judge_feature_value(self, x, feature_idx):
-        for i in range(self.n_bins[feature_idx]):
-            if (
-                x >= self.bin_edges[feature_idx][i]
-                and x <= self.bin_edges[feature_idx][i + 1]
-            ):
-                return self.categories[feature_idx][i]
+    def __judge_feature_value(self, xs, feature_idx):
+        res_xs = []
+        for x in xs:
+            for i in range(self.n_bins[feature_idx]):
+                if (
+                    x >= self.bin_edges[feature_idx][i]
+                    and x <= self.bin_edges[feature_idx][i + 1]
+                ):
+                    res_xs.append(self.categories[feature_idx][i]) 
+                    
+        return np.array(res_xs)
+            
 
     def apply(self, first_op: Operator):
         if first_op.op_type == OperatorType.EXPAND:
             merged_op = EXPAND_Merged_OP(first_op)
             merged_op.mapping = first_op.mapping
             for idx, column in enumerate(merged_op.mapping.columns):
-                merged_op.mapping[column] = merged_op.mapping[column].apply(
-                    lambda x: self.__judge_feature_value(x, idx)
-                )
+                merged_op.mapping[column] = self.__judge_feature_value(merged_op.mapping[column], idx)
 
             return merged_op
 
         elif first_op.op_type == OperatorType.CON_C_CAT:
             merged_op = CON_C_CAT_Merged_OP(first_op)
             merged_op.bin_edges = first_op.bin_edges    
-            vectorized_function = vectorize(self.__judge_feature_value)
-            for idx, category_list in self.categories:
-                merged_op.categories.append(vectorized_function(category_list, idx))
+            for idx, category_list in enumerate(first_op.categories):
+                merged_op.categories[idx] = self.__judge_feature_value(category_list, idx)
 
             return merged_op
 
         elif first_op.op_type == OperatorType.CAT_C_CAT:
             merged_op = CAT_C_CAT_Merged_OP(first_op)
-            vectorized_function = vectorize(self.__judge_feature_value)
-            for idx, mapping in first_op.mappings:
-                merged_op.mappings.append(Series(vectorized_function(mapping.values, idx)), index=mapping.index)
-
+            for idx, mapping in enumerate(first_op.mappings):
+                merged_op.mappings.append(Series(self.__judge_feature_value(mapping.values, idx), index=mapping.index))
+            return merged_op
         else:
             return None
 
@@ -995,10 +1003,11 @@ class CON_C_CAT_Merged_OP(CON_C_CAT):
 
     def __init__(self, op: Type[CON_C_CAT]):
         super().__init__(OperatorName.CON_C_CAT_Merged_OP)
-        self.n_bins = op.n_bins
-        self.categories = op.categories
-        self.features = op.features
-        self.features_out = op.features_out
+        self.n_bins = op.n_bins.copy()
+        self.categories = op.categories.copy()
+        self.features = op.features.copy()
+        self.features_out = op.features_out.copy()
+        self.op_name = op.op_name
 
     def _extract(self, fitted_transform) -> None:
         pass
@@ -1010,6 +1019,7 @@ class EXPAND_Merged_OP(EXPAND):
         super().__init__(OperatorName.EXPAND_Merged_OP)
         self.features = op.features
         self.features_out = op.features_out
+        self.op_name = op.op_name
 
     def _extract(self, fitted_transform) -> None:
         pass
@@ -1026,6 +1036,7 @@ class CON_A_CON_Merged_OP(CON_A_CON):
         super().__init__(OperatorName.CON_A_CON_Merged_OP)
         self.features = op.features
         self.features_out = op.features_out
+        self.op_name = op.op_name
 
     def _extract(self, fitted_transform) -> None:
         pass
@@ -1037,6 +1048,7 @@ class CAT_C_CAT_Merged_OP(CAT_C_CAT):
         super().__init__(OperatorName.CAT_C_CAT_Merged_OP)
         self.features = op.features
         self.features_out = op.features_out
+        self.op_name = op.op_name
 
     def _extract(self, fitted_transform) -> None:
         pass

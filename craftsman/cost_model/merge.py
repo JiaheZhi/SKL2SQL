@@ -1,6 +1,7 @@
 from craftsman.base.graph import PrepGraph
 from craftsman.base.defs import *
 from craftsman.model.base_model import TreeModel
+from craftsman.preprocess.k_bins_discretizer import KBinsDiscretizerSQLOperator
 
 
 def merge_by_cost_model(graph: PrepGraph, train_data, merge_flag, cost_flag, masq):
@@ -14,7 +15,7 @@ def merge_by_cost_model(graph: PrepGraph, train_data, merge_flag, cost_flag, mas
                 
                 # masq method: push all operator, but fusion the onehot encoder
                 if masq and isinstance(graph.model, TreeModel):
-                    if op.op_type == OperatorName.ONEHOTENCODER:
+                    if op.op_name == OperatorName.ONEHOTENCODER:
                         op.fusion(new_prep_graph)
                     else:
                         op.push(new_prep_graph)
@@ -22,7 +23,8 @@ def merge_by_cost_model(graph: PrepGraph, train_data, merge_flag, cost_flag, mas
                 # con-a-con is always can fusion by the rule
                 elif not masq and merge_flag and isinstance(graph.model, TreeModel) and (
                     op.op_type == OperatorType.CON_A_CON
-                    or op.op_name == OperatorName.KBINSDISCRETIZER
+                    or op.op_name == OperatorName.ONEHOTENCODER
+                    or isinstance(op, KBinsDiscretizerSQLOperator)
                 ):
                     op.fusion(new_prep_graph)
                 else:

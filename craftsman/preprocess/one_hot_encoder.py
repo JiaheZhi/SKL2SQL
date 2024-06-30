@@ -11,7 +11,7 @@ class OneHotEncoderSQLOperator(EXPAND):
     """
 
     def __init__(self, featrue: list[str], fitted_transform):
-        super().__init__(OperatorName.COUNTENCODER)
+        super().__init__(OperatorName.ONEHOTENCODER)
         self.features = featrue
         self._extract(fitted_transform)
 

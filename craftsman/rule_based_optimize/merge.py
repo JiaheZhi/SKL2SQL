@@ -19,10 +19,9 @@ def merge_sql_operator_by_rules(preprocessing_graph: PrepGraph) -> PrepGraph:
                     new_prep_graph.chains[feature].prep_operators.append(first_op)
                     first_op = second_op
                 else:
-                    new_prep_graph.chains[feature].prep_operators.append(merged_op)
                     first_op = merged_op
 
-            if chain.prep_operators and (
+            if (
                 not new_prep_graph.chains[feature].prep_operators
                 or first_op != new_prep_graph.chains[feature].prep_operators[-1]
             ):

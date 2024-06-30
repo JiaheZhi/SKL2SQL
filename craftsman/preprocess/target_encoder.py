@@ -12,6 +12,7 @@ class TargetEncoderSQLOperator(CAT_C_CAT):
 
 
     def _extract(self, fitted_transform) -> None:
+        self.non_string_columns = fitted_transform.non_string_columns
         for feature in self.features:
             self.features_out.append(feature)
             target_mapping = fitted_transform.mapping[feature]
@@ -22,7 +23,10 @@ class TargetEncoderSQLOperator(CAT_C_CAT):
                     oe_mapping = oe_mapping[~oe_mapping.index.isnull()]
                     oe_mapping = oe_mapping[[idx for idx in oe_mapping.index if idx != 'NaN']]
                     break
-            self.mappings.append(Series(target_mapping[oe_mapping].tolist(), index=oe_mapping.index.tolist()))
+            if feature in self.non_string_columns:
+                self.mappings.append(Series(target_mapping[oe_mapping].tolist(), index=[float(i) for i in oe_mapping.index.tolist()]))
+            else:
+                self.mappings.append(Series(target_mapping[oe_mapping].tolist(), index=oe_mapping.index.tolist()))
 
 
     @staticmethod

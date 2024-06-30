@@ -207,6 +207,7 @@ class CraftsmanTargetEncoder(TargetEncoder):
     def fit_transform(self, X, y=None, **fit_params):
         X = pd.DataFrame(X)
         non_string_columns = X.select_dtypes(exclude=['object']).columns
+        self.non_string_columns = non_string_columns
         X[non_string_columns] = X[non_string_columns].astype(str)
         trans_data = super().fit_transform(X, y, **fit_params)
         return pd.DataFrame(trans_data)
