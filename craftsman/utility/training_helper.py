@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, KBinsDiscretizer
 from scipy import sparse
 from category_encoders import TargetEncoder
 
@@ -207,7 +207,51 @@ class CraftsmanTargetEncoder(TargetEncoder):
     def fit_transform(self, X, y=None, **fit_params):
         X = pd.DataFrame(X)
         non_string_columns = X.select_dtypes(exclude=['object']).columns
-        self.non_string_columns = non_string_columns
+        column_types = X.dtypes
+        self.non_string_columns = {col: column_types[col] for col in non_string_columns} 
         X[non_string_columns] = X[non_string_columns].astype(str)
         trans_data = super().fit_transform(X, y, **fit_params)
         return pd.DataFrame(trans_data)
+
+
+class CraftsmanKBinsDiscretizer(KBinsDiscretizer):
+
+    def __init__(
+        self,
+        n_bins=5,
+        *,
+        encode="onehot",
+        strategy="quantile",
+        dtype=None,
+        subsample="warn",
+        random_state=None,
+    ):
+        super().__init__(
+            n_bins=n_bins,
+            encode=encode,
+            strategy=strategy,
+            dtype=dtype,
+            subsample=subsample,
+            random_state=random_state,
+        )
+    
+    def fit(self, X, y=None, sample_weight=None):
+        X = pd.DataFrame(X)
+        super().fit(X, y, sample_weight)
+        return self
+
+    def transform(self, X):
+        X = pd.DataFrame(X)
+        trans_data = super().transform(X)
+        return pd.DataFrame(trans_data, columns=X.columns)
+
+    def fit_transform(self, X, y=None, **fit_params):
+        X = pd.DataFrame(X)
+        trans_data = super().fit_transform(X, y, **fit_params)
+        self.bin_distribution = {}
+        for column in trans_data.columns:
+            col_data = trans_data[column].astype(np.int64).values
+            col_data = col_data[np.argsort(col_data)]
+            self.bin_distribution[column] = np.bincount(col_data)
+            
+        return trans_data

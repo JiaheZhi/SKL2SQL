@@ -48,7 +48,7 @@ class TransformerManager(object):
         }
 
 
-    def generate_query(self, model_file, table_name, dbms, train_data, merge_flag=True, cost_flag=True, just_push_flag=False, masq=False, pre_sql=None):
+    def generate_query(self, model_file, table_name, dbms, train_data=None, merge_flag=True, cost_flag=True, just_push_flag=False, masq=False, pre_sql=None):
 
         # some load and extract tasks
         defs.DBMS = dbms
@@ -66,33 +66,46 @@ class TransformerManager(object):
         
         # merge operators by cost model
         preprocessing_graph = merge_by_cost_model(preprocessing_graph, train_data, merge_flag, cost_flag, masq)
-        
-        # ---------------test code -----------------------------------------------------------------------
-        # new_prep_graph.add_join_operator(new_prep_graph.chains['Timezone'].prep_operators[0])
-        # new_prep_graph.chains['Timezone'].prep_operators[0].fusion(new_prep_graph)
-        # new_prep_graph.chains['Timezone'].prep_operators.remove(new_prep_graph.chains['Timezone'].prep_operators[0])
-        # new_prep_graph.chains['Pressure(in)'].prep_operators[0].fusion(new_prep_graph)
-        # new_prep_graph.chains['Pressure(in)'].prep_operators.remove(new_prep_graph.chains['Pressure(in)'].prep_operators[0])
-        # new_prep_graph.chains['Source'].prep_operators[0].fusion(new_prep_graph)
-        # new_prep_graph.chains['Source'].prep_operators.remove(new_prep_graph.chains['Source'].prep_operators[0])
-        # new_prep_graph.chains['Weather_Condition'].prep_operators[0].fusion(new_prep_graph)
-        # new_prep_graph.chains['Weather_Condition'].prep_operators.remove(new_prep_graph.chains['Weather_Condition'].prep_operators[0])
-        # ---------------test code -----------------------------------------------------------------------
 
         # generate sql through the merged graph
-        query_str = self.__compose_sql(preprocessing_graph, table_name, dbms, pre_sql)
+        query_str = self.__compose_sql(preprocessing_graph, table_name, dbms, pre_sql, pipeline)
 
         return query_str
 
 
-    def __compose_sql(self, graph: PrepGraph, table_name: str, dbms: str, pre_sql: str) -> str:
+    def __compose_sql(self, graph: PrepGraph, table_name: str, dbms: str, pre_sql: str, pipeline) -> str:
         input_table = table_name
         
         # compose join sqls
         join_feature_sqls = {}
+        join_feature_list = {}
         for op in graph.join_operators:
-            input_table, feature_sql = op.get_join_sql(dbms, input_table, table_name)
+            input_table, feature_sql, join_features = op.get_join_sql(dbms, input_table, table_name)
             join_feature_sqls[op.features[0]] = feature_sql
+            join_feature_list[op.features[0]] = join_features
+            
+        # compose imputer sql if exists missing cols
+        if pipeline['imputer']['missing_cols']:
+            filled_values = pipeline['imputer']['filled_values']
+            missing_cols = pipeline['imputer']['missing_cols']
+            missing_col_indexs = pipeline['imputer']['missing_col_indexs']
+            imputer_feature_sqls = []
+            imputer_sql = '(SELECT '
+            fill_sqls = {}
+            for idx, feature in enumerate(missing_cols):
+                fill_sqls[feature] = filled_values[missing_col_indexs[idx]]
+            for feature, chain in graph.chains.items():
+                delimited_feature = DBMSUtils.get_delimited_col(dbms, feature)
+                if feature in fill_sqls:
+                    if type(fill_sqls[feature]) == str:
+                        imputer_feature_sqls.append(f'COALESCE({delimited_feature}, \'{fill_sqls[feature]}\') AS {delimited_feature}')
+                    else:
+                        imputer_feature_sqls.append(f'COALESCE({delimited_feature}, {fill_sqls[feature]}) AS {delimited_feature}')
+                else:
+                    imputer_feature_sqls.append(f'{delimited_feature}')
+            imputer_sql += ','.join(imputer_feature_sqls)
+            imputer_sql += f' FROM {input_table}) AS data'
+            input_table = imputer_sql
         
         # compose preprocessing sqls
         max_level = 0
@@ -114,6 +127,9 @@ class TransformerManager(object):
                         perp_level_sqls.append(','.join([DBMSUtils.get_delimited_col(dbms, f) for f in expend_features[feature]]))
                     elif join_feature_sqls.get(feature):
                         perp_level_sqls.append(join_feature_sqls[feature])
+                        join_feature_sqls.pop(feature)
+                        if len(join_feature_list.get(feature)) > 1:
+                            expend_features[feature] = join_feature_list.get(feature)
                     else:
                         perp_level_sqls.append(DBMSUtils.get_delimited_col(dbms, feature))
             prep_sqls.append(','.join(perp_level_sqls))

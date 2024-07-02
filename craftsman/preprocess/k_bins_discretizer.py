@@ -1,3 +1,4 @@
+import numpy as np
 from pandas import DataFrame
 from numpy import array
 
@@ -14,6 +15,7 @@ class KBinsDiscretizerSQLOperator(CON_C_CAT):
 
     def _extract(self, fitted_transform) -> None:  
         self.strategy = fitted_transform.strategy
+        self.bin_distribution = fitted_transform.bin_distribution
         for feature in self.features:
             self.features_out.append(feature)
             feature_idx = fitted_transform.feature_names_in_.tolist().index(feature)

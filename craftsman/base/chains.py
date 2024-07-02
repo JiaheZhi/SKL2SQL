@@ -1,7 +1,7 @@
 import re
 import importlib
 from craftsman.base.operator import Operator
-from craftsman.base.defs import PREPROCESS_PACKAGE_PATH
+from craftsman.base.defs import PREPROCESS_PACKAGE_PATH, OperatorName
 
 class PrepChain(object):
 
@@ -11,17 +11,19 @@ class PrepChain(object):
         if pipeline is not None:
             self.__build_chain(pipeline)
 
-
     def __camel_to_snake(self, name: str):
         s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
         return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
-
 
     def __build_chain(self, pipeline: dict) -> None:
         transforms = pipeline['transforms']
         for transform in transforms:
             transform_features = transform['transform_features']
-            after_expand_features = [f for f in transform_features if self.feature in f.split('_')]
+            after_expand_features = [
+                f
+                for f in transform_features
+                if self.feature == "_".join(f.split("_")[:-1])
+            ]
             if self.feature in transform_features or after_expand_features:
                 transform_name = transform['transform_name']
                 fitted_transform = transform['fitted_transform']
@@ -34,5 +36,5 @@ class PrepChain(object):
                     operator = operator_class([self.feature], fitted_transform)
                 else:
                     operator = operator_class(after_expand_features, fitted_transform)
-
+                    
                 self.prep_operators.append(operator)

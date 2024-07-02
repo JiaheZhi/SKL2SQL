@@ -24,7 +24,7 @@ class SQLOperator(ABC):
         self.features: list[str]
         self.features_out: list[str] = []
         self.costs: dict
-        self.stats =  []
+        self.stats = []
         self.is_encoder: bool = False
 
     @abstractmethod
@@ -98,7 +98,9 @@ class SQLOperator(ABC):
             ModelName.RANDOMFORESTREGRESSOR,
         ):
             tree_costs = graph.model.get_tree_costs(feature, self)
-            total_model_cost = sum([tree_cost.calculate_no_fusion_cost() for tree_cost in tree_costs])
+            total_model_cost = sum(
+                [tree_cost.calculate_no_fusion_cost() for tree_cost in tree_costs]
+            )
         else:
             total_model_cost = 0
         sample_data = train_data.sample(SAMPLE_RATE)
@@ -107,12 +109,16 @@ class SQLOperator(ABC):
 
     def __get_fusion_cost(self, feature, graph):
         tree_costs = graph.model.get_tree_costs(feature, self)
-        total_fusion_cost = sum([tree_cost.calculate_tree_cost() for tree_cost in tree_costs])
+        total_fusion_cost = sum(
+            [tree_cost.calculate_tree_cost() for tree_cost in tree_costs]
+        )
         return total_fusion_cost
 
     def __get_push_cost(self, feature, graph):
         tree_costs = graph.model.get_tree_costs_p(feature, self)
-        total_push_cost = sum([tree_cost.calculate_tree_cost() for tree_cost in tree_costs])
+        total_push_cost = sum(
+            [tree_cost.calculate_tree_cost() for tree_cost in tree_costs]
+        )
         return total_push_cost
 
     def get_best_plan(self, graph, train_data) -> SQLPlanType:
@@ -130,8 +136,8 @@ class SQLOperator(ABC):
                 fusion_cost += self.__get_fusion_cost(feature, graph)
                 push_cost += self.__get_push_cost(feature, graph)
         else:
-            fusion_cost = float('inf')
-            push_cost = float('inf')
+            fusion_cost = float("inf")
+            push_cost = float("inf")
 
         case_cost = 0
         for feature in self.features_out:
@@ -140,7 +146,7 @@ class SQLOperator(ABC):
         self.costs = {
             SQLPlanType.FUSION.value: fusion_cost,
             SQLPlanType.CASE.value: case_cost,
-            SQLPlanType.PUSH.value: push_cost
+            SQLPlanType.PUSH.value: push_cost,
         }
 
         if self.is_encoder:
@@ -169,18 +175,18 @@ class SQLOperator(ABC):
 
 
 class EncoderOperator(SQLOperator):
-    
+
     def __init__(self, op_name: OperatorName):
         super().__init__(op_name)
         self.is_encoder = True
-    
+
     def join(self, graph):
         graph.add_join_operator(self)
-        
+
     @abstractmethod
     def get_join_sql(self, dbms: str, input_table: str, table_name: str):
         pass
-    
+
     @abstractmethod
     def _get_join_cost(self, feature, graph, train_data):
         pass
@@ -205,13 +211,24 @@ class CAT_C_CAT(EncoderOperator):
             merged_op = CON_C_CAT_Merged_OP(first_op)
             merged_op.bin_edges = first_op.bin_edges
             for idx, mapping in enumerate(self.mappings):
-                merged_op.categories[idx] = mapping[first_op.categories[idx]].values
+                merged_op.categories[idx] = (
+                    Series(first_op.categories[idx])
+                    .apply(lambda x: mapping[x] if x in mapping.index else 0)
+                    .values
+                )
             return merged_op
 
         elif first_op.op_type == OperatorType.CAT_C_CAT:
             merged_op = CAT_C_CAT_Merged_OP(first_op)
             for idx, mapping in enumerate(first_op.mappings):
-                merged_op.mappings.append(Series(self.mappings[idx][mapping].values, index=mapping.index))
+                merged_op.mappings.append(
+                    Series(
+                        Series(first_op.categories[idx])
+                        .apply(lambda x: mapping[x] if x in mapping.index else 0)
+                        .values,
+                        index=mapping.index,
+                    )
+                )
             return merged_op
 
         elif first_op.op_type == OperatorType.EXPAND:
@@ -229,7 +246,9 @@ class CAT_C_CAT(EncoderOperator):
             merged_op = EXPAND_Merged_OP(second_op)
             merged_op.mapping = second_op.mapping
             index_mapping = self.mappings[0]
-            reverse_index_mapping = Series(data=index_mapping.index, index=index_mapping) 
+            reverse_index_mapping = Series(
+                data=index_mapping.index, index=index_mapping
+            )
             merged_op.mapping.index = reverse_index_mapping[merged_op.mapping.index]
             return merged_op
 
@@ -270,28 +289,42 @@ class CAT_C_CAT(EncoderOperator):
         col_name = feature + CAT_C_CAT_JOIN_COL_POSTNAME
         col_name = col_name.lower()
         cols[col_name] = df_type2db_type(mapping.dtype, dbms)
-        data = [(idx, mapping.tolist()[mapping.index.get_loc(idx)]) for idx in mapping.index]
+        data = [
+            (idx, mapping.tolist()[mapping.index.get_loc(idx)]) for idx in mapping.index
+        ]
         insert_db(dbms, join_table_name, cols, data)
         delimitied_feature = DBMSUtils.get_delimited_col(dbms, feature)
         input_table = f"{input_table} left join {join_table_name} on {table_name}.{delimitied_feature}={join_table_name}.{DBMSUtils.get_delimited_col(dbms, feature.lower())}"
-        featuer_sql = f"{DBMSUtils.get_delimited_col(dbms, col_name)} AS {delimitied_feature}"
-        return input_table, featuer_sql
+        featuer_sql = (
+            f"{DBMSUtils.get_delimited_col(dbms, col_name)} AS {delimitied_feature}"
+        )
+        return input_table, featuer_sql, self.features_out
 
     def modify_leaf(self, feature, op, thr):
         mapping = self.mappings[self.features_out.index(feature)]
         in_list = []
         for idx, enc_value in mapping.items():
             if enc_value <= thr:
-                in_list.append(f'\'{idx}\'')
-        return DBMSUtils.get_delimited_col(defs.DBMS, feature), 'in', f"({','.join(in_list)})" 
+                if type(idx) == str:
+                    in_list.append(f"'{idx}'")
+                else:
+                    in_list.append(f"{idx}")
+        return (
+            DBMSUtils.get_delimited_col(defs.DBMS, feature),
+            "in",
+            f"({','.join(in_list)})",
+        )
 
     def modify_leaf_p(self, feature, op, thr):
         mapping = self.mappings[self.features_out.index(feature)]
-        feature_sub_sql = 'CASE '
+        feature_sub_sql = "CASE "
         for idx, val in mapping[:-1].items():
-            feature_sub_sql += f'WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} = \'{idx}\' THEN {val} '
-        feature_sub_sql += 'ELSE {} END '.format(mapping.iloc[-1])       
-        return feature_sub_sql, op, thr  
+            if type(idx) == str:
+                feature_sub_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} = '{idx}' THEN {val} "
+            else:
+                feature_sub_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} = {idx} THEN {val} "
+        feature_sub_sql += "ELSE {} END ".format(mapping.iloc[-1])
+        return feature_sub_sql, op, thr
 
     # def get_in_tree_len(self, feature, thr):
     #     mapping = self.mappings[self.features_out.index(feature)]
@@ -336,7 +369,9 @@ class CAT_C_CAT(EncoderOperator):
 
     def _get_op_cost(self, feature, sample_data):
         mapping = self.mappings[self.features.index(feature)]
-        data_primitive_lengths = sample_data[feature].apply(lambda x: mapping.index.get_loc(x) + 1)
+        data_primitive_lengths = sample_data[feature].apply(
+            lambda x: mapping.index.get_loc(x) + 1
+        )
         return sum(data_primitive_lengths) * PrimitiveCost.EQUAL.value
 
     def get_push_primitive_type(self, feature, thr):
@@ -358,7 +393,7 @@ class EXPAND(EncoderOperator):
         self.op_type = OperatorType[self._get_op_type()]
 
         self.mapping: DataFrame | Series
-        self.con_c_cat_mapping = None # using for the merge of the con_c_cat and expand
+        self.con_c_cat_mapping = None  # using for the merge of the con_c_cat and expand
 
     def apply(self, first_op: Operator):
         return None
@@ -391,7 +426,9 @@ class EXPAND(EncoderOperator):
             col_sql = "CASE "
             col_mapping = self.mapping[col]
             col_mapping = col_mapping[~col_mapping.index.isnull()]
-            col_mapping = col_mapping[[idx for idx in col_mapping.index if idx != 'NaN']]
+            col_mapping = col_mapping[
+                [idx for idx in col_mapping.index if idx != "NaN"]
+            ]
             categories_list = col_mapping.groupby(col_mapping).apply(
                 lambda x: x.index.tolist()
             )
@@ -402,17 +439,23 @@ class EXPAND(EncoderOperator):
             if self.con_c_cat_mapping is None:
                 for enc_value in categories_list.index.tolist()[:-1]:
                     if len(categories_list[enc_value]) == 1:
-                        col_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, feature)} = '{categories_list[enc_value][0]}' THEN {enc_value} "
+                        if type(categories_list[enc_value][0]) == str:
+                            col_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, feature)} = '{categories_list[enc_value][0]}' THEN {enc_value} "
+                        else:
+                            col_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, feature)} = {categories_list[enc_value][0]} THEN {enc_value} "
                     else:
                         in_str = ",".join(
-                            [f"'{c}'" for c in categories_list[enc_value]]
+                            [
+                                f"'{c}'" if type(c) == str else f"{c}"
+                                for c in categories_list[enc_value]
+                            ]
                         )
                         col_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, feature)} in ({in_str}) THEN {enc_value} "
             else:
                 for enc_value in categories_list.index.tolist()[:-1]:
                     intervals = []
                     for c in categories_list[enc_value]:
-                        intervals.extend(self.con_c_cat_mapping[c]) 
+                        intervals.extend(self.con_c_cat_mapping[c])
                     merged_intervals = merge_intervals(intervals)
                     condition_str = " OR ".join(
                         [
@@ -423,7 +466,7 @@ class EXPAND(EncoderOperator):
                         ]
                     )
                     col_sql += f"WHEN {condition_str} THEN {enc_value} "
-            
+
             if col_sql == "CASE ":
                 col_sql = f"{categories_list.index.tolist()[-1]} AS {DBMSUtils.get_delimited_col(dbms, col)}"
             else:
@@ -445,8 +488,13 @@ class EXPAND(EncoderOperator):
         insert_db(dbms, join_table_name, cols, data)
         delimitied_feature = DBMSUtils.get_delimited_col(dbms, feature)
         input_table = f"{input_table} left join {join_table_name} on {table_name}.{delimitied_feature}={join_table_name}.{DBMSUtils.get_delimited_col(dbms, feature.lower())}"
-        feature_sql = ','.join([f'{DBMSUtils.get_delimited_col(dbms, c.lower())} AS {DBMSUtils.get_delimited_col(dbms, c)}'  for c in self.mapping.columns.tolist()] )
-        return input_table, feature_sql
+        feature_sql = ",".join(
+            [
+                f"{DBMSUtils.get_delimited_col(dbms, c.lower())} AS {DBMSUtils.get_delimited_col(dbms, c)}"
+                for c in self.mapping.columns.tolist()
+            ]
+        )
+        return input_table, feature_sql, self.features_out
 
     def modify_leaf(self, feature, op, thr):
         mapping = self.mapping[feature]
@@ -456,14 +504,33 @@ class EXPAND(EncoderOperator):
             not_in_list = []
             for idx, enc_value in mapping.items():
                 if enc_value <= thr:
-                    in_list.append(f'\'{idx}\'')
+                    if type(idx) == str:
+                        in_list.append(f"'{idx}'")
+                    else:
+                        in_list.append(f"{idx}")
                 else:
-                    not_in_list.append(f'\'{idx}\'')
-            if len(in_list) == 1:
-                return DBMSUtils.get_delimited_col(defs.DBMS, feature), '=', f"{in_list[0]}" 
-            elif len(not_in_list) == 1:
-                return DBMSUtils.get_delimited_col(defs.DBMS, feature), '<>', f"{not_in_list[0]}" 
-            return DBMSUtils.get_delimited_col(defs.DBMS, feature), 'in', f"({','.join(in_list)})" 
+                    if type(idx) == str:
+                        not_in_list.append(f"'{idx}'")
+                    else:
+                        not_in_list.append(f"{idx}")
+
+            if len(not_in_list) == 1:
+                return (
+                    DBMSUtils.get_delimited_col(defs.DBMS, feature),
+                    "<>",
+                    f"{not_in_list[0]}",
+                )
+            elif len(in_list) == 1:
+                return (
+                    DBMSUtils.get_delimited_col(defs.DBMS, feature),
+                    "=",
+                    f"{in_list[0]}",
+                )
+            return (
+                DBMSUtils.get_delimited_col(defs.DBMS, feature),
+                "in",
+                f"({','.join(in_list)})",
+            )
         else:
             all_intervals = []
             for enc_value, intervals in self.con_c_cat_mapping.items():
@@ -478,38 +545,42 @@ class EXPAND(EncoderOperator):
                     for interval in merged_intervals
                 ]
             )
-            return condition_str, '', ''
-        
+            return condition_str, "", ""
+
     def modify_leaf_p(self, feature, op, thr):
         mapping = self.mapping[feature]
         mapping = mapping[~mapping.index.isnull()]
-        mapping = mapping[[idx for idx in mapping.index if idx != 'NaN']]
-        categories_list = mapping.groupby(mapping).apply(
-            lambda x: x.index.tolist()
+        mapping = mapping[[idx for idx in mapping.index if idx != "NaN"]]
+        categories_list = mapping.groupby(mapping).apply(lambda x: x.index.tolist())
+        sorted_categories_list = categories_list.apply(lambda x: len(x)).sort_values(
+            ascending=True
         )
-        sorted_categories_list = categories_list.apply(
-            lambda x: len(x)
-        ).sort_values(ascending=True)
         categories_list = categories_list[sorted_categories_list.index]
         if self.con_c_cat_mapping is None:
-            col_sql = 'CASE '
+            col_sql = "CASE "
             for enc_value in categories_list.index.tolist()[:-1]:
                 if len(categories_list[enc_value]) == 1:
-                    col_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} = '{categories_list[enc_value][0]}' THEN {enc_value} "
+                    if type(categories_list[enc_value][0]) == str:
+                        col_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} = '{categories_list[enc_value][0]}' THEN {enc_value} "
+                    else:
+                        col_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} = {categories_list[enc_value][0]} THEN {enc_value} "
                 else:
                     in_str = ",".join(
-                        [f"'{c}'" for c in categories_list[enc_value]]
+                        [
+                            f"'{c}'" if type(c) == str else f"{c}"
+                            for c in categories_list[enc_value]
+                        ]
                     )
-                    col_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} in ({in_str}) THEN {enc_value} "  
-            col_sql += f"ELSE {categories_list.index.tolist()[-1]} END "   
-            return col_sql, op, thr  
-        
+                    col_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} in ({in_str}) THEN {enc_value} "
+            col_sql += f"ELSE {categories_list.index.tolist()[-1]} END "
+            return col_sql, op, thr
+
         else:
             col_sql = "CASE "
             for enc_value in categories_list.index.tolist()[:-1]:
                 intervals = []
                 for c in categories_list[enc_value]:
-                    intervals.extend(self.con_c_cat_mapping[c]) 
+                    intervals.extend(self.con_c_cat_mapping[c])
                 merged_intervals = merge_intervals(intervals)
                 condition_str = " OR ".join(
                     [
@@ -539,11 +610,11 @@ class EXPAND(EncoderOperator):
                 return PrimitiveType.EQUAL
             elif not_in_length == 1:
                 return PrimitiveType.INEQUAL
-            return PrimitiveType.IN 
-            
+            return PrimitiveType.IN
+
     def get_fusion_primitive_length(self, feature, thr):
         mapping = self.mapping[feature]
-        
+
         if self.con_c_cat_mapping:
             intervals = []
             for enc_value in mapping:
@@ -564,20 +635,19 @@ class EXPAND(EncoderOperator):
             elif not_in_length == 1:
                 return 1
             return in_length
-            
+
     def _get_op_cost(self, feature, sample_data):
         mapping = self.mapping[feature]
         mapping = mapping[~mapping.index.isnull()]
-        mapping = mapping[[idx for idx in mapping.index if idx != 'NaN']]
-        categories_list = mapping.groupby(mapping).apply(
-            lambda x: x.index.tolist()
+        mapping = mapping[[idx for idx in mapping.index if idx != "NaN"]]
+        categories_list = mapping.groupby(mapping).apply(lambda x: x.index.tolist())
+        sorted_categories_list = categories_list.apply(lambda x: len(x)).sort_values(
+            ascending=True
         )
-        sorted_categories_list = categories_list.apply(
-            lambda x: len(x)
-        ).sort_values(ascending=True)
         categories_list = categories_list[sorted_categories_list.index]
-        
+
         if self.con_c_cat_mapping is None:
+
             def calc_cost_e(x):
                 cost = 0
                 for in_list in categories_list:
@@ -585,10 +655,14 @@ class EXPAND(EncoderOperator):
                     if x in in_list:
                         break
                 return cost
-            data_primitive_costs = sample_data['_'.join(feature.split('_')[:-1])].apply(lambda x: calc_cost_e(x))
+
+            data_primitive_costs = sample_data["_".join(feature.split("_")[:-1])].apply(
+                lambda x: calc_cost_e(x)
+            )
             return sum(data_primitive_costs)
-        
+
         else:
+
             def calc_cost_c(x):
                 cost = 0
                 contain = False
@@ -604,33 +678,31 @@ class EXPAND(EncoderOperator):
                             break
                     if contain:
                         break
-            
+
             data_primitive_costs = sample_data[feature].apply(lambda x: calc_cost_c(x))
             return sum(data_primitive_costs)
-        
+
     def get_push_primitive_type(self, feature, thr):
         if self.con_c_cat_mapping:
             return PrimitiveType.OR
         else:
             return PrimitiveType.IN
-        
+
     def get_push_primitive_length(self, feature, thr):
         mapping = self.mapping[feature]
         mapping = mapping[~mapping.index.isnull()]
-        mapping = mapping[[idx for idx in mapping.index if idx != 'NaN']]
-        categories_list = mapping.groupby(mapping).apply(
-            lambda x: x.index.tolist()
+        mapping = mapping[[idx for idx in mapping.index if idx != "NaN"]]
+        categories_list = mapping.groupby(mapping).apply(lambda x: x.index.tolist())
+        sorted_categories_list = categories_list.apply(lambda x: len(x)).sort_values(
+            ascending=True
         )
-        sorted_categories_list = categories_list.apply(
-            lambda x: len(x)
-        ).sort_values(ascending=True)
         categories_list = categories_list[sorted_categories_list.index]
         if self.con_c_cat_mapping:
             or_length = 0
             for enc_value in categories_list.index.tolist()[:-1]:
                 intervals = []
                 for c in categories_list[enc_value]:
-                    intervals.extend(self.con_c_cat_mapping[c]) 
+                    intervals.extend(self.con_c_cat_mapping[c])
                 merged_intervals = merge_intervals(intervals)
                 or_length += len(merged_intervals)
             return or_length
@@ -638,9 +710,9 @@ class EXPAND(EncoderOperator):
             in_length = 0
             for enc_value in categories_list.index.tolist()[:-1]:
                 in_length += len(categories_list[enc_value])
-            return in_length 
-        # TODO: need use accutate length  
-        
+            return in_length
+        # TODO: need use accutate length
+
     def _get_join_cost(self, feature, graph, train_data):
         if graph.model.model_name in (
             ModelName.DECISIONTREECLASSIFIER,
@@ -691,7 +763,7 @@ class CON_A_CON(SQLOperator):
                 f = lambdify(self.symbols["x"], sub_equation, "numpy")
                 merged_op.categories[idx] = f(category_list)
             return merged_op
-        
+
         elif first_op.op_type == OperatorType.CAT_C_CAT:
             merged_op = CAT_C_CAT_Merged_OP(first_op)
             for idx, mapping in enumerate(first_op.mappings):
@@ -701,10 +773,10 @@ class CON_A_CON(SQLOperator):
                         for sym_name in self.parameter_values[idx]
                     }
                 )
-                f = lambdify(self.symbols["x"], sub_equation, "numpy")   
+                f = lambdify(self.symbols["x"], sub_equation, "numpy")
                 merged_op.mappings.append(Series(f(mapping), index=mapping.index))
             return merged_op
-        
+
         elif first_op.op_type == OperatorType.EXPAND:
             merged_op = EXPAND_Merged_OP(first_op)
             merged_op.mapping = first_op.mapping
@@ -715,10 +787,10 @@ class CON_A_CON(SQLOperator):
                         for sym_name in self.parameter_values[idx]
                     }
                 )
-                f = lambdify(self.symbols["x"], sub_equation, "numpy")   
+                f = lambdify(self.symbols["x"], sub_equation, "numpy")
                 merged_op.mapping[col] = f(merged_op.mapping[col])
             return merged_op
-        
+
         else:
             return None
 
@@ -774,8 +846,7 @@ class CON_A_CON(SQLOperator):
             sqls.append(feature_sql)
 
         return ",".join(sqls)
-    
-    
+
     def modify_leaf(self, feature, op, thr):
         reversed_equation = solve(self.equation, self.symbols["x"])[0]
         idx = self.features_out.index(feature)
@@ -785,9 +856,9 @@ class CON_A_CON(SQLOperator):
                 for sym_name in self.parameter_values[idx]
             }
         )
-        thr = sub_equation.subs(self.symbols['y'], thr)
+        thr = sub_equation.subs(self.symbols["y"], thr)
         return feature, op, thr
-    
+
     def modify_leaf_p(self, feature, op, thr):
         idx = self.features_out.index(feature)
         equation = self.equation.rhs.subs(
@@ -796,21 +867,26 @@ class CON_A_CON(SQLOperator):
                 for sym_name in self.parameter_values[idx]
             }
         )
-        feature_sql = str(equation).replace('x', f'{DBMSUtils.get_delimited_col(defs.DBMS, feature)}') + ' '
+        feature_sql = (
+            str(equation).replace(
+                "x", f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)}"
+            )
+            + " "
+        )
         return feature_sql, op, thr
-    
+
     def get_fusion_primitive_type(self, feature, feature_value):
         return PrimitiveType.LE_EQ
-    
+
     def get_fusion_primitive_length(self, feature, feature_value):
         return 1
-    
+
     def _get_op_cost(self, feature, sample_data):
         pass
-    
+
     def get_push_primitive_type(self, feature, thr):
         return PrimitiveType.LE_EQ
-    
+
     def get_push_primitive_length(self, feature, thr):
         return 1
 
@@ -827,6 +903,7 @@ class CON_C_CAT(SQLOperator):
         self.bin_edges: list = []
         self.n_bins: list = []
         self.categories: list = []
+        self.bin_distribution: dict = {}
 
     def __judge_feature_value(self, xs, feature_idx):
         res_xs = []
@@ -836,32 +913,41 @@ class CON_C_CAT(SQLOperator):
                     x >= self.bin_edges[feature_idx][i]
                     and x <= self.bin_edges[feature_idx][i + 1]
                 ):
-                    res_xs.append(self.categories[feature_idx][i]) 
-                    
+                    res_xs.append(self.categories[feature_idx][i])
+                    break
+
         return np.array(res_xs)
-            
 
     def apply(self, first_op: Operator):
         if first_op.op_type == OperatorType.EXPAND:
             merged_op = EXPAND_Merged_OP(first_op)
             merged_op.mapping = first_op.mapping
             for idx, column in enumerate(merged_op.mapping.columns):
-                merged_op.mapping[column] = self.__judge_feature_value(merged_op.mapping[column], idx)
+                merged_op.mapping[column] = self.__judge_feature_value(
+                    merged_op.mapping[column], idx
+                )
 
             return merged_op
 
         elif first_op.op_type == OperatorType.CON_C_CAT:
             merged_op = CON_C_CAT_Merged_OP(first_op)
-            merged_op.bin_edges = first_op.bin_edges    
+            merged_op.bin_edges = first_op.bin_edges
             for idx, category_list in enumerate(first_op.categories):
-                merged_op.categories[idx] = self.__judge_feature_value(category_list, idx)
+                merged_op.categories[idx] = self.__judge_feature_value(
+                    category_list, idx
+                )
 
             return merged_op
 
         elif first_op.op_type == OperatorType.CAT_C_CAT:
             merged_op = CAT_C_CAT_Merged_OP(first_op)
             for idx, mapping in enumerate(first_op.mappings):
-                merged_op.mappings.append(Series(self.__judge_feature_value(mapping.values, idx), index=mapping.index))
+                merged_op.mappings.append(
+                    Series(
+                        self.__judge_feature_value(mapping.values, idx),
+                        index=mapping.index,
+                    )
+                )
             return merged_op
         else:
             return None
@@ -870,7 +956,10 @@ class CON_C_CAT(SQLOperator):
         if second_op.op_type == OperatorType.EXPAND:
             merged_op = EXPAND_Merged_OP(second_op)
             merged_op.mapping = second_op.mapping
-            intervals = [(self.bin_edges[0][i], self.bin_edges[0][i+1]) for i in range(self.n_bins[0])]
+            intervals = [
+                (self.bin_edges[0][i], self.bin_edges[0][i + 1])
+                for i in range(self.n_bins[0])
+            ]
             interval_cat_map = Series(self.categories[0], index=intervals)
             cat_interval_map = interval_cat_map.groupby(interval_cat_map).apply(
                 lambda x: x.index.tolist()
@@ -890,23 +979,26 @@ class CON_C_CAT(SQLOperator):
     #         self.cost.append(op_cost)
     #     return self.cost
 
-    def get_stats(self,dbms:str):
-        pass
+    # def get_stats(self, dbms: str):
+    #     pass
 
     def get_sql(self, dbms: str):
         sqls = []
 
         for idx in range(len(self.features)):
+            bin_distribution = self.bin_distribution[self.features[idx]]
+            bin_2_pos = np.argsort(-bin_distribution)
+            pos_2_bin = {pos_idx:bin_idx for bin_idx, pos_idx in enumerate(bin_2_pos)}
             feature_sql = "CASE "
             for i in range(self.n_bins[idx] - 1):
                 feature_sql += (
-                    f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} >= {self.bin_edges[idx][i]}"
+                    f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} >= {self.bin_edges[idx][pos_2_bin[i]]}"
                     + " AND "
-                    + f"{DBMSUtils.get_delimited_col(dbms, self.features[idx])} < {self.bin_edges[idx][i+1]} THEN {self.categories[idx][i]} "
+                    + f"{DBMSUtils.get_delimited_col(dbms, self.features[idx])} < {self.bin_edges[idx][pos_2_bin[i]+1]} THEN {self.categories[idx][pos_2_bin[i]]} "
                 )
-            feature_sql += f"ELSE {self.categories[idx][-1]} END AS {DBMSUtils.get_delimited_col(dbms, self.features[idx])} "
+            feature_sql += f"ELSE {self.categories[idx][pos_2_bin[self.n_bins[idx] - 1]]} END AS {DBMSUtils.get_delimited_col(dbms, self.features[idx])} "
             sqls.append(feature_sql)
- 
+
         return ",".join(sqls)
 
     def modify_leaf(self, feature, op, thr):
@@ -916,7 +1008,7 @@ class CON_C_CAT(SQLOperator):
             intervals = []
             for i, category in enumerate(categoiry_list):
                 if category <= thr:
-                    intervals.append((bin_edge[i], bin_edge[i+1]))
+                    intervals.append((bin_edge[i], bin_edge[i + 1]))
             merged_intervals = merge_intervals(intervals)
 
             condition_sqls = []
@@ -928,11 +1020,15 @@ class CON_C_CAT(SQLOperator):
                 )
                 condition_sqls.append(condition_sql)
 
-            return ' OR '.join(condition_sqls), '', ''
+            return " OR ".join(condition_sqls), "", ""
         else:
             for i, category in enumerate(categoiry_list):
                 if category > thr:
-                    return DBMSUtils.get_delimited_col(defs.DBMS, feature), op, bin_edge[i]
+                    return (
+                        DBMSUtils.get_delimited_col(defs.DBMS, feature),
+                        op,
+                        bin_edge[i],
+                    )
 
     def modify_leaf_p(self, feature, op, thr):
         idx = self.features_out.index(feature)
@@ -944,11 +1040,11 @@ class CON_C_CAT(SQLOperator):
                 + f"{DBMSUtils.get_delimited_col(defs.DBMS, self.features[idx])} < {self.bin_edges[idx][i+1]} THEN {self.categories[idx][i]} "
             )
         feature_sql += f"ELSE {self.categories[idx][-1]} END "
-        
+
         return feature_sql, op, thr
-    
+
     # def get_or_tree_len(self,feature,thr):
-    #     or_len = 0 
+    #     or_len = 0
     #     bin_edge = self.bin_edges[self.features_out.index(feature)]
     #     categoiry_list = self.categories[self.features_out.index(feature)]
     #     intervals = []
@@ -959,13 +1055,13 @@ class CON_C_CAT(SQLOperator):
     #     or_len  = len(merged_intervals)
 
     #     return or_len
-    
+
     def get_fusion_primitive_type(self, feature, thr):
         if self.op_name == OperatorName.KBINSDISCRETIZER:
             return PrimitiveType.LE
         else:
             return PrimitiveType.OR
-    
+
     def get_fusion_primitive_length(self, feature, thr):
         if self.op_name == OperatorName.KBINSDISCRETIZER:
             return 1
@@ -975,26 +1071,27 @@ class CON_C_CAT(SQLOperator):
             intervals = []
             for i, category in enumerate(categoiry_list):
                 if category <= thr:
-                    intervals.append((bin_edge[i], bin_edge[i+1]))
+                    intervals.append((bin_edge[i], bin_edge[i + 1]))
             merged_intervals = merge_intervals(intervals)
             return len(merged_intervals)
-        
+
     def _get_op_cost(self, feature, sample_data):
         idx = self.features_out.index(feature)
+
         def calc_cost(x):
             cost = 0
             for i in range(len(self.categories[idx])):
                 cost += PrimitiveCost.OR.value
-                if x >= self.bin_edges[idx][i] and x < self.bin_edges[idx][i+1]:
+                if x >= self.bin_edges[idx][i] and x < self.bin_edges[idx][i + 1]:
                     break
             return cost
-        
+
         data_primitive_costs = sample_data[feature].apply(lambda x: calc_cost(x))
         return sum(data_primitive_costs)
-        
+
     def get_push_primitive_type(self, feature, thr):
         return PrimitiveType.OR
-    
+
     def get_push_primitive_length(self, feature, thr):
         return len(self.categories)
 
@@ -1005,9 +1102,9 @@ class CON_C_CAT_Merged_OP(CON_C_CAT):
         super().__init__(OperatorName.CON_C_CAT_Merged_OP)
         self.n_bins = op.n_bins.copy()
         self.categories = op.categories.copy()
-        self.features = op.features.copy()
-        self.features_out = op.features_out.copy()
-        self.op_name = op.op_name
+        self.features = op.features
+        self.features_out = op.features_out
+        self.bin_distribution = op.bin_distribution.copy()
 
     def _extract(self, fitted_transform) -> None:
         pass
@@ -1019,16 +1116,16 @@ class EXPAND_Merged_OP(EXPAND):
         super().__init__(OperatorName.EXPAND_Merged_OP)
         self.features = op.features
         self.features_out = op.features_out
-        self.op_name = op.op_name
 
     def _extract(self, fitted_transform) -> None:
         pass
-    
+
     # #TODO: get stats
     # def get_cost_info(self,stats):
     #     op_cost = CFECost()
     #     op_cost.info = stats
     #     return op_cost
+
 
 class CON_A_CON_Merged_OP(CON_A_CON):
 
@@ -1036,7 +1133,6 @@ class CON_A_CON_Merged_OP(CON_A_CON):
         super().__init__(OperatorName.CON_A_CON_Merged_OP)
         self.features = op.features
         self.features_out = op.features_out
-        self.op_name = op.op_name
 
     def _extract(self, fitted_transform) -> None:
         pass
@@ -1048,7 +1144,6 @@ class CAT_C_CAT_Merged_OP(CAT_C_CAT):
         super().__init__(OperatorName.CAT_C_CAT_Merged_OP)
         self.features = op.features
         self.features_out = op.features_out
-        self.op_name = op.op_name
 
     def _extract(self, fitted_transform) -> None:
         pass

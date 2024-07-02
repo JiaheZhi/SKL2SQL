@@ -1,5 +1,6 @@
 from pandas import DataFrame, Series
 
+import numpy as np
 from craftsman.base.operator import CAT_C_CAT
 from craftsman.base.defs import OperatorName
 
@@ -9,7 +10,6 @@ class TargetEncoderSQLOperator(CAT_C_CAT):
         super().__init__(OperatorName.TARGETENCODER)
         self.features = featrues
         self._extract(fitted_transform)
-
 
     def _extract(self, fitted_transform) -> None:
         self.non_string_columns = fitted_transform.non_string_columns
@@ -24,10 +24,16 @@ class TargetEncoderSQLOperator(CAT_C_CAT):
                     oe_mapping = oe_mapping[[idx for idx in oe_mapping.index if idx != 'NaN']]
                     break
             if feature in self.non_string_columns:
-                self.mappings.append(Series(target_mapping[oe_mapping].tolist(), index=[float(i) for i in oe_mapping.index.tolist()]))
+                self.mappings.append(
+                    Series(
+                        target_mapping[oe_mapping].tolist(),
+                        index=np.array(oe_mapping.index.tolist()).astype(
+                            self.non_string_columns[feature]
+                        ),
+                    )
+                )
             else:
                 self.mappings.append(Series(target_mapping[oe_mapping].tolist(), index=oe_mapping.index.tolist()))
-
 
     @staticmethod
     def trans_feature_names_in(input_data: DataFrame):

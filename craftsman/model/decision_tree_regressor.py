@@ -38,7 +38,7 @@ class DecisionTreeRegressorSQLModel(TreeModel):
         def visit_tree(node):
             # leaf node
             if self.left[node] == -1 and self.right[node] == -1:
-                return " {} ".format(self.trained_model.tree_.value[node][0][0])
+                return " {} ".format(round(self.trained_model.tree_.value[node][0][0], 5))
 
             # internal node
             op = self.ops[node]
