@@ -17,7 +17,7 @@ class TransformerManager(object):
         if 'Imputer' == steps[0][0]:
             fitted_imputer = steps[0][1]
             column_transformer_start_idx = 1
-        
+
         # extract model
         model_name, trained_model = steps[-1]
 
@@ -47,12 +47,25 @@ class TransformerManager(object):
             }
         }
 
-
-    def generate_query(self, model_file, table_name, dbms, train_data=None, merge_flag=True, cost_flag=True, just_push_flag=False, masq=False, pre_sql=None):
+    def generate_query(
+        self,
+        model_file,
+        table_name,
+        dbms,
+        *,
+        train_data=None,
+        merge_flag=True,
+        cost_flag=True,
+        just_push_flag=False,
+        masq=False,
+        pre_sql=None,
+        order_when=True,
+    ):
 
         # some load and extract tasks
         defs.DBMS = dbms
         defs.set_JUST_PUSH_FLAG(just_push_flag)
+        defs.ORDER_WHEN = order_when
         model = load_model(model_file)
         pipeline_features_in = model.feature_names_in_.tolist()
         pipeline = self.__extract_pipeline(model)
@@ -63,7 +76,7 @@ class TransformerManager(object):
         # merge operators by rules
         if merge_flag and not masq:
             preprocessing_graph = merge_sql_operator_by_rules(preprocessing_graph)
-        
+
         # merge operators by cost model
         preprocessing_graph = merge_by_cost_model(preprocessing_graph, train_data, merge_flag, cost_flag, masq)
 
@@ -72,10 +85,9 @@ class TransformerManager(object):
 
         return query_str
 
-
     def __compose_sql(self, graph: PrepGraph, table_name: str, dbms: str, pre_sql: str, pipeline) -> str:
         input_table = table_name
-        
+
         # compose join sqls
         join_feature_sqls = {}
         join_feature_list = {}
@@ -83,7 +95,7 @@ class TransformerManager(object):
             input_table, feature_sql, join_features = op.get_join_sql(dbms, input_table, table_name)
             join_feature_sqls[op.features[0]] = feature_sql
             join_feature_list[op.features[0]] = join_features
-            
+
         # compose imputer sql if exists missing cols
         if pipeline['imputer']['missing_cols']:
             filled_values = pipeline['imputer']['filled_values']
@@ -106,12 +118,12 @@ class TransformerManager(object):
             imputer_sql += ','.join(imputer_feature_sqls)
             imputer_sql += f' FROM {input_table}) AS data'
             input_table = imputer_sql
-        
+
         # compose preprocessing sqls
         max_level = 0
         for _, chain in graph.chains.items():
             max_level = max(max_level, len(chain.prep_operators))
-        
+
         expend_features = {}
         prep_sqls = []
         for prep_level in range(max_level):

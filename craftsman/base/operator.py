@@ -205,6 +205,7 @@ class CAT_C_CAT(EncoderOperator):
         self.op_type = OperatorType[self._get_op_type()]
 
         self.mappings: list[Series] = []
+        self.value_counts: DataFrame | Series
 
     def apply(self, first_op: Operator):
         if first_op.op_type == OperatorType.CON_C_CAT:
@@ -269,7 +270,19 @@ class CAT_C_CAT(EncoderOperator):
         for idx in range(len(self.features)):
             feature_sql = "CASE "
             mapping = self.mappings[idx]
-            for category in mapping.index:
+            if defs.ORDER_WHEN:
+                if isinstance(self.value_counts, Series):
+                    value_counts = np.array([self.value_counts[category] for category in mapping.index])
+                elif isinstance(self.value_counts, DataFrame):
+                    value_counts = np.array([self.value_counts[self.features[idx]][category] for category in mapping.index])
+                val_2_pos = np.argsort(-value_counts)
+                pos_2_val = {pos_idx:val_idx for val_idx, pos_idx in enumerate(val_2_pos)}
+            for i in range(len(mapping.index)):
+                if defs.ORDER_WHEN:
+                    val_idx = pos_2_val[i]
+                    category = mapping.index[val_idx]
+                else:
+                    category = mapping.index[i]
                 if type(category) == str:
                     feature_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} = '{category}' THEN {mapping[category]} "
                 else:
@@ -302,13 +315,22 @@ class CAT_C_CAT(EncoderOperator):
 
     def modify_leaf(self, feature, op, thr):
         mapping = self.mappings[self.features_out.index(feature)]
-        in_list = []
+        in_list = [] 
+        if defs.ORDER_WHEN:
+            in_list_value_counts = []
         for idx, enc_value in mapping.items():
             if enc_value <= thr:
+                if defs.ORDER_WHEN:
+                    if isinstance(self.value_counts, Series):
+                        in_list_value_counts.append(self.value_counts[idx])
+                    elif isinstance(self.value_counts, DataFrame):
+                        in_list_value_counts.append(self.value_counts[self.features[idx]][idx])
                 if type(idx) == str:
                     in_list.append(f"'{idx}'")
                 else:
                     in_list.append(f"{idx}")
+        if defs.ORDER_WHEN:
+            in_list = [in_list[pos] for pos in np.argsort(in_list_value_counts)]
         return (
             DBMSUtils.get_delimited_col(defs.DBMS, feature),
             "in",
@@ -991,12 +1013,22 @@ class CON_C_CAT(SQLOperator):
             pos_2_bin = {pos_idx:bin_idx for bin_idx, pos_idx in enumerate(bin_2_pos)}
             feature_sql = "CASE "
             for i in range(self.n_bins[idx] - 1):
-                feature_sql += (
-                    f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} >= {self.bin_edges[idx][pos_2_bin[i]]}"
-                    + " AND "
-                    + f"{DBMSUtils.get_delimited_col(dbms, self.features[idx])} < {self.bin_edges[idx][pos_2_bin[i]+1]} THEN {self.categories[idx][pos_2_bin[i]]} "
-                )
-            feature_sql += f"ELSE {self.categories[idx][pos_2_bin[self.n_bins[idx] - 1]]} END AS {DBMSUtils.get_delimited_col(dbms, self.features[idx])} "
+                if defs.ORDER_WHEN:
+                    feature_sql += (
+                        f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} >= {self.bin_edges[idx][pos_2_bin[i]]}"
+                        + " AND "
+                        + f"{DBMSUtils.get_delimited_col(dbms, self.features[idx])} < {self.bin_edges[idx][pos_2_bin[i]+1]} THEN {self.categories[idx][pos_2_bin[i]]} "
+                    )
+                else:
+                    feature_sql += (
+                        f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} >= {self.bin_edges[idx][i]}"
+                        + " AND "
+                        + f"{DBMSUtils.get_delimited_col(dbms, self.features[idx])} < {self.bin_edges[idx][i+1]} THEN {self.categories[idx][i]} "
+                    )
+            if defs.ORDER_WHEN:
+                feature_sql += f"ELSE {self.categories[idx][pos_2_bin[self.n_bins[idx] - 1]]} END AS {DBMSUtils.get_delimited_col(dbms, self.features[idx])} "
+            else:
+                feature_sql += f"ELSE {self.categories[idx][-1]} END AS {DBMSUtils.get_delimited_col(dbms, self.features[idx])} "
             sqls.append(feature_sql)
 
         return ",".join(sqls)
@@ -1006,21 +1038,38 @@ class CON_C_CAT(SQLOperator):
         categoiry_list = self.categories[self.features_out.index(feature)]
         if self.op_name != OperatorName.KBINSDISCRETIZER:
             intervals = []
+            interval_distributions = []
             for i, category in enumerate(categoiry_list):
                 if category <= thr:
                     intervals.append((bin_edge[i], bin_edge[i + 1]))
-            merged_intervals = merge_intervals(intervals)
+                    interval_distributions.append(self.bin_distribution[i])
+            
+            if defs.ORDER_WHEN:
+                merged_intervals, merged_distributions = merge_intervals(intervals, interval_distributions)
+                bin_2_pos = np.argsort(-merged_distributions)
+                pos_2_bin = {pos_idx:bin_idx for bin_idx, pos_idx in enumerate(bin_2_pos)}
+            else:
+                merged_intervals = merge_intervals(intervals)
+            
 
             condition_sqls = []
-            for interval in merged_intervals:
-                condition_sql += (
-                    f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} >= {interval[0]}"
-                    + " AND "
-                    + f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} < {interval[1]}"
-                )
+            for i in range(len(merged_intervals)):
+                if defs.ORDER_WHEN:
+                    condition_sql += (
+                        f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} >= {merged_intervals[pos_2_bin[i]][0]}"
+                        + " AND "
+                        + f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} < {merged_intervals[pos_2_bin[i]][1]}"
+                    )
+                else:
+                    condition_sql += (
+                        f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} >= {merged_intervals[i][0]}"
+                        + " AND "
+                        + f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} < {merged_intervals[i][1]}"
+                    )
                 condition_sqls.append(condition_sql)
-
+                
             return " OR ".join(condition_sqls), "", ""
+        
         else:
             for i, category in enumerate(categoiry_list):
                 if category > thr:

@@ -12,6 +12,7 @@ class LabelEncoderSQLOperator(CAT_C_CAT):
         self._extract(fitted_transform)
 
     def _extract(self, fitted_transform) -> None:
+        self.value_counts = fitted_transform.value_counts
         for idx, feature in enumerate(self.features):
             self.features_out.append(feature)
             label_mapping = Series(

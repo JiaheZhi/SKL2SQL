@@ -13,6 +13,7 @@ class TargetEncoderSQLOperator(CAT_C_CAT):
 
     def _extract(self, fitted_transform) -> None:
         self.non_string_columns = fitted_transform.non_string_columns
+        self.value_counts = fitted_transform.value_counts
         for feature in self.features:
             self.features_out.append(feature)
             target_mapping = fitted_transform.mapping[feature]

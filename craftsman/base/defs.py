@@ -2,6 +2,7 @@ from enum import Enum
 
 DBMS = ''
 JUST_PUSH_FLAG = None
+ORDER_WHEN = True
 
 def set_JUST_PUSH_FLAG(flag):
     global JUST_PUSH_FLAG

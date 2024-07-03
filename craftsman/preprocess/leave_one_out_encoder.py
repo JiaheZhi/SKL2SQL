@@ -12,6 +12,7 @@ class LeaveOneOutEncoderSQLOperator(CAT_C_CAT):
 
 
     def _extract(self, fitted_transform) -> None:
+        self.value_counts = fitted_transform.value_counts
         for feature in self.features:
             self.features_out.append(feature)
             loo_mapping = fitted_transform.mapping[feature]

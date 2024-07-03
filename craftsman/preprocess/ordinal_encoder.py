@@ -13,7 +13,7 @@ class OrdinalEncoderSQLOperator(CAT_C_CAT):
 
 
     def _extract(self, fitted_transform) -> None:
-        
+        self.value_counts = fitted_transform.value_counts
         for idx, feature in enumerate(self.features):
             self.features_out.append(feature)
             categories = fitted_transform.categories_[idx]
