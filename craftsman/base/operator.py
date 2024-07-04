@@ -256,15 +256,6 @@ class CAT_C_CAT(EncoderOperator):
         else:
             return None
 
-    # def get_cost_info(self):
-    #     for idx in range(len(self.features)):
-    #         op_cost = CAT_C_CATCost()
-    #         mapping = self.mappings[idx]
-    #         for path_cost in range(1,len( mapping.index)+1):
-    #             op_cost.set_cost(path_cost)
-    #         self.cost.append(op_cost)
-    #     return self.cost
-
     def get_sql(self, dbms: str):
         sqls = []
         for idx in range(len(self.features)):
@@ -340,21 +331,34 @@ class CAT_C_CAT(EncoderOperator):
     def modify_leaf_p(self, feature, op, thr):
         mapping = self.mappings[self.features_out.index(feature)]
         feature_sub_sql = "CASE "
-        for idx, val in mapping[:-1].items():
-            if type(idx) == str:
-                feature_sub_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} = '{idx}' THEN {val} "
+        if defs.ORDER_WHEN:
+            if isinstance(self.value_counts, Series):
+                value_counts = np.array([self.value_counts[category] for category in mapping.index])
+            elif isinstance(self.value_counts, DataFrame):
+                value_counts = np.array([self.value_counts[feature][category] for category in mapping.index])
+            val_2_pos = np.argsort(-value_counts)
+            pos_2_val = {pos_idx:val_idx for val_idx, pos_idx in enumerate(val_2_pos)}
+        for i in range(len(mapping.index)):
+            if defs.ORDER_WHEN:
+                val_idx = pos_2_val[i]
+                category = mapping.index[val_idx]
             else:
-                feature_sub_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} = {idx} THEN {val} "
-        feature_sub_sql += "ELSE {} END ".format(mapping.iloc[-1])
+                category = mapping.index[i]
+            if type(category) == str:
+                feature_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} = '{category}' THEN {mapping[category]} "
+            else:
+                feature_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} = {category} THEN {mapping[category]} "
+        feature_sql += (
+            f"END AS {DBMSUtils.get_delimited_col(defs.DBMS, feature)}"
+        )
+        # for i, item in enumerate(mapping[:-1].items()):
+        #     idx, val = item
+        #     if type(idx) == str:
+        #         feature_sub_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} = '{idx}' THEN {val} "
+        #     else:
+        #         feature_sub_sql += f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, feature)} = {idx} THEN {val} "
+        # feature_sub_sql += "ELSE {} END ".format(mapping.iloc[-1])
         return feature_sub_sql, op, thr
-
-    # def get_in_tree_len(self, feature, thr):
-    #     mapping = self.mappings[self.features_out.index(feature)]
-    #     list_len = 0
-    #     for idx, enc_value in mapping.items():
-    #         if enc_value <= thr:
-    #             list_len += 1
-    #     return list_len
 
     def _get_join_cost(self, feature, graph, train_data):
         if graph.model.model_name in (
@@ -422,24 +426,6 @@ class EXPAND(EncoderOperator):
 
     def simply(self, second_op: Operator):
         return None
-
-    # def get_cost_info(self):
-    #     op_cost = ExpandCost()
-    #     sub_field_cost = []
-    #     for col in self.mapping.columns:
-    #         col_mapping = self.mapping[col]
-    #         categories_list = col_mapping.groupby(col_mapping).apply(
-    #             lambda x: x.index.tolist()
-    #         )
-    #         sorted_categories_list = categories_list.apply(
-    #             lambda x: len(x)
-    #         ).sort_values(ascending=True)
-    #         categories_list = categories_list[sorted_categories_list.index]
-    #         for enc_value in categories_list.index.tolist()[:-1]:
-    #             sub_field_cost.append(len(categories_list[enc_value]))
-    #         op_cost.set_cost(sub_field_cost)
-    #     self.cost.append(op_cost)
-    #     return self.cost
 
     def get_sql(self, dbms: str):
         sqls = []
@@ -993,17 +979,6 @@ class CON_C_CAT(SQLOperator):
         else:
             return None
 
-    # def get_cost_info(self):
-    #     for idx in range(len(self.features)):
-    #         op_cost = CON_C_CATCost()
-    #         for path_cost in range(1,len(self.n_bins[idx])+1):
-    #             op_cost.set_cost(path_cost)
-    #         self.cost.append(op_cost)
-    #     return self.cost
-
-    # def get_stats(self, dbms: str):
-    #     pass
-
     def get_sql(self, dbms: str):
         sqls = []
 
@@ -1081,29 +1056,37 @@ class CON_C_CAT(SQLOperator):
 
     def modify_leaf_p(self, feature, op, thr):
         idx = self.features_out.index(feature)
+        # feature_sql = "CASE "
+        # for i in range(self.n_bins[idx] - 1):
+        #     feature_sql += (
+        #         f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, self.features[idx])} >= {self.bin_edges[idx][i]}"
+        #         + " AND "
+        #         + f"{DBMSUtils.get_delimited_col(defs.DBMS, self.features[idx])} < {self.bin_edges[idx][i+1]} THEN {self.categories[idx][i]} "
+        #     )
+        # feature_sql += f"ELSE {self.categories[idx][-1]} END "
+        bin_distribution = self.bin_distribution[self.features[idx]]
+        bin_2_pos = np.argsort(-bin_distribution)
+        pos_2_bin = {pos_idx:bin_idx for bin_idx, pos_idx in enumerate(bin_2_pos)}
         feature_sql = "CASE "
         for i in range(self.n_bins[idx] - 1):
-            feature_sql += (
-                f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, self.features[idx])} >= {self.bin_edges[idx][i]}"
-                + " AND "
-                + f"{DBMSUtils.get_delimited_col(defs.DBMS, self.features[idx])} < {self.bin_edges[idx][i+1]} THEN {self.categories[idx][i]} "
-            )
-        feature_sql += f"ELSE {self.categories[idx][-1]} END "
+            if defs.ORDER_WHEN:
+                feature_sql += (
+                    f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, self.features[idx])} >= {self.bin_edges[idx][pos_2_bin[i]]}"
+                    + " AND "
+                    + f"{DBMSUtils.get_delimited_col(defs.DBMS, self.features[idx])} < {self.bin_edges[idx][pos_2_bin[i]+1]} THEN {self.categories[idx][pos_2_bin[i]]} "
+                )
+            else:
+                feature_sql += (
+                    f"WHEN {DBMSUtils.get_delimited_col(defs.DBMS, self.features[idx])} >= {self.bin_edges[idx][i]}"
+                    + " AND "
+                    + f"{DBMSUtils.get_delimited_col(defs.DBMS, self.features[idx])} < {self.bin_edges[idx][i+1]} THEN {self.categories[idx][i]} "
+                )
+        if defs.ORDER_WHEN:
+            feature_sql += f"ELSE {self.categories[idx][pos_2_bin[self.n_bins[idx] - 1]]} END AS {DBMSUtils.get_delimited_col(defs.DBMS, self.features[idx])} "
+        else:
+            feature_sql += f"ELSE {self.categories[idx][-1]} END AS {DBMSUtils.get_delimited_col(defs.DBMS, self.features[idx])} "
 
         return feature_sql, op, thr
-
-    # def get_or_tree_len(self,feature,thr):
-    #     or_len = 0
-    #     bin_edge = self.bin_edges[self.features_out.index(feature)]
-    #     categoiry_list = self.categories[self.features_out.index(feature)]
-    #     intervals = []
-    #     for i, category in enumerate(categoiry_list):
-    #         if category <= thr:
-    #             intervals.append((bin_edge[i], bin_edge[i+1]))
-    #     merged_intervals = merge_intervals(intervals)
-    #     or_len  = len(merged_intervals)
-
-    #     return or_len
 
     def get_fusion_primitive_type(self, feature, thr):
         if self.op_name == OperatorName.KBINSDISCRETIZER:
@@ -1122,7 +1105,7 @@ class CON_C_CAT(SQLOperator):
                 if category <= thr:
                     intervals.append((bin_edge[i], bin_edge[i + 1]))
             merged_intervals = merge_intervals(intervals)
-            return len(merged_intervals)
+            return len(merged_intervals) / 2
 
     def _get_op_cost(self, feature, sample_data):
         idx = self.features_out.index(feature)
@@ -1168,12 +1151,6 @@ class EXPAND_Merged_OP(EXPAND):
 
     def _extract(self, fitted_transform) -> None:
         pass
-
-    # #TODO: get stats
-    # def get_cost_info(self,stats):
-    #     op_cost = CFECost()
-    #     op_cost.info = stats
-    #     return op_cost
 
 
 class CON_A_CON_Merged_OP(CON_A_CON):
