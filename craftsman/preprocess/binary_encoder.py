@@ -23,6 +23,7 @@ class BinaryEncoderSQLOperator(EXPAND):
                         reversed_ordinal_enc[-1] = 'NaN'
                         break
                 self.mapping.index = [reversed_ordinal_enc[idx] for idx in self.mapping.index]
+                self.mapping = self.mapping[~self.mapping.index.isnull()]
                 break
     
 

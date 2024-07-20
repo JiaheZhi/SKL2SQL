@@ -164,7 +164,7 @@ class CraftsmanLabelEncoder(LabelEncoder):
 
     def fit(self, X, y=None):
         if not hasattr(self, 'value_counts'):
-            self.value_counts = X.value_counts()
+            self.value_counts = {X.columns[0]: X.value_counts()}
         super().fit(X)
 
     def transform(self, X, y=None):
@@ -173,7 +173,7 @@ class CraftsmanLabelEncoder(LabelEncoder):
 
     def fit_transform(self, X, y=None, **fit_params):
         if not hasattr(self, 'value_counts'):
-            self.value_counts = X.value_counts()
+            self.value_counts = {X.columns[0]: X.value_counts()}
         trans_data = super().fit_transform(X).reshape(-1, 1)
         return pd.DataFrame(trans_data)
 
@@ -199,7 +199,9 @@ class CraftsmanTargetEncoder(TargetEncoder):
     def fit(self, X, y=None, **kwargs):
         X = pd.DataFrame(X)
         if not hasattr(self, 'value_counts'):
-            self.value_counts = X.value_counts()
+            self.value_counts = {}
+            for col in X.columns:
+                self.value_counts[col] = X[col].value_counts()
         non_string_columns = X.select_dtypes(exclude=['object']).columns
         X[non_string_columns] = X[non_string_columns].astype(str)
         super().fit(X, y, **kwargs)
@@ -213,7 +215,9 @@ class CraftsmanTargetEncoder(TargetEncoder):
     def fit_transform(self, X, y=None, **fit_params):
         X = pd.DataFrame(X)
         if not hasattr(self, 'value_counts'):
-            self.value_counts = X.value_counts()
+            self.value_counts = {}
+            for col in X.columns:
+                self.value_counts[col] = X[col].value_counts()
         non_string_columns = X.select_dtypes(exclude=['object']).columns
         column_types = X.dtypes
         self.non_string_columns = {col: column_types[col] for col in non_string_columns} 
@@ -291,7 +295,9 @@ class CraftsmanOrdinalEncoder(OrdinalEncoder):
     def fit(self, X, y=None):
         X = pd.DataFrame(X)
         if not hasattr(self, 'value_counts'):
-            self.value_counts = X.value_counts()
+            self.value_counts = {}
+            for col in X.columns:
+                self.value_counts[col] = X[col].value_counts()
         super().fit(X, y)
         return self
 
@@ -303,7 +309,9 @@ class CraftsmanOrdinalEncoder(OrdinalEncoder):
     def fit_transform(self, X, y=None, **fit_params):
         X = pd.DataFrame(X)
         if not hasattr(self, 'value_counts'):
-            self.value_counts = X.value_counts()
+            self.value_counts = {}
+            for col in X.columns:
+                self.value_counts[col] = X[col].value_counts()
         trans_data = super().fit_transform(X, y, **fit_params)
             
         return trans_data
@@ -325,7 +333,9 @@ class CraftsmanCountEncoder(CountEncoder):
     def fit(self, X, y=None, **kwargs):
         X = pd.DataFrame(X)
         if not hasattr(self, 'value_counts'):
-            self.value_counts = X.value_counts()
+            self.value_counts = {}
+            for col in X.columns:
+                self.value_counts[col] = X[col].value_counts()
         super().fit(X, y, **kwargs)
         return self
 
@@ -337,7 +347,9 @@ class CraftsmanCountEncoder(CountEncoder):
     def fit_transform(self, X, y=None, **fit_params):
         X = pd.DataFrame(X)
         if not hasattr(self, 'value_counts'):
-            self.value_counts = X.value_counts()
+            self.value_counts = {}
+            for col in X.columns:
+                self.value_counts[col] = X[col].value_counts()
         trans_data = super().fit_transform(X, y, **fit_params)
         return trans_data
     
@@ -353,7 +365,9 @@ class CraftsmanLeaveOneOutEncoder(LeaveOneOutEncoder):
     def fit(self, X, y=None, **kwargs):
         X = pd.DataFrame(X)
         if not hasattr(self, 'value_counts'):
-            self.value_counts = X.value_counts()
+            self.value_counts = {}
+            for col in X.columns:
+                self.value_counts[col] = X[col].value_counts()
         super().fit(X, y, **kwargs)
         return self
 
@@ -365,6 +379,8 @@ class CraftsmanLeaveOneOutEncoder(LeaveOneOutEncoder):
     def fit_transform(self, X, y=None, **fit_params):
         X = pd.DataFrame(X)
         if not hasattr(self, 'value_counts'):
-            self.value_counts = X.value_counts()
+            self.value_counts = {}
+            for col in X.columns:
+                self.value_counts[col] = X[col].value_counts()
         trans_data = super().fit_transform(X, y, **fit_params)
         return trans_data

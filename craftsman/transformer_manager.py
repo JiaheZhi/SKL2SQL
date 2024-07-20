@@ -60,12 +60,17 @@ class TransformerManager(object):
         masq=False,
         pre_sql=None,
         order_when=True,
+        expriment_col=None,
+        expriment_col_stragey=None
     ):
 
         # some load and extract tasks
         defs.DBMS = dbms
         defs.set_JUST_PUSH_FLAG(just_push_flag)
         defs.ORDER_WHEN = order_when
+        defs.EXPRIMENT_COL = expriment_col
+        defs.EXPRIMENT_METHOD = expriment_col_stragey
+        
         model = load_model(model_file)
         pipeline_features_in = model.feature_names_in_.tolist()
         pipeline = self.__extract_pipeline(model)
@@ -87,12 +92,13 @@ class TransformerManager(object):
 
     def __compose_sql(self, graph: PrepGraph, table_name: str, dbms: str, pre_sql: str, pipeline) -> str:
         input_table = table_name
-
+        expend_features = {}
+        
         # compose join sqls
         join_feature_sqls = {}
         join_feature_list = {}
         for op in graph.join_operators:
-            input_table, feature_sql, join_features = op.get_join_sql(dbms, input_table, table_name)
+            input_table, feature_sql, join_features = op.get_join_sql(dbms, input_table, table_name, pipeline)
             join_feature_sqls[op.features[0]] = feature_sql
             join_feature_list[op.features[0]] = join_features
 
@@ -108,7 +114,12 @@ class TransformerManager(object):
                 fill_sqls[feature] = filled_values[missing_col_indexs[idx]]
             for feature, chain in graph.chains.items():
                 delimited_feature = DBMSUtils.get_delimited_col(dbms, feature)
-                if feature in fill_sqls:
+                if join_feature_sqls.get(feature):
+                    imputer_feature_sqls.append(join_feature_sqls[feature])
+                    join_feature_sqls.pop(feature)
+                    if len(join_feature_list.get(feature)) > 1:
+                        expend_features[feature] = join_feature_list.get(feature)
+                elif feature in fill_sqls:
                     if type(fill_sqls[feature]) == str:
                         imputer_feature_sqls.append(f'COALESCE({delimited_feature}, \'{fill_sqls[feature]}\') AS {delimited_feature}')
                     else:
@@ -122,11 +133,13 @@ class TransformerManager(object):
         # compose preprocessing sqls
         max_level = 0
         for _, chain in graph.chains.items():
-            max_level = max(max_level, len(chain.prep_operators))
+            max_level = max(max_level, len(chain.prep_operators) - 1)
 
-        expend_features = {}
+        
         prep_sqls = []
-        for prep_level in range(max_level):
+        
+        prep_level = 0
+        while prep_level <= max_level or len(join_feature_sqls) > 0:
             perp_level_sqls = []
             for feature, chain in graph.chains.items():
                 if len(chain.prep_operators) > prep_level:
@@ -145,6 +158,7 @@ class TransformerManager(object):
                     else:
                         perp_level_sqls.append(DBMSUtils.get_delimited_col(dbms, feature))
             prep_sqls.append(','.join(perp_level_sqls))
+            prep_level += 1
 
         for prep_sql in prep_sqls:
             # the input table for the possible next transformer is the output of the current transformer

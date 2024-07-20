@@ -23,6 +23,6 @@ class LinearRegressionSQLModel(LinearModel):
             plus_items.append(plus_item)
             
         query += ('+'.join(plus_items) + f'+ {self.bias}')
-        query += " FROM {} as F".format(input_table)
+        query += " FROM {}".format(input_table)
         
         return query

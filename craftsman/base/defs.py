@@ -1,8 +1,7 @@
 from enum import Enum
 
 DBMS = ''
-JUST_PUSH_FLAG = None
-ORDER_WHEN = True
+JUST_PUSH_FLAG = False
 
 def set_JUST_PUSH_FLAG(flag):
     global JUST_PUSH_FLAG
@@ -80,6 +79,7 @@ CAT_C_CAT_JOIN_COL_POSTNAME = '_cat_c_cat_col'
 
 class DBDataType(Enum):
     VARCHAR = 'VARCHAR'
+    VARCHAR512 = 'VARCHAR(512)'
     SMALLINT = 'SMALLINT'
     INT = 'INT'
     FLOAT = 'FLOAT'
@@ -104,19 +104,93 @@ class PrimitiveType(Enum):
     GE_EQ = 'ge_eq'
     
 
-def in_cost_func(length):
+def in_cost_func_pg(length):
     if length == 1:
         return 3.4
     else:
         return 1.7 * length
+    
+def in_cost_func_duckdb(length):
+    if length <= 4:
+        return 0.0000116 * length + 0.000017833
+    else:
+        return 0.0000031144 * length + 0.0030752
+    
+def in_cost_func_monetdb(length):
+    return 0.098055 * length + 0.4922019
 
 class PrimitiveCost(Enum):
-    IN = in_cost_func
-    OR = 25.5 # OR = GE_EQ + LE
-    LE = 12.75
-    # CASE = 'case'
-    EQUAL = 3.4
-    INEQUAL = 3.4
-    GE = 12.75
-    LE_EQ = 12.75
-    GE_EQ = 12.75
+    
+
+    # pg
+    # IN = in_cost_func_pg
+    # OR = 25.5 # OR = GE_EQ + LE
+    # LE = 12.75
+    # EQUAL = 3.4
+    # INEQUAL = 3.4
+    # GE = 12.75
+    # LE_EQ = 12.75
+    # GE_EQ = 12.75
+    
+    
+    # duckdb
+    # IN = in_cost_func_duckdb
+    # OR = 0.00000991 # OR = GE_EQ + LE
+    # LE = 0.00000485
+    # EQUAL = 0.00000843
+    # INEQUAL = 0.00000846
+    # GE = 0.0000051
+    # LE_EQ = 0.000005126
+    # GE_EQ = 0.00000506
+    
+    # monetdb
+    IN = in_cost_func_monetdb
+    OR = 0.419532
+    LE = 0.211766
+    EQUAL = 0.241633
+    INEQUAL = 0.278633
+    GE = 0.214733
+    LE_EQ = 0.2356
+    GE_EQ = 0.207766
+
+# class PrimitiveCost(Enum):
+#     IN = None
+#     OR = None
+#     LE = None
+#     EQUAL = None
+#     INEQUAL = None
+#     GE = None
+#     LE_EQ = None
+#     GE_EQ = None
+
+
+# if DBMS == 'postgresql':
+#     PrimitiveCost.IN = in_cost_func_pg
+#     PrimitiveCost.OR = 25.5
+#     PrimitiveCost.LE = 12.75
+#     PrimitiveCost.EQUAL = 3.4
+#     PrimitiveCost.INEQUAL = 3.4
+#     PrimitiveCost.GE = 12.75
+#     PrimitiveCost.LE_EQ = 12.75
+#     PrimitiveCost.GE_EQ = 12.75
+# elif DBMS == 'duckdb':
+#     PrimitiveCost.IN = in_cost_func_duckdb
+#     PrimitiveCost.OR = 0.00000991
+#     PrimitiveCost.LE = 0.00000485
+#     PrimitiveCost.EQUAL = 0.00000843
+#     PrimitiveCost.INEQUAL = 0.00000846
+#     PrimitiveCost.GE = 0.0000051
+#     PrimitiveCost.LE_EQ = 0.000005126
+#     PrimitiveCost.GE_EQ = 0.00000506
+    
+ORDER_WHEN = True
+EXPRIMENT_METHOD = None
+EXPRIMENT_COL = None
+
+CURRENT_PYTHON_FILE = 'input_your_python_file'
+
+PUSH_USE_AVERAGE = False
+
+# COST_DIR_PATH = '/home/postgres/craftsman_experiments/sql_result_cost/push_not_use_average/duckdb'
+# COST_DIR_PATH = '/home/postgres/craftsman_experiments/sql_result_cost/push_not_use_average/pg2'
+COST_DIR_PATH = '/home/postgres/craftsman_experiments/sql_result_cost/push_not_use_average/monetdb'

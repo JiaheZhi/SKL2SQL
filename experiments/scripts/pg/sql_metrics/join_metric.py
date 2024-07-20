@@ -5,8 +5,8 @@ import pandas as pd
 
 
 expriment_result = []
-for rows in range(1000, 100000 + 1000, 1000):
-    for columns in range(1, 30 + 1):
+for rows in range(10, 1000 + 10, 10):
+    for columns in range(1, 20 + 1):
         
         # 连接到 PostgreSQL 数据库
         conn = psycopg2.connect(
@@ -27,7 +27,7 @@ for rows in range(1000, 100000 + 1000, 1000):
         # 填充左表数据
         cur.execute("""
             INSERT INTO left_table (data)
-            SELECT 'left_data' FROM generate_series(1, 1000);
+            SELECT 'left_data' FROM generate_series(1, 10);
         """)
 
         # 创建populate_join_table函数
@@ -91,6 +91,6 @@ for rows in range(1000, 100000 + 1000, 1000):
     print(rows)
 
 expriment_result = pd.DataFrame(expriment_result, columns=['rows', 'columns', 'cost'])
-expriment_result.to_csv('join_metric_result.csv',index=False)
+expriment_result.to_csv('join_metric_result1.csv',index=False)
 
 

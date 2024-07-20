@@ -1,9 +1,4 @@
-# def count_interval(sorted_list):
-#     count = 1
-#     for i in range(1, len(sorted_list)):
-#         if sorted_list[i] - sorted_list[i-1] > 1:
-#             count += 1
-#     return count
+import craftsman.base.defs as defs
 
 def tree_paths(tree, node=0, path=None):
         """
@@ -19,6 +14,17 @@ def tree_paths(tree, node=0, path=None):
             yield from tree_paths(tree, tree.children_right[node], path.copy())
             
 
-def calc_join_cost_by_sample_data(sample_data, join_table_columns, join_table_rows):
-    return len(sample_data) * (-1.21542 + 0.00005446 * join_table_rows + 0.12542 * join_table_columns)
+def calc_join_cost_by_sample_data(sample_data, join_table_rows, join_table_columns ):
+    # pg
+    if defs.DBMS == 'postgresql':
+        return len(sample_data) * (4.43204396e-05 * join_table_rows + 9.08197566e-02 * join_table_columns)
+    
+    # duckdb
+    elif defs.DBMS == 'duckdb':
+        return len(sample_data) * (1.02122041e-08 * join_table_rows + 1.02417616e-05 * join_table_columns)
+    
+    # duckdb
+    elif defs.DBMS == 'monetdb':
+        return len(sample_data) * (4.58751378e-07 * join_table_rows + 1.67787246e-03 * join_table_columns)
+
     # TODO: choose the accurate join cost model
