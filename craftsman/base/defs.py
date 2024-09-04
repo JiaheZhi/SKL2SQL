@@ -134,24 +134,24 @@ class PrimitiveCost(Enum):
     
     
     # duckdb
-    # IN = in_cost_func_duckdb
-    # OR = 0.00000991 # OR = GE_EQ + LE
-    # LE = 0.00000485
-    # EQUAL = 0.00000843
-    # INEQUAL = 0.00000846
-    # GE = 0.0000051
-    # LE_EQ = 0.000005126
-    # GE_EQ = 0.00000506
+    IN = in_cost_func_duckdb
+    OR = 0.00000991 # OR = GE_EQ + LE
+    LE = 0.00000485
+    EQUAL = 0.00000843
+    INEQUAL = 0.00000846
+    GE = 0.0000051
+    LE_EQ = 0.000005126
+    GE_EQ = 0.00000506
     
     # monetdb
-    IN = in_cost_func_monetdb
-    OR = 0.419532
-    LE = 0.211766
-    EQUAL = 0.241633
-    INEQUAL = 0.278633
-    GE = 0.214733
-    LE_EQ = 0.2356
-    GE_EQ = 0.207766
+    # IN = in_cost_func_monetdb
+    # OR = 0.419532
+    # LE = 0.211766
+    # EQUAL = 0.241633
+    # INEQUAL = 0.278633
+    # GE = 0.214733
+    # LE_EQ = 0.2356
+    # GE_EQ = 0.207766
 
 # class PrimitiveCost(Enum):
 #     IN = None
@@ -191,6 +191,6 @@ CURRENT_PYTHON_FILE = 'input_your_python_file'
 
 PUSH_USE_AVERAGE = False
 
-# COST_DIR_PATH = '/home/postgres/craftsman_experiments/sql_result_cost/push_not_use_average/duckdb'
+COST_DIR_PATH = '/home/postgres/craftsman_experiments/sql_result_cost/push_not_use_average/duckdb'
 # COST_DIR_PATH = '/home/postgres/craftsman_experiments/sql_result_cost/push_not_use_average/pg2'
-COST_DIR_PATH = '/home/postgres/craftsman_experiments/sql_result_cost/push_not_use_average/monetdb'
+# COST_DIR_PATH = '/home/postgres/craftsman_experiments/sql_result_cost/push_not_use_average/monetdb'

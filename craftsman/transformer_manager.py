@@ -1,3 +1,5 @@
+import time
+
 from craftsman.base.graph import PrepGraph
 from craftsman.rule_based_optimize.merge import merge_sql_operator_by_rules
 from craftsman.cost_model.merge import merge_by_cost_model
@@ -80,13 +82,22 @@ class TransformerManager(object):
 
         # merge operators by rules
         if merge_flag and not masq:
+            t1 = time.time()
             preprocessing_graph = merge_sql_operator_by_rules(preprocessing_graph)
+            t2 = time.time()
+            print(f'Apply Rules Time: {t2 - t1} s')
 
         # merge operators by cost model
+        t1 = time.time()
         preprocessing_graph = merge_by_cost_model(preprocessing_graph, train_data, merge_flag, cost_flag, masq)
+        t2 = time.time()
+        print(f'Cost Model Time: {t2 - t1} s')
 
         # generate sql through the merged graph
+        t1 = time.time()
         query_str = self.__compose_sql(preprocessing_graph, table_name, dbms, pre_sql, pipeline)
+        t2 = time.time()
+        print(f'Generate SQL Time: {t2 - t1} s')
 
         return query_str
 

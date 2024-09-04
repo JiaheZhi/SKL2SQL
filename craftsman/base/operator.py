@@ -155,8 +155,8 @@ class SQLOperator(ABC):
         sorted_costs = sorted(self.costs.items(), key=lambda item: item[1])
 
         # --------------------!!!!!!!!!!!DEBUG CODE!!!!!!!!!!------------------------------
-        print(f'{self.op_name}, {self.features[0]}')
-        print(sorted_costs)
+        # print(f'{self.op_name}, {self.features[0]}')
+        # print(sorted_costs)
         # --------------------!!!!!!!!!!!DEBUG CODE!!!!!!!!!!------------------------------
 
         return SQLPlanType(sorted_costs[0][0]), [
@@ -418,7 +418,7 @@ class CAT_C_CAT(EncoderOperator):
 
     def get_push_primitive_length(self, feature, thr):
         mapping = self.mappings[self.features.index(feature)]
-        value_counts = np.array([self.value_counts[feature][category] for category in mapping.index])
+        # value_counts = np.array([self.value_counts[feature][category] for category in mapping.index])
         # if defs.ORDER_WHEN:
         #     pos_2_val = np.argsort(-value_counts)
         #     val_2_pos = {val:pos for pos, val in enumerate(pos_2_val)}

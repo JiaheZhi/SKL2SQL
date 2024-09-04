@@ -19,19 +19,19 @@ def merge_by_cost_model(graph: PrepGraph, train_data, merge_flag, cost_flag, mas
                 op = chain.prep_operators[0]
 
                 # --------------------!!!!!!!!!!!DEBUG CODE!!!!!!!!!!------------------------------
-                if 'all' == defs.EXPRIMENT_COL or feature == defs.EXPRIMENT_COL:
-                    if defs.EXPRIMENT_METHOD == SQLPlanType.CASE:
-                        new_prep_graph.chains[feature] = chain
-                    elif defs.EXPRIMENT_METHOD == SQLPlanType.FUSION:
-                        op.fusion(new_prep_graph)
-                    elif defs.EXPRIMENT_METHOD == SQLPlanType.PUSH:
-                        op.push(new_prep_graph)
-                    elif defs.EXPRIMENT_METHOD == SQLPlanType.JOIN:
-                        if hasattr(op, 'join'):
-                            op.join(new_prep_graph)
-                        else:
-                           new_prep_graph.chains[feature] = chain 
-                    continue
+                # if 'all' == defs.EXPRIMENT_COL or feature == defs.EXPRIMENT_COL:
+                #     if defs.EXPRIMENT_METHOD == SQLPlanType.CASE:
+                #         new_prep_graph.chains[feature] = chain
+                #     elif defs.EXPRIMENT_METHOD == SQLPlanType.FUSION:
+                #         op.fusion(new_prep_graph)
+                #     elif defs.EXPRIMENT_METHOD == SQLPlanType.PUSH:
+                #         op.push(new_prep_graph)
+                #     elif defs.EXPRIMENT_METHOD == SQLPlanType.JOIN:
+                #         if hasattr(op, 'join'):
+                #             op.join(new_prep_graph)
+                #         else:
+                #            new_prep_graph.chains[feature] = chain 
+                #     continue
                 # --------------------!!!!!!!!!!!DEBUG CODE!!!!!!!!!!------------------------------
 
                 # masq method: push all operator, but fusion the onehot encoder
@@ -69,10 +69,11 @@ def merge_by_cost_model(graph: PrepGraph, train_data, merge_flag, cost_flag, mas
             elif len(chain.prep_operators) >= 2:
                 new_prep_graph.chains[feature] = chain
 
-    if cost_flag:
-        pd.DataFrame(cost_results, columns=["op_name", "feature", "case", "fusion", "join", "push"]).to_csv(
-            f"{defs.COST_DIR_PATH}/{defs.CURRENT_PYTHON_FILE}_{'ordered' if defs.ORDER_WHEN else 'unordered'}.csv",
-            index=False
-        )
+    # save costs to csv file
+    # if cost_flag:
+    #     pd.DataFrame(cost_results, columns=["op_name", "feature", "case", "fusion", "join", "push"]).to_csv(
+    #         f"{defs.COST_DIR_PATH}/{defs.CURRENT_PYTHON_FILE}_{'ordered' if defs.ORDER_WHEN else 'unordered'}.csv",
+    #         index=False
+    #     )
 
     return new_prep_graph
