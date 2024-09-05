@@ -194,3 +194,5 @@ PUSH_USE_AVERAGE = False
 COST_DIR_PATH = '/home/postgres/craftsman_experiments/sql_result_cost/push_not_use_average/duckdb'
 # COST_DIR_PATH = '/home/postgres/craftsman_experiments/sql_result_cost/push_not_use_average/pg2'
 # COST_DIR_PATH = '/home/postgres/craftsman_experiments/sql_result_cost/push_not_use_average/monetdb'
+
+TIMER = 'OFF' # ON/OFF

@@ -82,22 +82,31 @@ class TransformerManager(object):
 
         # merge operators by rules
         if merge_flag and not masq:
-            t1 = time.time()
-            preprocessing_graph = merge_sql_operator_by_rules(preprocessing_graph)
-            t2 = time.time()
-            print(f'Apply Rules Time: {t2 - t1} s')
+            if defs.TIMER == 'ON':
+                t1 = time.time()
+                preprocessing_graph = merge_sql_operator_by_rules(preprocessing_graph)
+                t2 = time.time()
+                print(f'Apply Rules Time: {t2 - t1} s')
+            else:
+                preprocessing_graph = merge_sql_operator_by_rules(preprocessing_graph)
 
         # merge operators by cost model
-        t1 = time.time()
-        preprocessing_graph = merge_by_cost_model(preprocessing_graph, train_data, merge_flag, cost_flag, masq)
-        t2 = time.time()
-        print(f'Cost Model Time: {t2 - t1} s')
+        if defs.TIMER == 'ON':
+            t1 = time.time()
+            preprocessing_graph = merge_by_cost_model(preprocessing_graph, train_data, merge_flag, cost_flag, masq)
+            t2 = time.time()
+            print(f'Cost Model Time: {t2 - t1} s')
+        else:
+            preprocessing_graph = merge_by_cost_model(preprocessing_graph, train_data, merge_flag, cost_flag, masq)
 
         # generate sql through the merged graph
-        t1 = time.time()
-        query_str = self.__compose_sql(preprocessing_graph, table_name, dbms, pre_sql, pipeline)
-        t2 = time.time()
-        print(f'Generate SQL Time: {t2 - t1} s')
+        if defs.TIMER == 'ON':
+            t1 = time.time()
+            query_str = self.__compose_sql(preprocessing_graph, table_name, dbms, pre_sql, pipeline)
+            t2 = time.time()
+            print(f'Generate SQL Time: {t2 - t1} s')
+        else:
+            query_str = self.__compose_sql(preprocessing_graph, table_name, dbms, pre_sql, pipeline)
 
         return query_str
 
