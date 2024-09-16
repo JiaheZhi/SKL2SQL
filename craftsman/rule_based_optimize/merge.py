@@ -1,6 +1,9 @@
+import copy
 from pandas import DataFrame
 
-from craftsman.base.graph import PrepGraph
+from craftsman.model.base_model import TreeModel
+from craftsman.base.graph import PrepGraph, PrepChain
+from craftsman.base.plan import ChainImplementPlan, ChainFusionPlan
 from craftsman.base.operator import *
 
 
@@ -59,3 +62,395 @@ def _merge(first_op: Operator, second_op: Operator):
         return first_op.simply(second_op)
     elif choice == "disable":
         return None
+
+def _merge_by_implement_method(first_op, second_op, first_implementaion, second_implementation):
+    rule_table_content = [
+        ["uncertain", "uncertain", "disable", "disable", "disable", "disable", "uncertain"],
+        ["apply", "apply", "apply", "apply", "uncertain", "disable", "uncertain"],
+        ["apply", "apply", "apply", "apply", "simply", "simply", "uncertain"],
+        ["apply", "apply", "apply", "apply", "simply", "simply", "disable"],
+        ["apply", "apply", "apply", "apply", "disable", "disable", "uncertain"],
+        ["apply", "apply", "apply", "apply", "disable", "disable", "disable"],
+        ["disable", "disable", "disable", "disable", "disable", "disable", "disable"]
+    ]
+    
+    implementation_table_content = [
+        [SQLPlanType.CASE, SQLPlanType.CASE, None, None, None, None, None],
+        [SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, None, None],
+        [SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.JOIN, None],
+        [SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.CASE, SQLPlanType.JOIN, None],
+        [SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, None, None, None],
+        [SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, None, None, None],
+        [None, None, None, None, None, None, None]
+    ]
+
+    rule_table_index_columns = [
+        OperatorType.CON_A_CON.value + SQLPlanType.CASE.value,
+        OperatorType.CON_C_CAT.value + SQLPlanType.CASE.value,
+        OperatorType.CAT_C_CAT.value + SQLPlanType.CASE.value,
+        OperatorType.CAT_C_CAT.value + SQLPlanType.JOIN.value,
+        OperatorType.EXPAND.value + SQLPlanType.CASE.value,
+        OperatorType.EXPAND.value + SQLPlanType.JOIN.value,
+        'Tree'
+    ]
+
+    rule_table = DataFrame(
+        rule_table_content,
+        index=rule_table_index_columns,
+        columns=rule_table_index_columns
+    )
+    
+    implementation_table = DataFrame(
+        implementation_table_content,
+        index=rule_table_index_columns,
+        columns=rule_table_index_columns
+    )
+
+    if second_implementation != 'Tree' and second_implementation != 'Not-Tree':
+        choice = rule_table.loc[first_op.op_type.value + first_implementaion.value, second_op.op_type.value + second_implementation.value]
+        merged_implementation = implementation_table.loc[first_op.op_type.value + first_implementaion.value, second_op.op_type.value + second_implementation.value]
+        if choice == "apply":
+            return [[[second_op.apply(first_op)], [merged_implementation]]]
+        elif choice == "simply":
+            return [[[first_op.simply(second_op)], [merged_implementation]]]
+        elif choice == "disable":
+            return [[[first_op, second_op], [first_implementaion, second_implementation]]]
+        elif choice == "uncertain":
+            merged_op = second_op.apply(first_op)
+            if merged_op is None:
+                merged_op = first_op.simply(second_op)
+            return [[[merged_op], [merged_implementation]],
+                    [[first_op, second_op], [first_implementaion, second_implementation]]]
+            
+    elif second_implementation == 'Tree':
+        choice = rule_table.loc[first_op.op_type.value + first_implementaion.value, 'Tree']
+        if choice == "disable":
+            return [[[first_op, second_op], [first_implementaion, second_implementation]]]
+        elif choice == "uncertain":
+            copyed_model = copy.deepcopy(second_op)
+            first_op.fusion(copyed_model)
+            return[[[copyed_model], [second_implementation]],
+                   [[first_op, second_op], [first_implementaion, second_implementation]]]
+        
+    elif second_implementation == 'Not-Tree':
+        return [[[first_op, second_op], [first_implementaion, second_implementation]]]
+    
+
+def merge_sql_operator_by_chain_plan(
+    preprocessing_graph: PrepGraph,
+    chain_implement_plan: ChainImplementPlan,
+    chain_fusion_plan: ChainFusionPlan,
+    feature: str):
+    # aim to maintain a list of graph, to contain all possible plan
+    graph_list: list[PrepGraph] = []
+    
+    # original graph
+    new_prep_graph = preprocessing_graph.copy_graph()
+    new_prep_graph.chains[feature] = PrepChain(feature)
+    graph_list.append(new_prep_graph)
+    
+    # consider the special chain
+    chain = preprocessing_graph.chains[feature]
+    
+    
+    first_index = chain_fusion_plan.begin_op_index
+        
+    # if the chain don't have any operators
+    if first_index == -1:
+        return graph_list
+    
+    # if feature == 'Weather_Condition':
+    #     print(chain_fusion_plan)
+    
+    second_index = first_index
+    fusion_directions = chain_fusion_plan.fusion_directions    
+    # next_direction = fusion_directions[0]
+
+    # initial the chain for every graph
+    for graph in graph_list:
+        graph.chains[feature].prep_operators.append(chain.prep_operators[first_index])
+        graph.implements[feature].append(chain_implement_plan.chain_implement_plan[first_index])
+    
+    # fusion ops for every chain   
+    step = 0
+    while(step < len(fusion_directions)):
+        next_direction = fusion_directions[step]
+        new_graph_list = []
+        if next_direction == 1:
+            second_index = second_index + 1
+        elif next_direction == 0:
+            first_index = first_index - 1
+            
+        for graph in graph_list:
+            if next_direction == 1:
+                first_op = graph.chains[feature].prep_operators[-1]
+                first_implementaion = graph.implements[feature][-1]
+                if second_index == len(chain.prep_operators):
+                    second_op = graph.model
+                    if isinstance(second_op, TreeModel):
+                        second_implementaion = 'Tree'
+                    else:
+                        second_implementaion = 'Not-Tree'
+                else:
+                    second_op = chain.prep_operators[second_index]
+                    second_implementaion = chain_implement_plan.chain_implement_plan[second_index]
+                    
+            elif next_direction == 0:
+                first_op = chain.prep_operators[first_index]
+                first_implementaion = chain_implement_plan.chain_implement_plan[first_index]
+                if len(graph.chains[feature].prep_operators) == 0:
+                    second_op = graph.model
+                    if isinstance(second_op, TreeModel):
+                        second_implementaion = 'Tree'
+                    else:
+                        second_implementaion = 'Not-Tree'
+                else:
+                    second_op = graph.chains[feature].prep_operators[0]
+                    second_implementaion = graph.implements[feature][0]
+
+            merged_res = _merge_by_implement_method(first_op, second_op, first_implementaion, second_implementaion)
+            
+            res_graphs = [graph]
+            if len(merged_res) == 2:
+                twin_graph = graph.copy_graph()
+                res_graphs.append(twin_graph)
+            
+            for situation, graph in zip(merged_res, res_graphs):
+                if len(situation[0]) == 1:
+                    if situation[1][0] == 'Tree' or situation[1][0] == 'Not-Tree':
+                        if graph.chains[feature].prep_operators and first_op == graph.chains[feature].prep_operators[-1]:
+                            graph.chains[feature].prep_operators.pop()
+                            graph.implements[feature].pop()
+                        graph.model = situation[0][0]
+                    else:
+                        if next_direction == 1:
+                            graph.chains[feature].prep_operators[-1] = situation[0][0]
+                            graph.implements[feature][-1] = situation[1][0]
+                        else:
+                            graph.chains[feature].prep_operators[0] = situation[0][0]
+                            graph.implements[feature][0] = situation[1][0]
+                            
+                elif len(situation[0]) == 2:
+                    if situation[1][1] == 'Tree' or situation[1][1] == 'Not-Tree':
+                        pass
+                    else:
+                        if next_direction == 1:
+                            graph.chains[feature].prep_operators.append(situation[0][1])
+                            graph.implements[feature].append(situation[1][1])
+                        else:
+                            graph.chains[feature].prep_operators.insert(0, situation[0][1])
+                            graph.implements[feature].insert(0, situation[1][1])
+                new_graph_list.append(graph)   
+        
+        step = step + 1            
+        graph_list = new_graph_list
+        
+    # join the op to model if the implement is join
+    for graph in graph_list:
+        chain = graph.chains[feature]
+        new_prep_operators = []
+        for i, op in enumerate(chain.prep_operators):
+            if graph.implements[feature][i] == SQLPlanType.JOIN:
+                op.join(graph)
+            else:
+                new_prep_operators.append(op)
+        chain.prep_operators = new_prep_operators
+                
+    return graph_list
+
+
+def merge_sql_operator_by_graph_plan(
+    preprocessing_graph: PrepGraph,
+    graph_implement_plan: list[ChainImplementPlan],
+    graph_fusion_plan: list[ChainFusionPlan],
+):
+    # aim to maintain a list of graph, to contain all possible plan
+    graph_list: list[PrepGraph] = []
+    
+    # original graph
+    new_prep_graph = preprocessing_graph.get_empty_chains_graph()
+    graph_list.append(new_prep_graph)
+    
+    
+    
+    # consider the iteration, chains by chains
+    for index, item in enumerate(preprocessing_graph.chains.items()):
+        feature, chain = item
+        chain_implement_plan = graph_implement_plan[index]
+        chain_fusion_plan = graph_fusion_plan[index]
+        first_index = chain_fusion_plan.begin_op_index
+        
+        # if the chain don't have any operators
+        if first_index == -1:
+            continue
+        
+        # if feature == 'Weather_Condition':
+        #     print(chain_fusion_plan)
+        
+        second_index = first_index
+        fusion_directions = chain_fusion_plan.fusion_directions    
+        # next_direction = fusion_directions[0]
+    
+        # initial the chain for every graph
+        for graph in graph_list:
+            graph.chains[feature].prep_operators.append(chain.prep_operators[first_index])
+            graph.implements[feature].append(chain_implement_plan.chain_implement_plan[first_index])
+        
+        # fusion ops for every chain   
+        step = 0
+        while(step < len(fusion_directions)):
+            next_direction = fusion_directions[step]
+            new_graph_list = []
+            if next_direction == 1:
+                second_index = second_index + 1
+            elif next_direction == 0:
+                first_index = first_index - 1
+                
+            for graph in graph_list:
+                if next_direction == 1:
+                    first_op = graph.chains[feature].prep_operators[-1]
+                    first_implementaion = graph.implements[feature][-1]
+                    if second_index == len(chain.prep_operators):
+                        second_op = graph.model
+                        if isinstance(second_op, TreeModel):
+                            second_implementaion = 'Tree'
+                        else:
+                            second_implementaion = 'Not-Tree'
+                    else:
+                        second_op = chain.prep_operators[second_index]
+                        second_implementaion = chain_implement_plan.chain_implement_plan[second_index]
+                        
+                elif next_direction == 0:
+                    first_op = chain.prep_operators[first_index]
+                    first_implementaion = chain_implement_plan.chain_implement_plan[first_index]
+                    if len(graph.chains[feature].prep_operators) == 0:
+                        second_op = graph.model
+                        if isinstance(second_op, TreeModel):
+                            second_implementaion = 'Tree'
+                        else:
+                            second_implementaion = 'Not-Tree'
+                    else:
+                        second_op = graph.chains[feature].prep_operators[0]
+                        second_implementaion = graph.implements[feature][0]
+
+                merged_res = _merge_by_implement_method(first_op, second_op, first_implementaion, second_implementaion)
+                
+                res_graphs = [graph]
+                if len(merged_res) == 2:
+                    twin_graph = graph.copy_graph()
+                    res_graphs.append(twin_graph)
+                
+                for situation, graph in zip(merged_res, res_graphs):
+                    if len(situation[0]) == 1:
+                        if situation[1][0] == 'Tree' or situation[1][0] == 'Not-Tree':
+                            if graph.chains[feature].prep_operators and first_op == graph.chains[feature].prep_operators[-1]:
+                                graph.chains[feature].prep_operators.pop()
+                                graph.implements[feature].pop()
+                            graph.model = situation[0][0]
+                        else:
+                            if next_direction == 1:
+                                graph.chains[feature].prep_operators[-1] = situation[0][0]
+                                graph.implements[feature][-1] = situation[1][0]
+                            else:
+                                graph.chains[feature].prep_operators[0] = situation[0][0]
+                                graph.implements[feature][0] = situation[1][0]
+                                
+                    elif len(situation[0]) == 2:
+                        if situation[1][1] == 'Tree' or situation[1][1] == 'Not-Tree':
+                            pass
+                        else:
+                            if next_direction == 1:
+                                graph.chains[feature].prep_operators.append(situation[0][1])
+                                graph.implements[feature].append(situation[1][1])
+                            else:
+                                graph.chains[feature].prep_operators.insert(0, situation[0][1])
+                                graph.implements[feature].insert(0, situation[1][1])
+                    new_graph_list.append(graph)   
+            
+            step = step + 1            
+            graph_list = new_graph_list
+    
+    # join the op to model if the implement is join
+    for graph in graph_list:
+        for feature, chain in graph.chains.items():
+            new_prep_operators = []
+            for i, op in enumerate(chain.prep_operators):
+                if graph.implements[feature][i] == SQLPlanType.JOIN:
+                    op.join(graph)
+                else:
+                    new_prep_operators.append(op)
+            chain.prep_operators = new_prep_operators
+                
+    return graph_list
+            
+            
+def implement_operator_by_plan(preprocessing_graph: PrepGraph, graph_implement_plan):
+    new_prep_graph = preprocessing_graph.get_empty_chains_graph()
+    for index, item in enumerate(preprocessing_graph.chains.items()):
+        feature, chain = item
+        for op, implement in zip(chain.prep_operators, graph_implement_plan[index].chain_implement_plan):
+            if implement == SQLPlanType.JOIN:
+                op.join(new_prep_graph)
+            else:
+                new_prep_graph.chains[feature].prep_operators.append(op)
+    return new_prep_graph
+
+def merge_sql_operator_by_benifit_rules(graph: PrepGraph):
+    new_prep_graph = graph.get_empty_chains_graph()
+
+    for feature, chain in graph.chains.items():
+        if chain.prep_operators:
+            first_op = chain.prep_operators[0]
+            op_idx = 1
+            while op_idx < len(chain.prep_operators):
+                second_op = chain.prep_operators[op_idx]
+                op_idx += 1
+                merged_res = _merge_by_implement_method(first_op, second_op, SQLPlanType.CASE, SQLPlanType.CASE)
+                if len(merged_res) == 2 or len(merged_res[0]) == 2:
+                    new_prep_graph.chains[feature].prep_operators.append(first_op)
+                    first_op = second_op
+                else:
+                    first_op = merged_res[0][0][0]
+
+            if (
+                not new_prep_graph.chains[feature].prep_operators
+                or first_op != new_prep_graph.chains[feature].prep_operators[-1]
+            ):
+                new_prep_graph.chains[feature].prep_operators.append(first_op)
+
+    return new_prep_graph
+
+def merge_sql_operator_by_uncertain_rules(graph: PrepGraph):
+    new_prep_graph = graph.get_empty_chains_graph()
+
+    for feature, chain in graph.chains.items():
+        if chain.prep_operators:
+            first_op = chain.prep_operators[0]
+            op_idx = 1
+            while op_idx < len(chain.prep_operators):
+                second_op = chain.prep_operators[op_idx]
+                op_idx += 1
+                merged_res = _merge_by_implement_method(first_op, second_op, SQLPlanType.CASE, SQLPlanType.CASE)
+                if len(merged_res) == 2:
+                    first_op = merged_res[0][0][0]
+                else:
+                    new_prep_graph.chains[feature].prep_operators.append(first_op)
+                    first_op = second_op
+
+            if (
+                not new_prep_graph.chains[feature].prep_operators
+                or first_op != new_prep_graph.chains[feature].prep_operators[-1]
+            ):
+                new_prep_graph.chains[feature].prep_operators.append(first_op)
+    
+    if isinstance(new_prep_graph.model, TreeModel):
+        for feature, chain in new_prep_graph.chains.items():
+            if chain.prep_operators:
+                op = chain.prep_operators[-1]
+                merged_res = _merge_by_implement_method(op, new_prep_graph.model, SQLPlanType.CASE, 'Tree')
+                if len(merged_res) == 2:
+                    new_prep_graph.model = merged_res[0][0][0]
+                    chain.prep_operators.pop()
+    
+
+    return new_prep_graph

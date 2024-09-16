@@ -22,13 +22,20 @@ class CalculationType(Enum):
 
 
 class OperatorType(Enum):
-    CON_A_CON = 1
-    CON_C_CAT = 2
-    CON_M_CON = 3
-    CAT_C_CAT = 4
-    EXPAND = 5
-    IMPUTE = 6
-    TEMP = 7 # con-c-cat fuse expand
+    # CON_A_CON = 1
+    # CON_C_CAT = 2
+    # CON_M_CON = 3
+    # CAT_C_CAT = 4
+    # EXPAND = 5
+    # IMPUTE = 6
+    # TEMP = 7 # con-c-cat fuse expand
+    CON_A_CON = 'con_a_con'
+    CON_C_CAT = 'con_c_cat'
+    CON_M_CON = 'con_m_con'
+    CAT_C_CAT = 'cat_c_cat'
+    EXPAND = 'expand'
+    IMPUTE = 'impute'
+    TEMP = 'temp' # con-c-cat fuse expand
 
 
 class OperatorName(Enum):

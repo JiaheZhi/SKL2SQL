@@ -77,6 +77,11 @@ class DecisionTreeClassifierSQLModel(TreeModel):
         tree_cost = TreeCost(feature, operator, self)
         tree_cost.analyze_path_push_cost(feature, operator, self)
         return [tree_cost]
+    
+    def get_tree_costs_static(self, feature):
+        tree_cost = TreeCost(feature, model=self)
+        tree_cost.analyze_path_cost(feature, self)
+        return [tree_cost]
 
     def modify_model(self, feature: str, sql_operator: Operator):
         for idx, node in enumerate(self.trained_model.tree_.feature):

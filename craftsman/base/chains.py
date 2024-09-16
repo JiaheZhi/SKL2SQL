@@ -1,5 +1,6 @@
 import re
 import importlib
+import copy
 from craftsman.base.operator import Operator
 from craftsman.base.defs import PREPROCESS_PACKAGE_PATH, OperatorName
 
@@ -38,3 +39,8 @@ class PrepChain(object):
                     operator = operator_class(after_expand_features, fitted_transform)
                     
                 self.prep_operators.append(operator)
+                
+    def copy(self):
+        new_chain = PrepChain(self.feature)
+        new_chain.prep_operators = copy.deepcopy(self.prep_operators)
+        return new_chain

@@ -72,7 +72,10 @@ class SQLOperator(ABC):
 
     def fusion(self, graph):
         for feature in self.features_out:
-            graph.model.modify_model(feature, self)
+            if hasattr(graph, 'model'):
+                graph.model.modify_model(feature, self)
+            else:
+                graph.modify_model(feature, self)
 
     @abstractmethod
     def modify_leaf(self, feature, op, thr):
@@ -201,6 +204,10 @@ class EncoderOperator(SQLOperator):
     @abstractmethod
     def _get_join_cost(self, feature, graph, train_data):
         pass
+    
+    @abstractmethod
+    def _get_join_cost_without_tree(self, feature, graph, train_data):
+        pass
 
 
 Operator = Type[SQLOperator]
@@ -235,8 +242,8 @@ class CAT_C_CAT(EncoderOperator):
             for idx, mapping in enumerate(first_op.mappings):
                 merged_op.mappings.append(
                     Series(
-                        Series(first_op.categories[idx])
-                        .apply(lambda x: mapping[x] if x in mapping.index else 0)
+                        Series(mapping)
+                        .apply(lambda x: self.mappings[idx][x] if x in self.mappings[idx].index else 0)
                         .values,
                         index=mapping.index,
                     )
@@ -391,6 +398,14 @@ class CAT_C_CAT(EncoderOperator):
             )
         )
         return total_tree_cost + join_cost
+    
+    def _get_join_cost_without_tree(self, feature, graph, train_data):
+        join_cost = (
+            calc_join_cost_by_sample_data(
+                train_data, len(self.mappings[self.features_out.index(feature)]), 1
+            )
+        )
+        return join_cost
 
     def get_fusion_primitive_type(self, feature, thr):
         return PrimitiveType.IN
@@ -784,7 +799,14 @@ class EXPAND(EncoderOperator):
             )
         )
         return total_tree_cost + join_cost
-
+    
+    def _get_join_cost_without_tree(self, feature, graph, train_data):
+        join_cost = (
+            calc_join_cost_by_sample_data(
+                train_data, len(self.mapping), len(self.mapping.columns)
+            )
+        )
+        return  join_cost
 
 class CON_A_CON(SQLOperator):
 
@@ -1087,13 +1109,32 @@ class CON_C_CAT(SQLOperator):
             return " OR ".join(condition_sqls), "", ""
         
         else:
-            for i, category in enumerate(categoiry_list):
-                if category > thr:
-                    return (
-                        DBMSUtils.get_delimited_col(defs.DBMS, feature),
-                        op,
-                        bin_edge[i],
+            if op == 'in':
+                intervals = []
+                for in_value in [float(x) for x in thr[1:-1].split(',')]:
+                    if in_value in categoiry_list:
+                        i = categoiry_list.tolist().index(in_value)
+                        intervals.append((bin_edge[i], bin_edge[i + 1]))
+                merged_intervals = merge_intervals(intervals)
+                condition_sqls = []
+                for i in range(len(merged_intervals)):
+                    condition_sql = (
+                        f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} >= {merged_intervals[i][0]}"
+                        + " AND "
+                        + f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} < {merged_intervals[i][1]}"
                     )
+                    condition_sqls.append(condition_sql)
+                    
+                return " OR ".join(condition_sqls), "", ""
+                        
+            elif op == '<=':
+                for i, category in enumerate(categoiry_list):
+                    if category > thr:
+                        return (
+                            DBMSUtils.get_delimited_col(defs.DBMS, feature),
+                            op,
+                            bin_edge[i],
+                        )
 
     def modify_leaf_p(self, feature, op, thr):
         idx = self.features_out.index(feature)
