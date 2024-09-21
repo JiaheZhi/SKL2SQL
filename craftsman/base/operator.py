@@ -10,7 +10,7 @@ import craftsman.base.defs as defs
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.utility.join_utils import insert_db, df_type2db_type
 from craftsman.utility.base_utils import merge_intervals
-from craftsman.cost_model.utils import calc_join_cost_by_sample_data
+from craftsman.cost_model.utils import calc_join_cost_by_train_data
 
 
 class SQLOperator(ABC):
@@ -90,10 +90,10 @@ class SQLOperator(ABC):
         pass
 
     @abstractmethod
-    def _get_op_cost(self, feature, sample_data):
+    def _get_op_cost(self, feature):
         pass
 
-    def __get_case_cost(self, feature, graph, train_data):
+    def __get_case_cost(self, feature, graph):
         if graph.model.model_name in (
             ModelName.DECISIONTREECLASSIFIER,
             ModelName.RANDOMFORESTCLASSIFIER,
@@ -106,7 +106,7 @@ class SQLOperator(ABC):
             )
         else:
             total_model_cost = 0
-        op_cost = self._get_op_cost(feature, train_data)
+        op_cost = self._get_op_cost(feature)
         return total_model_cost + op_cost
 
     def __get_fusion_cost(self, feature, graph):
@@ -123,7 +123,7 @@ class SQLOperator(ABC):
         )
         return total_push_cost
 
-    def get_best_plan(self, graph, train_data) -> SQLPlanType:
+    def get_best_plan(self, graph, data_rows) -> SQLPlanType:
         if graph.model.model_name in (
             ModelName.DECISIONTREECLASSIFIER,
             ModelName.RANDOMFORESTCLASSIFIER,
@@ -141,7 +141,7 @@ class SQLOperator(ABC):
 
         case_cost = 0
         for feature in self.features_out:
-            case_cost += self.__get_case_cost(feature, graph, train_data)
+            case_cost += self.__get_case_cost(feature, graph)
 
         self.costs = {
             SQLPlanType.FUSION.value: fusion_cost,
@@ -150,7 +150,7 @@ class SQLOperator(ABC):
         }
 
         if self.is_encoder:
-            join_cost = self._get_join_cost(self.features[0], graph, train_data)
+            join_cost = self._get_join_cost(self.features[0], graph, data_rows)
             self.costs[SQLPlanType.JOIN.value] = join_cost
         else:
             self.costs[SQLPlanType.JOIN.value] = float("inf")
@@ -202,11 +202,11 @@ class EncoderOperator(SQLOperator):
         pass
 
     @abstractmethod
-    def _get_join_cost(self, feature, graph, train_data):
+    def _get_join_cost(self, feature, graph, data_rows):
         pass
     
     @abstractmethod
-    def _get_join_cost_without_tree(self, feature, graph, train_data):
+    def _get_join_cost_without_tree(self, feature, graph, data_rows):
         pass
 
 
@@ -379,7 +379,7 @@ class CAT_C_CAT(EncoderOperator):
         # feature_sub_sql += "ELSE {} END ".format(mapping.iloc[-1])
         return feature_sql, op, thr
 
-    def _get_join_cost(self, feature, graph, train_data):
+    def _get_join_cost(self, feature, graph, data_rows):
         if graph.model.model_name in (
             ModelName.DECISIONTREECLASSIFIER,
             ModelName.RANDOMFORESTCLASSIFIER,
@@ -393,16 +393,16 @@ class CAT_C_CAT(EncoderOperator):
         else:
             total_tree_cost = 0
         join_cost = (
-            calc_join_cost_by_sample_data(
-                train_data, len(self.mappings[self.features_out.index(feature)]), 1
+            calc_join_cost_by_train_data(
+                data_rows, len(self.mappings[self.features_out.index(feature)]), 1
             )
         )
         return total_tree_cost + join_cost
     
-    def _get_join_cost_without_tree(self, feature, graph, train_data):
+    def _get_join_cost_without_tree(self, feature, graph, data_rows):
         join_cost = (
-            calc_join_cost_by_sample_data(
-                train_data, len(self.mappings[self.features_out.index(feature)]), 1
+            calc_join_cost_by_train_data(
+                data_rows, len(self.mappings[self.features_out.index(feature)]), 1
             )
         )
         return join_cost
@@ -418,7 +418,7 @@ class CAT_C_CAT(EncoderOperator):
                 in_length += 1
         return in_length
 
-    def _get_op_cost(self, feature, sample_data):
+    def _get_op_cost(self, feature):
         mapping = self.mappings[self.features.index(feature)]
         value_counts = np.array([self.value_counts[feature][category] for category in mapping.index])
         if defs.ORDER_WHEN:
@@ -700,7 +700,7 @@ class EXPAND(EncoderOperator):
                 return 1
             return in_length
 
-    def _get_op_cost(self, feature, sample_data):
+    def _get_op_cost(self, feature):
         mapping = self.mapping[feature]
         mapping = mapping[~mapping.index.isnull()]
         mapping = mapping[[idx for idx in mapping.index if idx != "NaN"]]
@@ -709,42 +709,61 @@ class EXPAND(EncoderOperator):
             ascending=True
         )
         categories_list = Series(categories_list[sorted_categories_list.index], index=sorted_categories_list.index)
+        value_counts = self.value_counts[feature]
 
         if self.con_c_cat_mapping is None:
 
-            def calc_cost_e(x):
-                cost = 0
-                for in_list in categories_list:
-                    cost += PrimitiveCost.IN(len(in_list))
-                    if x in in_list:
-                        break
-                return cost
+            # def calc_cost_e(x):
+            #     cost = 0
+            #     for in_list in categories_list:
+            #         cost += PrimitiveCost.IN(len(in_list))
+            #         if x in in_list:
+            #             break
+            #     return cost
 
-            data_primitive_costs = sample_data["_".join(feature.split("_")[:-1])].apply(
-                lambda x: calc_cost_e(x)
-            )
-            return sum(data_primitive_costs)
-
+            # data_primitive_costs = sample_data["_".join(feature.split("_")[:-1])].apply(
+            #     lambda x: calc_cost_e(x)
+            # )
+            # return sum(data_primitive_costs)
+            cost = 0
+            before_len = 0
+            for enc_value in categories_list.index.tolist()[:-1]:
+                list_len = len(categories_list[enc_value])
+                cost += PrimitiveCost.IN(before_len + list_len) * value_counts[enc_value]
+                before_len += list_len
+            return cost
         else:
 
-            def calc_cost_c(x):
-                cost = 0
-                contain = False
-                for _, in_list in categories_list:
-                    intervals = []
-                    for in_value in in_list:
-                        intervals.extend(self.con_c_cat_mapping[in_value])
-                    merged_intervals = merge_intervals(intervals)
-                    for interval in merged_intervals:
-                        cost += PrimitiveCost.OR.value
-                        if x >= interval[0] and x < interval[1]:
-                            contain = True
-                            break
-                    if contain:
-                        break
+            # def calc_cost_c(x):
+            #     cost = 0
+            #     contain = False
+            #     for _, in_list in categories_list:
+            #         intervals = []
+            #         for in_value in in_list:
+            #             intervals.extend(self.con_c_cat_mapping[in_value])
+            #         merged_intervals = merge_intervals(intervals)
+            #         for interval in merged_intervals:
+            #             cost += PrimitiveCost.OR.value
+            #             if x >= interval[0] and x < interval[1]:
+            #                 contain = True
+            #                 break
+            #         if contain:
+            #             break
 
-            data_primitive_costs = sample_data[feature].apply(lambda x: calc_cost_c(x))
-            return sum(data_primitive_costs)
+            # data_primitive_costs = sample_data[feature].apply(lambda x: calc_cost_c(x))
+            # return sum(data_primitive_costs)
+            cost = 0
+            before_len = 0
+            for enc_value in categories_list.index.tolist()[:-1]:
+                in_list = categories_list[enc_value]
+                intervals = []
+                for in_value in in_list:
+                    intervals.extend(self.con_c_cat_mapping[in_value])
+                    merged_intervals = merge_intervals(intervals)
+                inequal_len = len(merged_intervals)
+                cost += PrimitiveCost.OR * (before_len + inequal_len) * value_counts[enc_value]
+                before_len += inequal_len
+            return cost
 
     def get_push_primitive_type(self, feature, thr):
         if self.con_c_cat_mapping:
@@ -778,9 +797,9 @@ class EXPAND(EncoderOperator):
             for enc_value in categories_list.index.tolist()[:-1]:
                 in_length += len(categories_list[enc_value])
             return in_length
-        # TODO: need use accutate length
+        # TODO: need use more accurate length
 
-    def _get_join_cost(self, feature, graph, train_data):
+    def _get_join_cost(self, feature, graph, data_rows):
         if graph.model.model_name in (
             ModelName.DECISIONTREECLASSIFIER,
             ModelName.RANDOMFORESTCLASSIFIER,
@@ -794,19 +813,19 @@ class EXPAND(EncoderOperator):
         else:
             total_tree_cost = 0
         join_cost = (
-            calc_join_cost_by_sample_data(
-                train_data, len(self.mapping), len(self.mapping.columns)
+            calc_join_cost_by_train_data(
+                data_rows, len(self.mapping), len(self.mapping.columns)
             )
         )
         return total_tree_cost + join_cost
     
-    def _get_join_cost_without_tree(self, feature, graph, train_data):
+    def _get_join_cost_without_tree(self, feature, graph, data_rows):
         join_cost = (
-            calc_join_cost_by_sample_data(
-                train_data, len(self.mapping), len(self.mapping.columns)
+            calc_join_cost_by_train_data(
+                data_rows, len(self.mapping), len(self.mapping.columns)
             )
         )
-        return  join_cost
+        return join_cost
 
 class CON_A_CON(SQLOperator):
 
@@ -953,8 +972,8 @@ class CON_A_CON(SQLOperator):
     def get_fusion_primitive_length(self, feature, feature_value):
         return 1
 
-    def _get_op_cost(self, feature, sample_data):
-        return 0
+    def _get_op_cost(self, feature):
+        return 1
 
     def get_push_primitive_type(self, feature, thr):
         return PrimitiveType.LE_EQ
@@ -1135,6 +1154,10 @@ class CON_C_CAT(SQLOperator):
                             op,
                             bin_edge[i],
                         )
+                pass
+            
+            else:
+                pass
 
     def modify_leaf_p(self, feature, op, thr):
         idx = self.features_out.index(feature)
@@ -1189,7 +1212,7 @@ class CON_C_CAT(SQLOperator):
             merged_intervals = merge_intervals(intervals)
             return len(merged_intervals) / 2
 
-    def _get_op_cost(self, feature, sample_data):
+    def _get_op_cost(self, feature):
         idx = self.features_out.index(feature)
         bin_distribution = self.bin_distribution[self.features[idx]]
         if defs.ORDER_WHEN:

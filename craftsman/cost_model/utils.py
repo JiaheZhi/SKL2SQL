@@ -1,5 +1,6 @@
 import craftsman.base.defs as defs
 import subprocess
+import time
 
 def tree_paths(tree, node=0, path=None):
     """
@@ -15,18 +16,18 @@ def tree_paths(tree, node=0, path=None):
         yield from tree_paths(tree, tree.children_right[node], path.copy())
 
 
-def calc_join_cost_by_sample_data(sample_data, join_table_rows, join_table_columns ):
+def calc_join_cost_by_train_data(data_rows, join_table_rows, join_table_columns):
     # pg
     if defs.DBMS == 'postgresql':
-        return len(sample_data) * (4.43204396e-05 * join_table_rows + 9.08197566e-02 * join_table_columns)
+        return data_rows * (4.43204396e-05 * join_table_rows + 9.08197566e-02 * join_table_columns)
 
     # duckdb
     elif defs.DBMS == 'duckdb':
-        return len(sample_data) * (1.02122041e-08 * join_table_rows + 1.02417616e-05 * join_table_columns)
+        return data_rows * (1.02122041e-08 * join_table_rows + 1.02417616e-05 * join_table_columns)
 
     # monetdb
     elif defs.DBMS == 'monetdb':
-        return len(sample_data) * (4.58751378e-07 * join_table_rows + 1.67787246e-03 * join_table_columns)
+        return data_rows * (4.58751378e-07 * join_table_rows + 1.67787246e-03 * join_table_columns)
 
     # TODO: choose the accurate join cost model
 
@@ -60,15 +61,35 @@ def get_pg_sql_cost(sql: str):
     return execution_cost
 
 
-def get_craftsman_graph_cost(graph, train_data):
+def get_craftsman_graph_cost(graph, data_rows):
     cost = 0
+    timer = False
     
-    # case op cost
+    if timer:
+        t1 = time.time()
+    
+    # op cost
     for feature, chain in graph.chains.items():
-        for op in chain.prep_operators:
-            for feature_out in op.features_out:
-                cost += op._get_op_cost(feature_out, train_data)
+        if feature == 'Brand':
+            pass
+        implements = graph.implements[feature]
+        for idx, op in enumerate(chain.prep_operators):
+            # case op cost
+            if implements[idx] == defs.SQLPlanType.CASE:
+                for feature_out in op.features_out:
+                    cost += op._get_op_cost(feature_out)
+                    
+            # join op cost
+            elif implements[idx] == defs.SQLPlanType.JOIN:
+                for feature in op.features:
+                    cost += op._get_join_cost_without_tree(feature, graph, data_rows)
+    if timer:
+        t2 = time.time()
+        print(f'op cost time: {t2 - t1}s')
         
+    if timer:
+        t1 = time.time()
+    
     # tree cost
     for feature in graph.model.input_features:
         if graph.model.model_name in (
@@ -77,17 +98,30 @@ def get_craftsman_graph_cost(graph, train_data):
             defs.ModelName.DECISIONTREEREGRESSOR,
             defs.ModelName.RANDOMFORESTREGRESSOR,
         ):
+            if feature == 'Brand':
+                pass
             tree_costs = graph.model.get_tree_costs_static(feature)
             total_tree_cost = sum(
-                [tree_cost.calculate_no_fusion_cost() for tree_cost in tree_costs]
+                [tree_cost.calculate_tree_cost() for tree_cost in tree_costs]
             )
             cost += total_tree_cost
+   
+    if timer:
+        t2 = time.time()
+        print(f'tree cost time: {t2 - t1}s')
     
-    # join op cost
-    for op in graph.join_operators:
-        for feature in op.features:
-            cost += op._get_join_cost_without_tree(feature, graph, train_data)
+    # if timer:
+    #     t1 = time.time()
         
+    # # join op cost
+    # for op in graph.join_operators:
+    #     for feature in op.features:
+    #         cost += op._get_join_cost_without_tree(feature, graph, data_rows)
+    
+    # if timer:
+    #     t2 = time.time()
+    #     print(f'join op cost time: {t2 - t1}s')    
+    
     return cost
         
     

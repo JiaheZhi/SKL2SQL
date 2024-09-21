@@ -119,9 +119,16 @@ def _merge_by_implement_method(first_op, second_op, first_implementaion, second_
             merged_op = second_op.apply(first_op)
             if merged_op is None:
                 merged_op = first_op.simply(second_op)
-            return [[[merged_op], [merged_implementation]],
-                    [[first_op, second_op], [first_implementaion, second_implementation]]]
-            
+            # special case, directly merge
+            if ((first_op.op_name == OperatorName.STANDARDSCALER and second_op.op_name == OperatorName.MINMAXSCALER) 
+                or (first_op.op_name == OperatorName.MINMAXSCALER and second_op.op_name == OperatorName.STANDARDSCALER)
+                or (first_op.op_name == OperatorName.STANDARDSCALER and second_op.op_name == OperatorName.KBINSDISCRETIZER)
+                or (first_op.op_name == OperatorName.MINMAXSCALER and second_op.op_name == OperatorName.KBINSDISCRETIZER)):
+                return [[[merged_op], [merged_implementation]]]
+            else:
+                return [[[merged_op], [merged_implementation]],
+                        [[first_op, second_op], [first_implementaion, second_implementation]]]
+                
     elif second_implementation == 'Tree':
         choice = rule_table.loc[first_op.op_type.value + first_implementaion.value, 'Tree']
         if choice == "disable":
@@ -129,8 +136,12 @@ def _merge_by_implement_method(first_op, second_op, first_implementaion, second_
         elif choice == "uncertain":
             copyed_model = copy.deepcopy(second_op)
             first_op.fusion(copyed_model)
-            return[[[copyed_model], [second_implementation]],
-                   [[first_op, second_op], [first_implementaion, second_implementation]]]
+            # special case, directly fusion
+            if first_op.op_name in (OperatorName.KBINSDISCRETIZER, OperatorName.STANDARDSCALER, OperatorName.MINMAXSCALER):
+                return[[[copyed_model], [second_implementation]]]
+            else:
+                return[[[copyed_model], [second_implementation]],
+                    [[first_op, second_op], [first_implementaion, second_implementation]]]
         
     elif second_implementation == 'Not-Tree':
         return [[[first_op, second_op], [first_implementaion, second_implementation]]]
@@ -147,6 +158,7 @@ def merge_sql_operator_by_chain_plan(
     # original graph
     new_prep_graph = preprocessing_graph.copy_graph()
     new_prep_graph.chains[feature] = PrepChain(feature)
+    new_prep_graph.implements[feature] = []
     graph_list.append(new_prep_graph)
     
     # consider the special chain
@@ -246,15 +258,15 @@ def merge_sql_operator_by_chain_plan(
         graph_list = new_graph_list
         
     # join the op to model if the implement is join
-    for graph in graph_list:
-        chain = graph.chains[feature]
-        new_prep_operators = []
-        for i, op in enumerate(chain.prep_operators):
-            if graph.implements[feature][i] == SQLPlanType.JOIN:
-                op.join(graph)
-            else:
-                new_prep_operators.append(op)
-        chain.prep_operators = new_prep_operators
+    # for graph in graph_list:
+    #     chain = graph.chains[feature]
+    #     new_prep_operators = []
+    #     for i, op in enumerate(chain.prep_operators):
+    #         if graph.implements[feature][i] == SQLPlanType.JOIN:
+    #             op.join(graph)
+    #         else:
+    #             new_prep_operators.append(op)
+    #     chain.prep_operators = new_prep_operators
                 
     return graph_list
 
@@ -371,17 +383,29 @@ def merge_sql_operator_by_graph_plan(
             graph_list = new_graph_list
     
     # join the op to model if the implement is join
-    for graph in graph_list:
-        for feature, chain in graph.chains.items():
-            new_prep_operators = []
-            for i, op in enumerate(chain.prep_operators):
-                if graph.implements[feature][i] == SQLPlanType.JOIN:
-                    op.join(graph)
-                else:
-                    new_prep_operators.append(op)
-            chain.prep_operators = new_prep_operators
+    # for graph in graph_list:
+    #     for feature, chain in graph.chains.items():
+    #         new_prep_operators = []
+    #         for i, op in enumerate(chain.prep_operators):
+    #             if graph.implements[feature][i] == SQLPlanType.JOIN:
+    #                 op.join(graph)
+    #             else:
+    #                 new_prep_operators.append(op)
+    #         chain.prep_operators = new_prep_operators
                 
     return graph_list
+
+
+def join_the_operators(preprocessing_graph: PrepGraph):
+    new_prep_graph = preprocessing_graph.get_empty_chains_graph()    
+    for feature, chain in preprocessing_graph.chains.items():
+        for i, op in enumerate(chain.prep_operators):
+            if preprocessing_graph.implements[feature][i] == SQLPlanType.JOIN:
+                op.join(new_prep_graph)
+            else:
+                new_prep_graph.chains[feature].prep_operators.append(op)
+                new_prep_graph.implements[feature].append(preprocessing_graph.implements[feature][i])
+    return new_prep_graph
             
             
 def implement_operator_by_plan(preprocessing_graph: PrepGraph, graph_implement_plan):
@@ -389,68 +413,91 @@ def implement_operator_by_plan(preprocessing_graph: PrepGraph, graph_implement_p
     for index, item in enumerate(preprocessing_graph.chains.items()):
         feature, chain = item
         for op, implement in zip(chain.prep_operators, graph_implement_plan[index].chain_implement_plan):
-            if implement == SQLPlanType.JOIN:
-                op.join(new_prep_graph)
-            else:
-                new_prep_graph.chains[feature].prep_operators.append(op)
+            # if implement == SQLPlanType.JOIN:
+            #     op.join(new_prep_graph)
+            new_prep_graph.chains[feature].prep_operators.append(op)
+            new_prep_graph.implements[feature].append(implement)
     return new_prep_graph
 
 def merge_sql_operator_by_benifit_rules(graph: PrepGraph):
     new_prep_graph = graph.get_empty_chains_graph()
-
-    for feature, chain in graph.chains.items():
+    for index, item in enumerate(graph.chains.items()):
+        feature, chain = item
+        implements = graph.implements[feature]
         if chain.prep_operators:
             first_op = chain.prep_operators[0]
+            first_implement = implements[0]
             op_idx = 1
             while op_idx < len(chain.prep_operators):
                 second_op = chain.prep_operators[op_idx]
+                second_implement = implements[op_idx]
                 op_idx += 1
-                merged_res = _merge_by_implement_method(first_op, second_op, SQLPlanType.CASE, SQLPlanType.CASE)
-                if len(merged_res) == 2 or len(merged_res[0]) == 2:
+                merged_res = _merge_by_implement_method(first_op, second_op, first_implement, second_implement)
+                if len(merged_res) == 2 or len(merged_res[0][0]) == 2:
                     new_prep_graph.chains[feature].prep_operators.append(first_op)
+                    new_prep_graph.implements[feature].append(first_implement)
                     first_op = second_op
+                    first_implement = second_implement
                 else:
                     first_op = merged_res[0][0][0]
+                    first_implement = merged_res[0][1][0]
 
             if (
                 not new_prep_graph.chains[feature].prep_operators
                 or first_op != new_prep_graph.chains[feature].prep_operators[-1]
             ):
                 new_prep_graph.chains[feature].prep_operators.append(first_op)
+                new_prep_graph.implements[feature].append(first_implement)
 
+    if isinstance(new_prep_graph.model, TreeModel):
+        for index, (feature, chain) in enumerate(new_prep_graph.chains.items()):
+            if chain.prep_operators:
+                op = chain.prep_operators[-1]
+                merged_res = _merge_by_implement_method(op, new_prep_graph.model, SQLPlanType.CASE, 'Tree')
+                if len(merged_res) == 1 and len(merged_res[0][0]) == 1:
+                    new_prep_graph.model = merged_res[0][0][0]
+                    new_prep_graph.implements[feature].pop()
+                    chain.prep_operators.pop()
     return new_prep_graph
 
 def merge_sql_operator_by_uncertain_rules(graph: PrepGraph):
     new_prep_graph = graph.get_empty_chains_graph()
-
-    for feature, chain in graph.chains.items():
+    for index, item in enumerate(graph.chains.items()):
+        feature, chain = item
+        implements = graph.implements[feature]
         if chain.prep_operators:
             first_op = chain.prep_operators[0]
+            first_implement = implements[0]
             op_idx = 1
             while op_idx < len(chain.prep_operators):
                 second_op = chain.prep_operators[op_idx]
+                second_implement = implements[op_idx]
                 op_idx += 1
-                merged_res = _merge_by_implement_method(first_op, second_op, SQLPlanType.CASE, SQLPlanType.CASE)
-                if len(merged_res) == 2:
+                merged_res = _merge_by_implement_method(first_op, second_op, first_implement, second_implement)
+                if len(merged_res) == 2 or (len(merged_res) == 1 and len(merged_res[0][0]) == 1):
                     first_op = merged_res[0][0][0]
+                    first_implement = merged_res[0][1][0]
                 else:
                     new_prep_graph.chains[feature].prep_operators.append(first_op)
+                    new_prep_graph.implements[feature].append(first_implement)
                     first_op = second_op
+                    first_implement = second_implement
 
             if (
                 not new_prep_graph.chains[feature].prep_operators
                 or first_op != new_prep_graph.chains[feature].prep_operators[-1]
             ):
                 new_prep_graph.chains[feature].prep_operators.append(first_op)
+                new_prep_graph.implements[feature].append(first_implement)
     
     if isinstance(new_prep_graph.model, TreeModel):
-        for feature, chain in new_prep_graph.chains.items():
+        for index, (feature, chain) in enumerate(new_prep_graph.chains.items()):
             if chain.prep_operators:
                 op = chain.prep_operators[-1]
                 merged_res = _merge_by_implement_method(op, new_prep_graph.model, SQLPlanType.CASE, 'Tree')
-                if len(merged_res) == 2:
+                if len(merged_res) == 2 or len(merged_res[0][0]) == 1:
                     new_prep_graph.model = merged_res[0][0][0]
+                    new_prep_graph.implements[feature].pop()
                     chain.prep_operators.pop()
     
-
     return new_prep_graph

@@ -1,5 +1,7 @@
 import time
 import copy
+import pickle
+import os
 
 from craftsman.base.graph import PrepGraph
 from craftsman.base.plan import ChainCandidateFusionPlans, ChainCandidateImplementPlans
@@ -58,7 +60,6 @@ class TransformerManager(object):
         table_name,
         dbms,
         *,
-        train_data=None,
         merge_flag=True,
         cost_flag=True,
         just_push_flag=False,
@@ -83,53 +84,133 @@ class TransformerManager(object):
         model = load_model(model_file)
         pipeline_features_in = model.feature_names_in_.tolist()
         pipeline = self.__extract_pipeline(model)
-
+        data_rows = model.data_rows
+        model_name = pipeline['model']['model_name']
         # build the graph of the preprocessing operators
         preprocessing_graph = PrepGraph(pipeline_features_in, pipeline)
-
-        # enumerate the chain implement plans
-        all_chain_candidate_implement_plans: list[ChainCandidateImplementPlans] = []
-        for feature, chain in preprocessing_graph.chains.items():
-            all_chain_candidate_implement_plans.append(ChainCandidateImplementPlans(feature, chain))
-
-        def enumerate_graph_implement_plans(index=0, current_graph_implement_plan:list = []):
-            if index == len(all_chain_candidate_implement_plans):
-                yield copy.deepcopy(current_graph_implement_plan) 
-                return
-            for chain_implement_plan in all_chain_candidate_implement_plans[index].candidate_implement_plans:
-                current_graph_implement_plan.append(chain_implement_plan)
-                yield from enumerate_graph_implement_plans(index + 1, current_graph_implement_plan)
-                current_graph_implement_plan.pop()
 
         # for every implement plan, use different fusion plan, get the execute plan
         # calculate the cost of every execture plan, get the min cost plan
         min_cost = float("inf")
 
-        if group == 'org' or group == 'pos' or group == 'uncertain':
+        if group == 'org':
+            # enumerate the chain implement plans
+            all_chain_candidate_implement_plans: list[ChainCandidateImplementPlans] = []
+            for feature, chain in preprocessing_graph.chains.items():
+                all_chain_candidate_implement_plans.append(ChainCandidateImplementPlans(feature, chain))
+
+            def enumerate_graph_implement_plans(index=0, current_graph_implement_plan:list = []):
+                if index == len(all_chain_candidate_implement_plans):
+                    yield copy.deepcopy(current_graph_implement_plan) 
+                    return
+                for chain_implement_plan in all_chain_candidate_implement_plans[index].candidate_implement_plans:
+                    current_graph_implement_plan.append(chain_implement_plan)
+                    yield from enumerate_graph_implement_plans(index + 1, current_graph_implement_plan)
+                    current_graph_implement_plan.pop()
+            
             for graph_implement_plan in enumerate_graph_implement_plans():
                 preprocessing_graph = implement_operator_by_plan(preprocessing_graph, graph_implement_plan)
                 if cost_model == 'craftsman':
-                    cost = get_craftsman_graph_cost(preprocessing_graph, train_data)
+                    cost = get_craftsman_graph_cost(preprocessing_graph, data_rows)
                 elif cost_model == 'postgresql':
-                    query_str = self.__compose_sql(preprocessing_graph, table_name, dbms, pre_sql, pipeline)
+                    query_str = self.__compose_sql(join_the_operators(preprocessing_graph), table_name, dbms, pre_sql, pipeline)
                     cost = get_pg_sql_cost(query_str)
                 if cost < min_cost:
-                    if cost_model == 'craftsman':
-                        query_str = self.__compose_sql(preprocessing_graph, table_name, dbms, pre_sql, pipeline)
-                    min_cost_query_str = query_str
-                    min_cost_graph_implement_plan = graph_implement_plan
                     min_cost_preprocessing_graph = preprocessing_graph
                     min_cost = cost
+                    
+            min_cost_query_str = self.__compose_sql(join_the_operators(min_cost_preprocessing_graph), table_name, dbms, pre_sql, pipeline)      
+            with open(f'{table_name}_{model_name}_org.pkl', 'wb') as f:
+                pickle.dump(min_cost_preprocessing_graph, f)
 
-        if group == 'pos' or group == 'uncertain':
+        if group == 'pos':
+            if os.path.exists(f'{table_name}_{model_name}_org.pkl'):
+                with open(f'{table_name}_{model_name}_org.pkl', 'rb') as f:
+                    min_cost_preprocessing_graph = pickle.load(f)
+            else:
+                # enumerate the chain implement plans
+                all_chain_candidate_implement_plans: list[ChainCandidateImplementPlans] = []
+                for feature, chain in preprocessing_graph.chains.items():
+                    all_chain_candidate_implement_plans.append(ChainCandidateImplementPlans(feature, chain))
+
+                def enumerate_graph_implement_plans(index=0, current_graph_implement_plan:list = []):
+                    if index == len(all_chain_candidate_implement_plans):
+                        yield copy.deepcopy(current_graph_implement_plan) 
+                        return
+                    for chain_implement_plan in all_chain_candidate_implement_plans[index].candidate_implement_plans:
+                        current_graph_implement_plan.append(chain_implement_plan)
+                        yield from enumerate_graph_implement_plans(index + 1, current_graph_implement_plan)
+                        current_graph_implement_plan.pop()
+                
+                for graph_implement_plan in enumerate_graph_implement_plans():
+                    preprocessing_graph = implement_operator_by_plan(preprocessing_graph, graph_implement_plan)
+                    if cost_model == 'craftsman':
+                        cost = get_craftsman_graph_cost(preprocessing_graph, data_rows)
+                    elif cost_model == 'postgresql':
+                        query_str = self.__compose_sql(join_the_operators(preprocessing_graph), table_name, dbms, pre_sql, pipeline)
+                        cost = get_pg_sql_cost(query_str)
+                    if cost < min_cost:
+                        min_cost_preprocessing_graph = preprocessing_graph
+                        min_cost = cost
+                
             min_cost_preprocessing_graph = merge_sql_operator_by_benifit_rules(min_cost_preprocessing_graph)
-            min_cost_query_str = self.__compose_sql(min_cost_preprocessing_graph, table_name, dbms, pre_sql, pipeline)
+            min_cost_query_str = self.__compose_sql(join_the_operators(min_cost_preprocessing_graph), table_name, dbms, pre_sql, pipeline)
+            with open(f'{table_name}_{model_name}_pos.pkl', 'wb') as f:
+                pickle.dump(min_cost_preprocessing_graph, f)
 
         if group == 'uncertain':
+            if os.path.exists(f'{table_name}_{model_name}_pos.pkl'):
+                with open(f'{table_name}_{model_name}_pos.pkl', 'rb') as f:
+                    min_cost_preprocessing_graph = pickle.load(f)
+            elif os.path.exists(f'{table_name}_{model_name}_org.pkl'):
+                with open(f'{table_name}_{model_name}_org.pkl', 'rb') as f:
+                    min_cost_preprocessing_graph = pickle.load(f)
+                min_cost_preprocessing_graph = merge_sql_operator_by_benifit_rules(min_cost_preprocessing_graph)
+            else:
+                # enumerate the chain implement plans
+                all_chain_candidate_implement_plans: list[ChainCandidateImplementPlans] = []
+                for feature, chain in preprocessing_graph.chains.items():
+                    all_chain_candidate_implement_plans.append(ChainCandidateImplementPlans(feature, chain))
+
+                def enumerate_graph_implement_plans(index=0, current_graph_implement_plan:list = []):
+                    if index == len(all_chain_candidate_implement_plans):
+                        yield copy.deepcopy(current_graph_implement_plan) 
+                        return
+                    for chain_implement_plan in all_chain_candidate_implement_plans[index].candidate_implement_plans:
+                        current_graph_implement_plan.append(chain_implement_plan)
+                        yield from enumerate_graph_implement_plans(index + 1, current_graph_implement_plan)
+                        current_graph_implement_plan.pop()
+                
+                for graph_implement_plan in enumerate_graph_implement_plans():
+                    preprocessing_graph = implement_operator_by_plan(preprocessing_graph, graph_implement_plan)
+                    if cost_model == 'craftsman':
+                        cost = get_craftsman_graph_cost(preprocessing_graph, data_rows)
+                    elif cost_model == 'postgresql':
+                        query_str = self.__compose_sql(preprocessing_graph, table_name, dbms, pre_sql, pipeline)
+                        cost = get_pg_sql_cost(query_str)
+                    if cost < min_cost:
+                        min_cost_preprocessing_graph = preprocessing_graph
+                        min_cost = cost
+                min_cost_preprocessing_graph = merge_sql_operator_by_benifit_rules(min_cost_preprocessing_graph)
+                
             min_cost_preprocessing_graph = merge_sql_operator_by_uncertain_rules(min_cost_preprocessing_graph)
-            min_cost_query_str = self.__compose_sql(min_cost_preprocessing_graph, table_name, dbms, pre_sql, pipeline)
+            min_cost_query_str = self.__compose_sql(join_the_operators(min_cost_preprocessing_graph), table_name, dbms, pre_sql, pipeline)
 
         if group == 'enum':
+            # enumerate the chain implement plans
+            all_chain_candidate_implement_plans: list[ChainCandidateImplementPlans] = []
+            for feature, chain in preprocessing_graph.chains.items():
+                all_chain_candidate_implement_plans.append(ChainCandidateImplementPlans(feature, chain))
+
+            def enumerate_graph_implement_plans(index=0, current_graph_implement_plan:list = []):
+                if index == len(all_chain_candidate_implement_plans):
+                    yield copy.deepcopy(current_graph_implement_plan) 
+                    return
+                for chain_implement_plan in all_chain_candidate_implement_plans[index].candidate_implement_plans:
+                    current_graph_implement_plan.append(chain_implement_plan)
+                    yield from enumerate_graph_implement_plans(index + 1, current_graph_implement_plan)
+                    current_graph_implement_plan.pop()
+            
             # enumerate the chain fusion plans
             all_chain_candidate_fusion_plans: list[ChainCandidateFusionPlans] = []
             for feature, chain in preprocessing_graph.chains.items():
@@ -151,21 +232,32 @@ class TransformerManager(object):
                     plan_num = plan_num + len(preprocessing_graph_list)
                     for graph in preprocessing_graph_list:
                         if cost_model == 'craftsman':
-                            cost = get_craftsman_graph_cost(graph, train_data)
+                            cost = get_craftsman_graph_cost(graph, data_rows)
                         elif cost_model == 'postgresql':
                             query_str = self.__compose_sql(graph, table_name, dbms, pre_sql, pipeline)
                             cost = get_pg_sql_cost(query_str)
                         if cost < min_cost:
-                            if cost_model == 'craftsman':
-                                query_str = self.__compose_sql(graph, table_name, dbms, pre_sql, pipeline)
-                            min_cost_query_str = query_str
-                            min_cost_graph_implement_plan = graph_implement_plan
-                            min_cost_graph_fusion_plan = graph_fusion_plan
                             min_cost_preprocessing_graph = graph
                             min_cost = cost
+            
+            min_cost_query_str = self.__compose_sql(join_the_operators(min_cost_preprocessing_graph), table_name, dbms, pre_sql, pipeline)
             print(f'plan num: {plan_num}')
             
         if group == 'prune':
+            # enumerate the chain implement plans
+            all_chain_candidate_implement_plans: list[ChainCandidateImplementPlans] = []
+            for feature, chain in preprocessing_graph.chains.items():
+                all_chain_candidate_implement_plans.append(ChainCandidateImplementPlans(feature, chain))
+
+            def enumerate_graph_implement_plans(index=0, current_graph_implement_plan:list = []):
+                if index == len(all_chain_candidate_implement_plans):
+                    yield copy.deepcopy(current_graph_implement_plan) 
+                    return
+                for chain_implement_plan in all_chain_candidate_implement_plans[index].candidate_implement_plans:
+                    current_graph_implement_plan.append(chain_implement_plan)
+                    yield from enumerate_graph_implement_plans(index + 1, current_graph_implement_plan)
+                    current_graph_implement_plan.pop()
+            
             # enumerate the chain fusion plans
             all_chain_candidate_fusion_plans: list[ChainCandidateFusionPlans] = []
             for feature, chain in preprocessing_graph.chains.items():
@@ -187,14 +279,15 @@ class TransformerManager(object):
                 all_chain_candidate_fusion_plans,
                 preprocessing_graph.chains.keys(),
             ):
-    
+                if feature == 'Brand':
+                    pass
                 for chain_implement_plan in chain_candidate_implement_plans.candidate_implement_plans:
                     for chain_fusion_plan in chain_candidate_fusion_plans.candidate_fusion_plans:
                         preprocessing_graph_list = merge_sql_operator_by_chain_plan(last_chain_min_cost_preprocessing_graph, chain_implement_plan, chain_fusion_plan, feature)
                         plan_num = plan_num + len(preprocessing_graph_list)
                         for graph in preprocessing_graph_list:
                             if cost_model == 'craftsman':
-                                cost = get_craftsman_graph_cost(graph, train_data)
+                                cost = get_craftsman_graph_cost(graph, data_rows)
                             elif cost_model == 'postgresql':
                                 query_str = self.__compose_sql(graph, table_name, dbms, pre_sql, pipeline)
                                 cost = get_pg_sql_cost(query_str)
@@ -206,6 +299,8 @@ class TransformerManager(object):
                                 min_cost = cost
                 
                 last_chain_min_cost_preprocessing_graph = min_cost_preprocessing_graph.copy_graph()
+            
+            min_cost_query_str = self.__compose_sql(join_the_operators(min_cost_preprocessing_graph), table_name, dbms, pre_sql, pipeline)
             print(f'plan num: {plan_num}')
                             
         return min_cost_query_str

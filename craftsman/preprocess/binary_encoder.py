@@ -12,6 +12,7 @@ class BinaryEncoderSQLOperator(EXPAND):
 
     
     def _extract(self, fitted_transform) -> None:
+        self.value_counts = fitted_transform.value_counts
         feature = self.features[0]
         for m in fitted_transform.mapping:
             if m['col'] == feature:

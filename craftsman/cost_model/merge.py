@@ -7,7 +7,7 @@ from craftsman.model.base_model import TreeModel
 from craftsman.preprocess.k_bins_discretizer import KBinsDiscretizerSQLOperator
 
 
-def merge_by_cost_model(graph: PrepGraph, train_data, merge_flag, cost_flag, masq):
+def merge_by_cost_model(graph: PrepGraph, data_rows, merge_flag, cost_flag, masq):
     new_prep_graph = graph.get_empty_chains_graph()
 
     if cost_flag:
@@ -52,7 +52,7 @@ def merge_by_cost_model(graph: PrepGraph, train_data, merge_flag, cost_flag, mas
                     # common case: (cat-c-cat | expand | con-c-cat) + Tree
                     if cost_flag:
                         # if use cost model
-                        sql_plan, costs_line = op.get_best_plan(graph, train_data)
+                        sql_plan, costs_line = op.get_best_plan(graph, data_rows)
                         cost_results.append(costs_line)
                         if sql_plan == SQLPlanType.FUSION:
                             op.fusion(new_prep_graph)

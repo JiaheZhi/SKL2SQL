@@ -17,6 +17,7 @@ class OneHotEncoderSQLOperator(EXPAND):
 
 
     def _extract(self, fitted_transform) -> None:
+        self.value_counts = fitted_transform.value_counts
         feature = self.features[0]
         feature_idx = fitted_transform.feature_names_in_.tolist().index(feature)
         categories = fitted_transform.categories_[feature_idx]
