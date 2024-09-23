@@ -171,8 +171,6 @@ def merge_sql_operator_by_chain_plan(
     if first_index == -1:
         return graph_list
     
-    # if feature == 'Weather_Condition':
-    #     print(chain_fusion_plan)
     
     second_index = first_index
     fusion_directions = chain_fusion_plan.fusion_directions    
@@ -244,7 +242,9 @@ def merge_sql_operator_by_chain_plan(
                             
                 elif len(situation[0]) == 2:
                     if situation[1][1] == 'Tree' or situation[1][1] == 'Not-Tree':
-                        pass
+                        if len(graph.chains[feature].prep_operators) == 0:
+                            graph.chains[feature].prep_operators.append(situation[0][0])
+                            graph.implements[feature].append(situation[1][0])
                     else:
                         if next_direction == 1:
                             graph.chains[feature].prep_operators.append(situation[0][1])
@@ -296,8 +296,6 @@ def merge_sql_operator_by_graph_plan(
         if first_index == -1:
             continue
         
-        # if feature == 'Weather_Condition':
-        #     print(chain_fusion_plan)
         
         second_index = first_index
         fusion_directions = chain_fusion_plan.fusion_directions    
@@ -453,7 +451,8 @@ def merge_sql_operator_by_benifit_rules(graph: PrepGraph):
         for index, (feature, chain) in enumerate(new_prep_graph.chains.items()):
             if chain.prep_operators:
                 op = chain.prep_operators[-1]
-                merged_res = _merge_by_implement_method(op, new_prep_graph.model, SQLPlanType.CASE, 'Tree')
+                implement = new_prep_graph.implements[feature][-1]
+                merged_res = _merge_by_implement_method(op, new_prep_graph.model, implement, 'Tree')
                 if len(merged_res) == 1 and len(merged_res[0][0]) == 1:
                     new_prep_graph.model = merged_res[0][0][0]
                     new_prep_graph.implements[feature].pop()
@@ -494,7 +493,8 @@ def merge_sql_operator_by_uncertain_rules(graph: PrepGraph):
         for index, (feature, chain) in enumerate(new_prep_graph.chains.items()):
             if chain.prep_operators:
                 op = chain.prep_operators[-1]
-                merged_res = _merge_by_implement_method(op, new_prep_graph.model, SQLPlanType.CASE, 'Tree')
+                implement = new_prep_graph.implements[feature][-1]
+                merged_res = _merge_by_implement_method(op, new_prep_graph.model, implement, 'Tree')
                 if len(merged_res) == 2 or len(merged_res[0][0]) == 1:
                     new_prep_graph.model = merged_res[0][0][0]
                     new_prep_graph.implements[feature].pop()

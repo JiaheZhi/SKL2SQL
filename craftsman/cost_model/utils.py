@@ -70,8 +70,7 @@ def get_craftsman_graph_cost(graph, data_rows):
     
     # op cost
     for feature, chain in graph.chains.items():
-        if feature == 'Brand':
-            pass
+
         implements = graph.implements[feature]
         for idx, op in enumerate(chain.prep_operators):
             # case op cost
@@ -98,8 +97,7 @@ def get_craftsman_graph_cost(graph, data_rows):
             defs.ModelName.DECISIONTREEREGRESSOR,
             defs.ModelName.RANDOMFORESTREGRESSOR,
         ):
-            if feature == 'Brand':
-                pass
+
             tree_costs = graph.model.get_tree_costs_static(feature)
             total_tree_cost = sum(
                 [tree_cost.calculate_tree_cost() for tree_cost in tree_costs]

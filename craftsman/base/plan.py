@@ -1,5 +1,6 @@
 from craftsman.base.chains import PrepChain
 from craftsman.base.defs import SQLPlanType, OperatorType
+import craftsman.base.defs as defs
 
 class ChainFusionPlan(object):
     
@@ -44,26 +45,37 @@ class ChainImplementPlan(object):
 
 
 class ChainCandidateImplementPlans(object):
-    
+
     def __init__(self, feature: str, chain: PrepChain) -> None:
         self.feature = feature
         self.candidate_implement_plans = []
         for candidate_implement_plan in self.enumerate_implementations(chain):
             self.candidate_implement_plans.append(ChainImplementPlan(candidate_implement_plan))
-        
-        
+
     def enumerate_implementations(self, chain: PrepChain, index: int = 0, current_combination: list[SQLPlanType] = []):
         # 如果已经处理完所有算子，返回当前的组合
         if index == len(chain.prep_operators):
             yield current_combination.copy()
             return
-        
+
         # 获取当前算子的实现方式可能
         if chain.prep_operators[index].op_type in [OperatorType.CAT_C_CAT, OperatorType.EXPAND]:
-            implementations = [SQLPlanType.CASE, SQLPlanType.JOIN]
+            if defs.GROUP in ('org', 'pos', 'uncertain'):
+                # 启发式方法
+                if (
+                    chain.prep_operators[index].op_type == OperatorType.CAT_C_CAT
+                    and len(chain.prep_operators[index].mappings[0]) > 100
+                    or chain.prep_operators[index].op_type == OperatorType.EXPAND
+                    and len(chain.prep_operators[index].mapping) > 100
+                ):
+                    implementations = [SQLPlanType.JOIN]
+                else:
+                    implementations = [SQLPlanType.CASE, SQLPlanType.JOIN]
+            else:
+                implementations = [SQLPlanType.CASE, SQLPlanType.JOIN]
         else:
             implementations = [SQLPlanType.CASE]
-        
+
         # 遍历当前算子的所有实现方式
         for i in range(len(implementations)):
             # 将当前实现方式加入组合
@@ -72,4 +84,3 @@ class ChainCandidateImplementPlans(object):
             yield from self.enumerate_implementations(chain, index + 1, current_combination)
             # 回溯，移除当前实现方式
             current_combination.pop()
-        

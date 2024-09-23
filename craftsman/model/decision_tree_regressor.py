@@ -85,7 +85,7 @@ class DecisionTreeRegressorSQLModel(TreeModel):
         for idx, node in enumerate(self.trained_model.tree_.feature):
             if self.input_features[node] == feature:
                 self.features[idx], self.ops[idx], self.thresholds[idx] = sql_operator.modify_leaf(
-                    self.features_origin[idx], self.ops[idx], self.thresholds[idx]
+                    self.features_origin[idx], self.ops[idx], self.thresholds[idx], self.features[idx]
                 )
                 
     def modify_model_p(self, feature: str, sql_operator: Operator):

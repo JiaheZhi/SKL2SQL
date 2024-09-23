@@ -78,7 +78,7 @@ class SQLOperator(ABC):
                 graph.modify_model(feature, self)
 
     @abstractmethod
-    def modify_leaf(self, feature, op, thr):
+    def modify_leaf(self, feature, op, thr, modified_feature):
         pass
 
     def push(self, graph):
@@ -330,26 +330,66 @@ class CAT_C_CAT(EncoderOperator):
         )
         return input_table, featuer_sql, self.features_out
 
-    def modify_leaf(self, feature, op, thr):
+    def modify_leaf(self, feature, op, thr, modified_feature):
         mapping = self.mappings[self.features_out.index(feature)]
-        in_list = [] 
-        # if defs.ORDER_WHEN:
-        in_list_value_counts = []
-        for idx, enc_value in mapping.items():
-            if enc_value <= thr:
-                if defs.ORDER_WHEN:
-                    in_list_value_counts.append(self.value_counts[feature][idx])
-                if type(idx) == str:
-                    in_list.append(f"'{idx}'")
-                else:
-                    in_list.append(f"{idx}")
-        if defs.ORDER_WHEN:
-            in_list = [in_list[pos] for pos in np.argsort(-np.array(in_list_value_counts))]
-        return (
-            DBMSUtils.get_delimited_col(defs.DBMS, feature),
-            "in",
-            f"({','.join(in_list)})",
-        )
+        if op == '<=':
+            in_list = [] 
+            # if defs.ORDER_WHEN:
+            in_list_value_counts = []
+            for idx, enc_value in mapping.items():
+                if enc_value <= thr:
+                    if defs.ORDER_WHEN:
+                        in_list_value_counts.append(self.value_counts[feature][idx])
+                    if type(idx) == str:
+                        in_list.append(f"'{idx}'")
+                    else:
+                        in_list.append(f"{idx}")
+            if defs.ORDER_WHEN:
+                in_list = [in_list[pos] for pos in np.argsort(-np.array(in_list_value_counts))]
+            return (
+                DBMSUtils.get_delimited_col(defs.DBMS, feature),
+                "in",
+                f"({','.join(in_list)})",
+            )
+            
+        elif op == 'in':
+            in_list = []
+            leaf_in_list = [float(x) for x in thr[1:-1].split(',')]
+            for idx, enc_value in mapping.items():
+                if enc_value in leaf_in_list:
+                    in_list.append(idx)
+                    
+            return (
+                DBMSUtils.get_delimited_col(defs.DBMS, feature),
+                "in",
+                f"({','.join(in_list)})",
+            )
+            
+        elif op == '':
+            intervals = []
+            for inequality in modified_feature.split('OR'):
+                left_bin = float(inequality.split('AND')[0].split('>=')[1])
+                right_bin = float(inequality.split('AND')[1].split('<')[1])
+                intervals.append((left_bin, right_bin))
+                
+            def judge_in_intervals(value):
+                for interval in intervals:
+                    left_bin, right_bin = interval
+                    if value >= left_bin and value < right_bin:
+                        return True
+                return False
+            
+            in_list = []
+            for idx, enc_value in mapping.items():
+                if judge_in_intervals(enc_value):
+                    in_list.append(idx)
+            
+            return (
+                DBMSUtils.get_delimited_col(defs.DBMS, feature),
+                "in",
+                f"({','.join(in_list)})",
+            )
+            
 
     def modify_leaf_p(self, feature, op, thr):
         mapping = self.mappings[self.features_out.index(feature)]
@@ -557,7 +597,7 @@ class EXPAND(EncoderOperator):
         )
         return input_table, feature_sql, self.features_out
 
-    def modify_leaf(self, feature, op, thr):
+    def modify_leaf(self, feature, op, thr, modified_feature):
         mapping = self.mapping[feature]
         mapping = mapping[~mapping.index.isnull()]
         mapping = mapping[[idx for idx in mapping.index if idx != "NaN"]]
@@ -938,7 +978,7 @@ class CON_A_CON(SQLOperator):
 
         return ",".join(sqls)
 
-    def modify_leaf(self, feature, op, thr):
+    def modify_leaf(self, feature, op, thr, modified_feature):
         reversed_equation = solve(self.equation, self.symbols["x"])[0]
         idx = self.features_out.index(feature)
         sub_equation = reversed_equation.subs(
@@ -948,7 +988,7 @@ class CON_A_CON(SQLOperator):
             }
         )
         thr = sub_equation.subs(self.symbols["y"], thr)
-        return feature, op, thr
+        return DBMSUtils.get_delimited_col(defs.DBMS, feature), op, thr
 
     def modify_leaf_p(self, feature, op, thr):
         idx = self.features_out.index(feature)
@@ -1069,28 +1109,37 @@ class CON_C_CAT(SQLOperator):
             bin_distribution = self.bin_distribution[self.features[idx]]
             pos_2_bin = np.argsort(-bin_distribution)
             feature_sql = "CASE "
-            for i in range(self.n_bins[idx] - 1):
+            if self.n_bins[idx] > 1:
+                for i in range(self.n_bins[idx] - 1):
+                    if defs.ORDER_WHEN:
+                        feature_sql += (
+                            f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} >= {self.bin_edges[idx][pos_2_bin[i]]}"
+                            + " AND "
+                            + f"{DBMSUtils.get_delimited_col(dbms, self.features[idx])} < {self.bin_edges[idx][pos_2_bin[i]+1]} THEN {self.categories[idx][pos_2_bin[i]]} "
+                        )
+                    else:
+                        feature_sql += (
+                            f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} >= {self.bin_edges[idx][i]}"
+                            + " AND "
+                            + f"{DBMSUtils.get_delimited_col(dbms, self.features[idx])} < {self.bin_edges[idx][i+1]} THEN {self.categories[idx][i]} "
+                        )
                 if defs.ORDER_WHEN:
-                    feature_sql += (
-                        f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} >= {self.bin_edges[idx][pos_2_bin[i]]}"
-                        + " AND "
-                        + f"{DBMSUtils.get_delimited_col(dbms, self.features[idx])} < {self.bin_edges[idx][pos_2_bin[i]+1]} THEN {self.categories[idx][pos_2_bin[i]]} "
-                    )
+                    feature_sql += f"ELSE {self.categories[idx][pos_2_bin[self.n_bins[idx] - 1]]} END AS {DBMSUtils.get_delimited_col(dbms, self.features[idx])} "
                 else:
-                    feature_sql += (
-                        f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} >= {self.bin_edges[idx][i]}"
-                        + " AND "
-                        + f"{DBMSUtils.get_delimited_col(dbms, self.features[idx])} < {self.bin_edges[idx][i+1]} THEN {self.categories[idx][i]} "
-                    )
-            if defs.ORDER_WHEN:
-                feature_sql += f"ELSE {self.categories[idx][pos_2_bin[self.n_bins[idx] - 1]]} END AS {DBMSUtils.get_delimited_col(dbms, self.features[idx])} "
-            else:
-                feature_sql += f"ELSE {self.categories[idx][-1]} END AS {DBMSUtils.get_delimited_col(dbms, self.features[idx])} "
+                    feature_sql += f"ELSE {self.categories[idx][-1]} END AS {DBMSUtils.get_delimited_col(dbms, self.features[idx])} "
+
+            elif self.n_bins[idx] == 1:
+                feature_sql += (
+                    f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} >= {self.bin_edges[idx][0]}"
+                    + " AND "
+                    + f"{DBMSUtils.get_delimited_col(dbms, self.features[idx])} < {self.bin_edges[idx][1]} THEN {self.categories[idx][0]} "
+                )
+                feature_sql += f"END AS {DBMSUtils.get_delimited_col(dbms, self.features[idx])} "  
             sqls.append(feature_sql)
 
         return ",".join(sqls)
 
-    def modify_leaf(self, feature, op, thr):
+    def modify_leaf(self, feature, op, thr, modified_feature):
         bin_edge = self.bin_edges[self.features_out.index(feature)]
         categoiry_list = self.categories[self.features_out.index(feature)]
         bin_distribution = self.bin_distribution[feature]
@@ -1101,13 +1150,12 @@ class CON_C_CAT(SQLOperator):
                 if category <= thr:
                     intervals.append((bin_edge[i], bin_edge[i + 1]))
                     interval_distributions.append(bin_distribution[i])
-            
+
             if defs.ORDER_WHEN:
                 merged_intervals, merged_distributions = merge_intervals(intervals, interval_distributions)
                 pos_2_bin = np.argsort(-np.array(merged_distributions))
             else:
                 merged_intervals = merge_intervals(intervals)
-            
 
             condition_sqls = []
             for i in range(len(merged_intervals)):
@@ -1124,9 +1172,9 @@ class CON_C_CAT(SQLOperator):
                         + f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} < {merged_intervals[i][1]}"
                     )
                 condition_sqls.append(condition_sql)
-                
+
             return " OR ".join(condition_sqls), "", ""
-        
+
         else:
             if op == 'in':
                 intervals = []
@@ -1143,9 +1191,9 @@ class CON_C_CAT(SQLOperator):
                         + f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} < {merged_intervals[i][1]}"
                     )
                     condition_sqls.append(condition_sql)
-                    
+
                 return " OR ".join(condition_sqls), "", ""
-                        
+
             elif op == '<=':
                 for i, category in enumerate(categoiry_list):
                     if category > thr:
@@ -1155,7 +1203,7 @@ class CON_C_CAT(SQLOperator):
                             bin_edge[i],
                         )
                 pass
-            
+
             else:
                 pass
 
@@ -1221,7 +1269,7 @@ class CON_C_CAT(SQLOperator):
             return PrimitiveCost.OR.value * sum([(bin_2_pos[i] + 1) * num for i, num in enumerate(bin_distribution)])
         else:
             return PrimitiveCost.OR.value * sum([(i + 1) * num for i, num in enumerate(bin_distribution)])
-        
+
         # def calc_cost(x):
         #     cost = 0
         #     for i in range(len(self.categories[idx])):
