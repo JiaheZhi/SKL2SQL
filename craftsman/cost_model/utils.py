@@ -19,14 +19,17 @@ def tree_paths(tree, node=0, path=None):
 def calc_join_cost_by_train_data(data_rows, join_table_rows, join_table_columns):
     # pg
     if defs.DBMS == 'postgresql':
+        # return data_rows * (9.08197566e-02)
         return data_rows * (4.43204396e-05 * join_table_rows + 9.08197566e-02 * join_table_columns)
 
     # duckdb
     elif defs.DBMS == 'duckdb':
+        # return data_rows * ( 1.02417616e-05)
         return data_rows * (1.02122041e-08 * join_table_rows + 1.02417616e-05 * join_table_columns)
 
     # monetdb
     elif defs.DBMS == 'monetdb':
+        # return data_rows * (1.67787246e-03)
         return data_rows * (4.58751378e-07 * join_table_rows + 1.67787246e-03 * join_table_columns)
 
     # TODO: choose the accurate join cost model

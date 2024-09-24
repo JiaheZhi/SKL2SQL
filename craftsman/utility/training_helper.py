@@ -10,10 +10,8 @@ from scipy import sparse
 from category_encoders import TargetEncoder, CountEncoder, LeaveOneOutEncoder, BinaryEncoder
 
 from craftsman.base.defs import PREPROCESS_PACKAGE_PATH
-
-
-def train_pipeline(train_data_path, preprocessors: dict, model_type):
-    pass
+from craftsman.base.graph import PrepGraph
+from craftsman.base.operator import EncoderOperator
 
 
 class CraftsmanColumnTransformer(ColumnTransformer):
@@ -478,3 +476,51 @@ class CraftsmanBinaryEncoder(BinaryEncoder):
             for col in trans_data.columns:
                 self.value_counts[col] = trans_data[col].value_counts()
         return trans_data
+    
+    
+def insert_encoders_table_to_db(self, dbms: str, pipeline):
+    steps = pipeline.steps
+    column_transformer_start_idx = 0
+    pipeline_features_in = pipeline.feature_names_in_.tolist()
+    fitted_imputer = None
+    # if contain imputer extract it
+    if 'Imputer' == steps[0][0]:
+        fitted_imputer = steps[0][1]
+        column_transformer_start_idx = 1
+
+    # extract model
+    model_name, trained_model = steps[-1]
+
+    # extract preprocessors
+    transforms = []
+    for i in range(column_transformer_start_idx, len(steps) - 1):
+        _, pipeline_transformers = steps[i]
+        for idx in range(len(pipeline_transformers.transformers)):
+            a, b, c = pipeline_transformers.transformers_[idx]
+            a = a.split('_')[0]
+            transforms.append({
+                'transform_name': a,
+                'fitted_transform': b,
+                'transform_features': c,
+            })
+
+    pipeline =  {
+        'imputer': {
+            'filled_values': fitted_imputer.statistics_ if fitted_imputer else [],
+            'missing_cols': fitted_imputer.missing_cols if fitted_imputer else [],
+            'missing_col_indexs': fitted_imputer.missing_col_indexs if fitted_imputer else []
+        },
+        'transforms': transforms,
+        'model': {
+            'model_name': model_name,
+            'trained_model': trained_model
+        }
+    }
+    
+    # build the graph of the preprocessing operators
+    preprocessing_graph = PrepGraph(pipeline_features_in, pipeline)
+    
+    for feature, chain in preprocessing_graph.chains.items():
+        for op in chain.prep_operators:
+            if isinstance(op, EncoderOperator):
+                pass

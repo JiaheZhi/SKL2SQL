@@ -769,7 +769,10 @@ class EXPAND(EncoderOperator):
             before_len = 0
             for enc_value in categories_list.index.tolist()[:-1]:
                 list_len = len(categories_list[enc_value])
-                cost += PrimitiveCost.IN(before_len + list_len) * value_counts[enc_value]
+                if list_len == 0:
+                    cost += PrimitiveCost.EQUAL * value_counts[enc_value]
+                else:
+                    cost += PrimitiveCost.IN(before_len + list_len) * value_counts[enc_value]
                 before_len += list_len
             return cost
         else:
