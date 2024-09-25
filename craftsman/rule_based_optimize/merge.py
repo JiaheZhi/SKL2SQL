@@ -367,7 +367,9 @@ def merge_sql_operator_by_graph_plan(
                                 
                     elif len(situation[0]) == 2:
                         if situation[1][1] == 'Tree' or situation[1][1] == 'Not-Tree':
-                            pass
+                            if len(graph.chains[feature].prep_operators) == 0:
+                                graph.chains[feature].prep_operators.append(situation[0][0])
+                                graph.implements[feature].append(situation[1][0])
                         else:
                             if next_direction == 1:
                                 graph.chains[feature].prep_operators.append(situation[0][1])

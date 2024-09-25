@@ -15,8 +15,6 @@ import craftsman.base.defs as defs
 
 
 def task(
-    begin_graph_plan_idx,
-    end_graph_plan_idx,
     all_graph_implements_plans,
     all_graph_fusion_plans,
     preprocessing_graph,
@@ -29,7 +27,8 @@ def task(
 ):
     min_cost = float('inf')
     plan_num = 0
-    for graph_implement_plan in all_graph_implements_plans[begin_graph_plan_idx: end_graph_plan_idx + 1]:
+    min_cost_preprocessing_graph = None
+    for graph_implement_plan in all_graph_implements_plans:
         for graph_fusion_plan in all_graph_fusion_plans:
             preprocessing_graph_list = merge_sql_operator_by_graph_plan(preprocessing_graph, graph_implement_plan, graph_fusion_plan)
             plan_num = plan_num + len(preprocessing_graph_list)
@@ -305,9 +304,7 @@ class TransformerManager(object):
                         futures.append(
                             executor.submit(
                                 task,
-                                begin_plan_idx,
-                                begin_plan_idx + per_worker_plan_num,
-                                all_graph_implements_plans,
+                                all_graph_implements_plans[begin_plan_idx: begin_plan_idx + per_worker_plan_num + 1],
                                 all_graph_fusion_plans,
                                 preprocessing_graph.copy_graph(),
                                 cost_model,
@@ -318,15 +315,13 @@ class TransformerManager(object):
                                 pipeline,
                             )
                         )
-                        begin_plan_idx += begin_plan_idx + per_worker_plan_num + 1
+                        begin_plan_idx = begin_plan_idx + per_worker_plan_num + 1
                     if per_worker_plan_num > 0:
                         for i in range(max_workers_num - remain_plan_num):
                             futures.append(
                                 executor.submit(
                                     task,
-                                    begin_plan_idx,
-                                    begin_plan_idx + per_worker_plan_num - 1,
-                                    all_graph_implements_plans,
+                                    all_graph_implements_plans[begin_plan_idx: begin_plan_idx + per_worker_plan_num],
                                     all_graph_fusion_plans,
                                     preprocessing_graph.copy_graph(),
                                     cost_model,
@@ -337,7 +332,7 @@ class TransformerManager(object):
                                     pipeline,
                                 )
                             )
-                            begin_plan_idx += begin_plan_idx + per_worker_plan_num
+                            begin_plan_idx = begin_plan_idx + per_worker_plan_num
                     for future in futures:
                         concurrent_min_cost_preprocessing_graph, concurrent_min_cost, process_plan_num = future.result()
                         plan_num += process_plan_num
