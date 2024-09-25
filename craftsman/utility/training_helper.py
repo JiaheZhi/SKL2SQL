@@ -9,9 +9,11 @@ from sklearn.preprocessing import LabelEncoder, KBinsDiscretizer, OrdinalEncoder
 from scipy import sparse
 from category_encoders import TargetEncoder, CountEncoder, LeaveOneOutEncoder, BinaryEncoder
 
-from craftsman.base.defs import PREPROCESS_PACKAGE_PATH
+from craftsman.base.defs import *
+import craftsman.base.defs as defs
 from craftsman.base.graph import PrepGraph
-from craftsman.base.operator import EncoderOperator
+from craftsman.base.operator import EncoderOperator, CAT_C_CAT, EXPAND
+from craftsman.utility.join_utils import insert_db, df_type2db_type
 
 
 class CraftsmanColumnTransformer(ColumnTransformer):
@@ -478,7 +480,7 @@ class CraftsmanBinaryEncoder(BinaryEncoder):
         return trans_data
     
     
-def insert_encoders_table_to_db(self, dbms: str, pipeline):
+def insert_encoders_table_to_db(pipeline):
     steps = pipeline.steps
     column_transformer_start_idx = 0
     pipeline_features_in = pipeline.feature_names_in_.tolist()
@@ -523,4 +525,28 @@ def insert_encoders_table_to_db(self, dbms: str, pipeline):
     for feature, chain in preprocessing_graph.chains.items():
         for op in chain.prep_operators:
             if isinstance(op, EncoderOperator):
-                pass
+                if isinstance(op, CAT_C_CAT):
+                    feature = op.features[0]
+                    mapping = op.mappings[0]
+                    join_table_name = feature + CAT_C_CAT_JOIN_POSTNAME
+                    join_table_name = join_table_name.lower()
+                    cols = {feature.lower(): DBDataType.VARCHAR.value if defs.DBMS != 'monetdb' else DBDataType.VARCHAR512.value}
+                    col_name = feature + CAT_C_CAT_JOIN_COL_POSTNAME
+                    col_name = col_name.lower()
+                    cols[col_name] = df_type2db_type(mapping.dtype, defs.DBMS)
+                    data = [
+                        (idx, mapping.tolist()[mapping.index.get_loc(idx)]) for idx in mapping.index
+                    ]
+                    insert_db(defs.DBMS, join_table_name, cols, data)
+                    
+                elif isinstance(op, EXPAND):
+                    feature = op.features[0]
+                    join_table_name = feature + EXPAND_JOIN_POSTNAME
+                    join_table_name = join_table_name.lower()
+                    cols = {feature.lower(): DBDataType.VARCHAR.value if defs.DBMS != 'monetdb' else DBDataType.VARCHAR512.value}
+                    for col in op.mapping.columns:
+                        cols[col.lower()] = df_type2db_type(op.mapping[col].dtype, defs.DBMS)
+                    data = []
+                    for idx in op.mapping.index:
+                        data.append((idx,) + tuple(op.mapping.loc[idx]))
+                    insert_db(defs.DBMS, join_table_name, cols, data)

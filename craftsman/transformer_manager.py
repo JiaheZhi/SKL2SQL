@@ -2,6 +2,7 @@ import time
 import copy
 import pickle
 import os
+from concurrent.futures import ProcessPoolExecutor
 
 from craftsman.base.graph import PrepGraph
 from craftsman.base.plan import ChainCandidateFusionPlans, ChainCandidateImplementPlans
@@ -206,6 +207,8 @@ class TransformerManager(object):
             min_cost_query_str = self.__compose_sql(join_the_operators(min_cost_preprocessing_graph), table_name, dbms, pre_sql, pipeline)
 
         if group == 'enum':
+            concurrent_flag = False
+            
             # enumerate the chain implement plans
             all_chain_candidate_implement_plans: list[ChainCandidateImplementPlans] = []
             for feature, chain in preprocessing_graph.chains.items():
@@ -235,20 +238,63 @@ class TransformerManager(object):
                     current_graph_fusion_plan.pop()
 
             plan_num = 0
-            for graph_implement_plan in enumerate_graph_implement_plans():
-                for graph_fusion_plan in enumerate_graph_fusion_plans():
-                    preprocessing_graph_list = merge_sql_operator_by_graph_plan(preprocessing_graph, graph_implement_plan, graph_fusion_plan)
-                    plan_num = plan_num + len(preprocessing_graph_list)
-                    for graph in preprocessing_graph_list:
-                        if cost_model == 'craftsman':
-                            cost = get_craftsman_graph_cost(graph, data_rows)
-                        elif cost_model == 'postgresql':
-                            query_str = self.__compose_sql(graph, table_name, dbms, pre_sql, pipeline)
-                            cost = get_pg_sql_cost(query_str)
-                        if cost < min_cost:
-                            min_cost_preprocessing_graph = graph
-                            min_cost = cost
             
+            if not concurrent_flag:
+                for graph_implement_plan in enumerate_graph_implement_plans():
+                    for graph_fusion_plan in enumerate_graph_fusion_plans():
+                        preprocessing_graph_list = merge_sql_operator_by_graph_plan(preprocessing_graph, graph_implement_plan, graph_fusion_plan)
+                        plan_num = plan_num + len(preprocessing_graph_list)
+                        for graph in preprocessing_graph_list:
+                            if cost_model == 'craftsman':
+                                cost = get_craftsman_graph_cost(graph, data_rows)
+                            elif cost_model == 'postgresql':
+                                query_str = self.__compose_sql(graph, table_name, dbms, pre_sql, pipeline)
+                                cost = get_pg_sql_cost(query_str)
+                            if cost < min_cost:
+                                min_cost_preprocessing_graph = graph
+                                min_cost = cost
+
+            else:
+                all_graph_implements_plans = []
+                for graph_implement_plan in enumerate_graph_implement_plans():
+                    all_graph_implements_plans.append(graph_implement_plan)
+            
+                def task(begin_graph_plan_idx, end_graph_plan_idx):
+                    for graph_implement_plan in all_graph_implements_plans[begin_graph_plan_idx: end_graph_plan_idx + 1]:
+                        for graph_fusion_plan in enumerate_graph_fusion_plans():
+                            preprocessing_graph_list = merge_sql_operator_by_graph_plan(preprocessing_graph, graph_implement_plan, graph_fusion_plan)
+                            plan_num = plan_num + len(preprocessing_graph_list)
+                            for graph in preprocessing_graph_list:
+                                if cost_model == 'craftsman':
+                                    cost = get_craftsman_graph_cost(graph, data_rows)
+                                elif cost_model == 'postgresql':
+                                    query_str = self.__compose_sql(graph, table_name, dbms, pre_sql, pipeline)
+                                    cost = get_pg_sql_cost(query_str)
+                                if cost < min_cost:
+                                    min_cost_preprocessing_graph = graph
+                                    min_cost = cost
+                    return min_cost_preprocessing_graph, min_cost
+                
+                max_workers_num = 16
+                graph_plans_num = len(all_graph_implements_plans)
+                with ProcessPoolExecutor(max_workers=max_workers_num) as executor:
+                    futures = []
+                    per_worker_plan_num = graph_plans_num // max_workers_num
+                    remain_plan_num = graph_plans_num % max_workers_num
+                    begin_plan_idx = 0
+                    for i in range(remain_plan_num):
+                        futures.append(executor.submit(task, begin_plan_idx, begin_plan_idx + per_worker_plan_num))
+                        begin_plan_idx += begin_plan_idx + per_worker_plan_num + 1
+                    if per_worker_plan_num > 0:
+                        for i in range(max_workers_num - remain_plan_num):
+                            futures.append(executor.submit(task, begin_plan_idx, begin_plan_idx + per_worker_plan_num - 1))
+                            begin_plan_idx += begin_plan_idx + per_worker_plan_num
+                    for future in futures:
+                        concurrent_min_cost_preprocessing_graph, concurrent_min_cost = future.result()
+                        if concurrent_min_cost < min_cost:
+                            min_cost_preprocessing_graph = concurrent_min_cost_preprocessing_graph
+                            min_cost = concurrent_min_cost  
+
             min_cost_query_str = self.__compose_sql(join_the_operators(min_cost_preprocessing_graph), table_name, dbms, pre_sql, pipeline)
             print(f'plan num: {plan_num}')
             

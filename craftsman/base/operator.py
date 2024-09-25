@@ -303,14 +303,15 @@ class CAT_C_CAT(EncoderOperator):
         mapping = self.mappings[0]
         join_table_name = feature + CAT_C_CAT_JOIN_POSTNAME
         join_table_name = join_table_name.lower()
-        cols = {feature.lower(): DBDataType.VARCHAR.value if dbms != 'monetdb' else DBDataType.VARCHAR512.value}
         col_name = feature + CAT_C_CAT_JOIN_COL_POSTNAME
         col_name = col_name.lower()
-        cols[col_name] = df_type2db_type(mapping.dtype, dbms)
-        data = [
-            (idx, mapping.tolist()[mapping.index.get_loc(idx)]) for idx in mapping.index
-        ]
-        insert_db(dbms, join_table_name, cols, data)
+        if self.op_name == OperatorName.CAT_C_CAT_Merged_OP:
+            cols = {feature.lower(): DBDataType.VARCHAR.value if dbms != 'monetdb' else DBDataType.VARCHAR512.value}
+            cols[col_name] = df_type2db_type(mapping.dtype, dbms)
+            data = [
+                (idx, mapping.tolist()[mapping.index.get_loc(idx)]) for idx in mapping.index
+            ]
+            insert_db(dbms, join_table_name, cols, data)
         delimitied_feature = DBMSUtils.get_delimited_col(dbms, feature)
         missing_cols = pipeline['imputer']['missing_cols']
         if feature in missing_cols:
@@ -568,13 +569,14 @@ class EXPAND(EncoderOperator):
         feature = self.features[0]
         join_table_name = feature + EXPAND_JOIN_POSTNAME
         join_table_name = join_table_name.lower()
-        cols = {feature.lower(): DBDataType.VARCHAR.value if dbms != 'monetdb' else DBDataType.VARCHAR512.value}
-        for col in self.mapping.columns:
-            cols[col.lower()] = df_type2db_type(self.mapping[col].dtype, dbms)
-        data = []
-        for idx in self.mapping.index:
-            data.append((idx,) + tuple(self.mapping.loc[idx]))
-        insert_db(dbms, join_table_name, cols, data)
+        if self.op_name == OperatorName.EXPAND_Merged_OP:
+            cols = {feature.lower(): DBDataType.VARCHAR.value if dbms != 'monetdb' else DBDataType.VARCHAR512.value}
+            for col in self.mapping.columns:
+                cols[col.lower()] = df_type2db_type(self.mapping[col].dtype, dbms)
+            data = []
+            for idx in self.mapping.index:
+                data.append((idx,) + tuple(self.mapping.loc[idx]))
+            insert_db(dbms, join_table_name, cols, data)
         delimitied_feature = DBMSUtils.get_delimited_col(dbms, feature)
         missing_cols = pipeline['imputer']['missing_cols']
         if feature in missing_cols:
