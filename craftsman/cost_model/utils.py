@@ -100,7 +100,7 @@ def get_craftsman_graph_cost(graph, data_rows):
             defs.ModelName.DECISIONTREEREGRESSOR,
             defs.ModelName.RANDOMFORESTREGRESSOR,
         ):
-
+            
             tree_costs = graph.model.get_tree_costs_static(feature)
             total_tree_cost = sum(
                 [tree_cost.calculate_tree_cost() for tree_cost in tree_costs]

@@ -23,8 +23,10 @@ class BinaryEncoderSQLOperator(EXPAND):
                         reversed_ordinal_enc = Series(data=enc_mapping['mapping'].index, index=enc_mapping['mapping'])
                         reversed_ordinal_enc[-1] = 'NaN'
                         break
-                self.mapping.index = [reversed_ordinal_enc[idx] for idx in self.mapping.index]
+                if not self.mapping.index.dtype == object:
+                    self.mapping.index = [reversed_ordinal_enc[idx] for idx in self.mapping.index]
                 self.mapping = self.mapping[~self.mapping.index.isnull()]
+                self.mapping = self.mapping.loc[[idx for idx in self.mapping.index if idx != 'NaN']]
                 break
     
 
