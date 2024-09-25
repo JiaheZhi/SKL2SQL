@@ -15,7 +15,7 @@ class DecisionTreeRegressorSQLModel(TreeModel):
 
     def __init__(self, trained_model: DecisionTreeRegressor):
         super().__init__()
-        self.model_name = ModelName.DECISIONTREECLASSIFIER
+        self.model_name = ModelName.DECISIONTREEREGRESSOR
         self.trained_model = trained_model
         # get for each node, left, right child nodes, thresholds and features
         self.left = self.trained_model.tree_.children_left  # left child for each node

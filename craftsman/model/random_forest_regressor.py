@@ -16,7 +16,7 @@ class RandomForestRegressorSQLModel(TreeModel):
 
     def __init__(self, trained_model: RandomForestRegressor):
         super().__init__()
-        self.model_name = ModelName.RANDOMFORESTCLASSIFIER
+        self.model_name = ModelName.RANDOMFORESTREGRESSOR
         self.trained_model = trained_model
         self.input_features = trained_model.feature_names_in_
         self.estimators = trained_model.estimators_
