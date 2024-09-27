@@ -128,8 +128,8 @@ class TransformerManager(object):
 
         if group == 'org':
             reuse_flag = False
-            if reuse_flag and os.path.exists(f'{table_name}_{model_name}_org.pkl'):
-                with open(f'{table_name}_{model_name}_org.pkl', 'rb') as f:
+            if reuse_flag and os.path.exists(f'{table_name}_{model_name}_{dbms}_org.pkl'):
+                with open(f'{table_name}_{model_name}_{dbms}_org.pkl', 'rb') as f:
                     min_cost_preprocessing_graph = pickle.load(f)
 
             else:
@@ -158,14 +158,14 @@ class TransformerManager(object):
                         min_cost_preprocessing_graph = preprocessing_graph
                         min_cost = cost
 
-                with open(f'{table_name}_{model_name}_org.pkl', 'wb') as f:
+                with open(f'{table_name}_{model_name}_{dbms}_org.pkl', 'wb') as f:
                     pickle.dump(min_cost_preprocessing_graph, f)
 
             min_cost_query_str = self.__compose_sql(join_the_operators(min_cost_preprocessing_graph), table_name, dbms, pre_sql, pipeline)      
 
         if group == 'pos':
-            if os.path.exists(f'{table_name}_{model_name}_org.pkl'):
-                with open(f'{table_name}_{model_name}_org.pkl', 'rb') as f:
+            if os.path.exists(f'{table_name}_{model_name}_{dbms}_org.pkl'):
+                with open(f'{table_name}_{model_name}_{dbms}_org.pkl', 'rb') as f:
                     min_cost_preprocessing_graph = pickle.load(f)
             else:
                 # enumerate the chain implement plans
@@ -195,15 +195,15 @@ class TransformerManager(object):
 
             min_cost_preprocessing_graph = merge_sql_operator_by_benifit_rules(min_cost_preprocessing_graph)
             min_cost_query_str = self.__compose_sql(join_the_operators(min_cost_preprocessing_graph), table_name, dbms, pre_sql, pipeline)
-            with open(f'{table_name}_{model_name}_pos.pkl', 'wb') as f:
+            with open(f'{table_name}_{model_name}_{dbms}_pos.pkl', 'wb') as f:
                 pickle.dump(min_cost_preprocessing_graph, f)
 
         if group == 'uncertain':
-            if os.path.exists(f'{table_name}_{model_name}_pos.pkl'):
-                with open(f'{table_name}_{model_name}_pos.pkl', 'rb') as f:
+            if os.path.exists(f'{table_name}_{model_name}_{dbms}_pos.pkl'):
+                with open(f'{table_name}_{model_name}_{dbms}_pos.pkl', 'rb') as f:
                     min_cost_preprocessing_graph = pickle.load(f)
-            elif os.path.exists(f'{table_name}_{model_name}_org.pkl'):
-                with open(f'{table_name}_{model_name}_org.pkl', 'rb') as f:
+            elif os.path.exists(f'{table_name}_{model_name}_{dbms}_org.pkl'):
+                with open(f'{table_name}_{model_name}_{dbms}_org.pkl', 'rb') as f:
                     min_cost_preprocessing_graph = pickle.load(f)
                 min_cost_preprocessing_graph = merge_sql_operator_by_benifit_rules(min_cost_preprocessing_graph)
             else:
@@ -237,7 +237,7 @@ class TransformerManager(object):
             min_cost_query_str = self.__compose_sql(join_the_operators(min_cost_preprocessing_graph), table_name, dbms, pre_sql, pipeline)
 
         if group == 'enum':
-            concurrent_flag = False
+            concurrent_flag = True
 
             # enumerate the chain implement plans
             all_chain_candidate_implement_plans: list[ChainCandidateImplementPlans] = []
