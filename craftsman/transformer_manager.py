@@ -15,8 +15,8 @@ import craftsman.base.defs as defs
 
 
 def task(
-    all_graph_implements_plans,
-    all_graph_fusion_plans,
+    all_implements_plans,
+    all_fusion_plans,
     preprocessing_graph,
     cost_model,
     data_rows,
@@ -28,8 +28,8 @@ def task(
     min_cost = float('inf')
     plan_num = 0
     min_cost_preprocessing_graph = None
-    for graph_implement_plan in all_graph_implements_plans:
-        for graph_fusion_plan in all_graph_fusion_plans:
+    for graph_implement_plan in all_implements_plans:
+        for graph_fusion_plan in all_fusion_plans:
             preprocessing_graph_list = merge_sql_operator_by_graph_plan(preprocessing_graph, graph_implement_plan, graph_fusion_plan)
             plan_num = plan_num + len(preprocessing_graph_list)
             for graph in preprocessing_graph_list:
@@ -294,18 +294,18 @@ class TransformerManager(object):
                     all_graph_fusion_plans.append(graph_fusion_plan)
 
                 max_workers_num = 16
-                graph_plans_num = len(all_graph_implements_plans)
+                graph_fusion_plan_num = len(all_graph_fusion_plans)
                 with ProcessPoolExecutor(max_workers=max_workers_num) as executor:
                     futures = []
-                    per_worker_plan_num = graph_plans_num // max_workers_num
-                    remain_plan_num = graph_plans_num % max_workers_num
+                    per_worker_plan_num = graph_fusion_plan_num // max_workers_num
+                    remain_plan_num = graph_fusion_plan_num % max_workers_num
                     begin_plan_idx = 0
                     for i in range(remain_plan_num):
                         futures.append(
                             executor.submit(
                                 task,
-                                all_graph_implements_plans[begin_plan_idx: begin_plan_idx + per_worker_plan_num + 1],
-                                all_graph_fusion_plans,
+                                all_graph_implements_plans,
+                                all_graph_fusion_plans[begin_plan_idx: begin_plan_idx + per_worker_plan_num + 1],
                                 preprocessing_graph.copy_graph(),
                                 cost_model,
                                 data_rows,
@@ -321,8 +321,8 @@ class TransformerManager(object):
                             futures.append(
                                 executor.submit(
                                     task,
-                                    all_graph_implements_plans[begin_plan_idx: begin_plan_idx + per_worker_plan_num],
-                                    all_graph_fusion_plans,
+                                    all_graph_implements_plans,
+                                    all_graph_fusion_plans[begin_plan_idx: begin_plan_idx + per_worker_plan_num],
                                     preprocessing_graph.copy_graph(),
                                     cost_model,
                                     data_rows,
