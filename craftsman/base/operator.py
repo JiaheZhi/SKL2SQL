@@ -333,6 +333,8 @@ class CAT_C_CAT(EncoderOperator):
 
     def modify_leaf(self, feature, op, thr, modified_feature):
         mapping = self.mappings[self.features_out.index(feature)]
+        # if feature == 'nom_6':
+        #     pass
         if op == '<=':
             in_list = [] 
             # if defs.ORDER_WHEN:
@@ -358,7 +360,10 @@ class CAT_C_CAT(EncoderOperator):
             leaf_in_list = [float(x) for x in thr[1:-1].split(',')]
             for idx, enc_value in mapping.items():
                 if enc_value in leaf_in_list:
-                    in_list.append(idx)
+                    if type(idx) == str:
+                        in_list.append(f"'{idx}'")
+                    else:
+                        in_list.append(f"{idx}")
                     
             return (
                 DBMSUtils.get_delimited_col(defs.DBMS, feature),
@@ -383,7 +388,10 @@ class CAT_C_CAT(EncoderOperator):
             in_list = []
             for idx, enc_value in mapping.items():
                 if judge_in_intervals(enc_value):
-                    in_list.append(idx)
+                    if type(idx) == str:
+                        in_list.append(f"'{idx}'")
+                    else:
+                        in_list.append(f"{idx}")
             
             return (
                 DBMSUtils.get_delimited_col(defs.DBMS, feature),

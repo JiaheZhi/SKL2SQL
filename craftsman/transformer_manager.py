@@ -28,8 +28,8 @@ def task(
     min_cost = float('inf')
     plan_num = 0
     min_cost_preprocessing_graph = None
-    for graph_implement_plan in all_implements_plans:
-        for graph_fusion_plan in all_fusion_plans:
+    for graph_fusion_plan in all_fusion_plans:
+        for graph_implement_plan in all_implements_plans:
             preprocessing_graph_list = merge_sql_operator_by_graph_plan(preprocessing_graph, graph_implement_plan, graph_fusion_plan)
             plan_num = plan_num + len(preprocessing_graph_list)
             for graph in preprocessing_graph_list:
@@ -101,7 +101,8 @@ class TransformerManager(object):
         expriment_col=None,
         expriment_col_stragey=None,
         group='enum',
-        cost_model='craftsman'
+        cost_model='craftsman',
+        max_process_num=1
     ):
         assert group in ('org', 'pos', 'uncertain', 'enum', 'prune'), "group must in ('org', 'pos', 'uncertain', 'enum', 'prune')"
         assert cost_model in ('craftsman', 'postgresql'), "cost_model must in ('craftsman', 'postgresql')"
@@ -127,114 +128,123 @@ class TransformerManager(object):
         min_cost = float("inf")
 
         if group == 'org':
-            reuse_flag = False
-            if reuse_flag and os.path.exists(f'{table_name}_{model_name}_{dbms}_org.pkl'):
-                with open(f'{table_name}_{model_name}_{dbms}_org.pkl', 'rb') as f:
-                    min_cost_preprocessing_graph = pickle.load(f)
+            # reuse_flag = False
+            # if reuse_flag and os.path.exists(f'{table_name}_{model_name}_{dbms}_org.pkl'):
+            #     with open(f'{table_name}_{model_name}_{dbms}_org.pkl', 'rb') as f:
+            #         min_cost_preprocessing_graph = pickle.load(f)
 
-            else:
-                # enumerate the chain implement plans
-                all_chain_candidate_implement_plans: list[ChainCandidateImplementPlans] = []
-                for feature, chain in preprocessing_graph.chains.items():
-                    all_chain_candidate_implement_plans.append(ChainCandidateImplementPlans(feature, chain))
+            # else:
+            # enumerate the chain implement plans
+            all_chain_candidate_implement_plans: list[ChainCandidateImplementPlans] = []
+            for feature, chain in preprocessing_graph.chains.items():
+                all_chain_candidate_implement_plans.append(ChainCandidateImplementPlans(feature, chain))
 
-                def enumerate_graph_implement_plans(index=0, current_graph_implement_plan:list = []):
-                    if index == len(all_chain_candidate_implement_plans):
-                        yield copy.deepcopy(current_graph_implement_plan) 
-                        return
-                    for chain_implement_plan in all_chain_candidate_implement_plans[index].candidate_implement_plans:
-                        current_graph_implement_plan.append(chain_implement_plan)
-                        yield from enumerate_graph_implement_plans(index + 1, current_graph_implement_plan)
-                        current_graph_implement_plan.pop()
+            def enumerate_graph_implement_plans(index=0, current_graph_implement_plan:list = []):
+                if index == len(all_chain_candidate_implement_plans):
+                    yield copy.deepcopy(current_graph_implement_plan) 
+                    return
+                for chain_implement_plan in all_chain_candidate_implement_plans[index].candidate_implement_plans:
+                    current_graph_implement_plan.append(chain_implement_plan)
+                    yield from enumerate_graph_implement_plans(index + 1, current_graph_implement_plan)
+                    current_graph_implement_plan.pop()
 
-                for graph_implement_plan in enumerate_graph_implement_plans():
-                    preprocessing_graph = implement_operator_by_plan(preprocessing_graph, graph_implement_plan)
-                    if cost_model == 'craftsman':
-                        cost = get_craftsman_graph_cost(preprocessing_graph, data_rows)
-                    elif cost_model == 'postgresql':
-                        query_str = self.__compose_sql(join_the_operators(preprocessing_graph), table_name, dbms, pre_sql, pipeline)
-                        cost = get_pg_sql_cost(query_str)
-                    if cost < min_cost:
-                        min_cost_preprocessing_graph = preprocessing_graph
-                        min_cost = cost
+            for graph_implement_plan in enumerate_graph_implement_plans():
+                preprocessing_graph = implement_operator_by_plan(preprocessing_graph, graph_implement_plan)
+                if cost_model == 'craftsman':
+                    cost = get_craftsman_graph_cost(preprocessing_graph, data_rows)
+                elif cost_model == 'postgresql':
+                    query_str = self.__compose_sql(join_the_operators(preprocessing_graph), table_name, dbms, pre_sql, pipeline)
+                    cost = get_pg_sql_cost(query_str)
+                if cost < min_cost:
+                    min_cost_preprocessing_graph = preprocessing_graph
+                    min_cost = cost
 
-                with open(f'{table_name}_{model_name}_{dbms}_org.pkl', 'wb') as f:
-                    pickle.dump(min_cost_preprocessing_graph, f)
+            # with open(f'{table_name}_{model_name}_{dbms}_org.pkl', 'wb') as f:
+            #     pickle.dump(min_cost_preprocessing_graph, f)
 
-            min_cost_query_str = self.__compose_sql(join_the_operators(min_cost_preprocessing_graph), table_name, dbms, pre_sql, pipeline)      
+            t1 = time.time()
+            min_cost_query_str = self.__compose_sql(join_the_operators(min_cost_preprocessing_graph), table_name, dbms, pre_sql, pipeline)
+            t2 = time.time()
+            print(f'org sql generate time: {(t2 - t1):.4f} s', flush=True)    
 
         if group == 'pos':
-            if os.path.exists(f'{table_name}_{model_name}_{dbms}_org.pkl'):
-                with open(f'{table_name}_{model_name}_{dbms}_org.pkl', 'rb') as f:
-                    min_cost_preprocessing_graph = pickle.load(f)
-            else:
-                # enumerate the chain implement plans
-                all_chain_candidate_implement_plans: list[ChainCandidateImplementPlans] = []
-                for feature, chain in preprocessing_graph.chains.items():
-                    all_chain_candidate_implement_plans.append(ChainCandidateImplementPlans(feature, chain))
+            # if os.path.exists(f'{table_name}_{model_name}_{dbms}_org.pkl'):
+            #     with open(f'{table_name}_{model_name}_{dbms}_org.pkl', 'rb') as f:
+            #         min_cost_preprocessing_graph = pickle.load(f)
+            # else:
+            # enumerate the chain implement plans
+            all_chain_candidate_implement_plans: list[ChainCandidateImplementPlans] = []
+            for feature, chain in preprocessing_graph.chains.items():
+                all_chain_candidate_implement_plans.append(ChainCandidateImplementPlans(feature, chain))
 
-                def enumerate_graph_implement_plans(index=0, current_graph_implement_plan:list = []):
-                    if index == len(all_chain_candidate_implement_plans):
-                        yield copy.deepcopy(current_graph_implement_plan) 
-                        return
-                    for chain_implement_plan in all_chain_candidate_implement_plans[index].candidate_implement_plans:
-                        current_graph_implement_plan.append(chain_implement_plan)
-                        yield from enumerate_graph_implement_plans(index + 1, current_graph_implement_plan)
-                        current_graph_implement_plan.pop()
+            def enumerate_graph_implement_plans(index=0, current_graph_implement_plan:list = []):
+                if index == len(all_chain_candidate_implement_plans):
+                    yield copy.deepcopy(current_graph_implement_plan) 
+                    return
+                for chain_implement_plan in all_chain_candidate_implement_plans[index].candidate_implement_plans:
+                    current_graph_implement_plan.append(chain_implement_plan)
+                    yield from enumerate_graph_implement_plans(index + 1, current_graph_implement_plan)
+                    current_graph_implement_plan.pop()
 
-                for graph_implement_plan in enumerate_graph_implement_plans():
-                    preprocessing_graph = implement_operator_by_plan(preprocessing_graph, graph_implement_plan)
-                    if cost_model == 'craftsman':
-                        cost = get_craftsman_graph_cost(preprocessing_graph, data_rows)
-                    elif cost_model == 'postgresql':
-                        query_str = self.__compose_sql(join_the_operators(preprocessing_graph), table_name, dbms, pre_sql, pipeline)
-                        cost = get_pg_sql_cost(query_str)
-                    if cost < min_cost:
-                        min_cost_preprocessing_graph = preprocessing_graph
-                        min_cost = cost
+            for graph_implement_plan in enumerate_graph_implement_plans():
+                preprocessing_graph = implement_operator_by_plan(preprocessing_graph, graph_implement_plan)
+                if cost_model == 'craftsman':
+                    cost = get_craftsman_graph_cost(preprocessing_graph, data_rows)
+                elif cost_model == 'postgresql':
+                    query_str = self.__compose_sql(join_the_operators(preprocessing_graph), table_name, dbms, pre_sql, pipeline)
+                    cost = get_pg_sql_cost(query_str)
+                if cost < min_cost:
+                    min_cost_preprocessing_graph = preprocessing_graph
+                    min_cost = cost
 
             min_cost_preprocessing_graph = merge_sql_operator_by_benifit_rules(min_cost_preprocessing_graph)
+            t1 = time.time()
             min_cost_query_str = self.__compose_sql(join_the_operators(min_cost_preprocessing_graph), table_name, dbms, pre_sql, pipeline)
-            with open(f'{table_name}_{model_name}_{dbms}_pos.pkl', 'wb') as f:
-                pickle.dump(min_cost_preprocessing_graph, f)
+            t2 = time.time()
+            print(f'pos sql generate time: {(t2 - t1):.4f} s', flush=True)
+            # with open(f'{table_name}_{model_name}_{dbms}_pos.pkl', 'wb') as f:
+            #     pickle.dump(min_cost_preprocessing_graph, f)
 
         if group == 'uncertain':
-            if os.path.exists(f'{table_name}_{model_name}_{dbms}_pos.pkl'):
-                with open(f'{table_name}_{model_name}_{dbms}_pos.pkl', 'rb') as f:
-                    min_cost_preprocessing_graph = pickle.load(f)
-            elif os.path.exists(f'{table_name}_{model_name}_{dbms}_org.pkl'):
-                with open(f'{table_name}_{model_name}_{dbms}_org.pkl', 'rb') as f:
-                    min_cost_preprocessing_graph = pickle.load(f)
-                min_cost_preprocessing_graph = merge_sql_operator_by_benifit_rules(min_cost_preprocessing_graph)
-            else:
-                # enumerate the chain implement plans
-                all_chain_candidate_implement_plans: list[ChainCandidateImplementPlans] = []
-                for feature, chain in preprocessing_graph.chains.items():
-                    all_chain_candidate_implement_plans.append(ChainCandidateImplementPlans(feature, chain))
+            # if os.path.exists(f'{table_name}_{model_name}_{dbms}_pos.pkl'):
+            #     with open(f'{table_name}_{model_name}_{dbms}_pos.pkl', 'rb') as f:
+            #         min_cost_preprocessing_graph = pickle.load(f)
+            # elif os.path.exists(f'{table_name}_{model_name}_{dbms}_org.pkl'):
+            #     with open(f'{table_name}_{model_name}_{dbms}_org.pkl', 'rb') as f:
+            #         min_cost_preprocessing_graph = pickle.load(f)
+            #     min_cost_preprocessing_graph = merge_sql_operator_by_benifit_rules(min_cost_preprocessing_graph)
+            # else:
+            # enumerate the chain implement plans
+            all_chain_candidate_implement_plans: list[ChainCandidateImplementPlans] = []
+            for feature, chain in preprocessing_graph.chains.items():
+                all_chain_candidate_implement_plans.append(ChainCandidateImplementPlans(feature, chain))
 
-                def enumerate_graph_implement_plans(index=0, current_graph_implement_plan:list = []):
-                    if index == len(all_chain_candidate_implement_plans):
-                        yield copy.deepcopy(current_graph_implement_plan) 
-                        return
-                    for chain_implement_plan in all_chain_candidate_implement_plans[index].candidate_implement_plans:
-                        current_graph_implement_plan.append(chain_implement_plan)
-                        yield from enumerate_graph_implement_plans(index + 1, current_graph_implement_plan)
-                        current_graph_implement_plan.pop()
+            def enumerate_graph_implement_plans(index=0, current_graph_implement_plan:list = []):
+                if index == len(all_chain_candidate_implement_plans):
+                    yield copy.deepcopy(current_graph_implement_plan) 
+                    return
+                for chain_implement_plan in all_chain_candidate_implement_plans[index].candidate_implement_plans:
+                    current_graph_implement_plan.append(chain_implement_plan)
+                    yield from enumerate_graph_implement_plans(index + 1, current_graph_implement_plan)
+                    current_graph_implement_plan.pop()
 
-                for graph_implement_plan in enumerate_graph_implement_plans():
-                    preprocessing_graph = implement_operator_by_plan(preprocessing_graph, graph_implement_plan)
-                    if cost_model == 'craftsman':
-                        cost = get_craftsman_graph_cost(preprocessing_graph, data_rows)
-                    elif cost_model == 'postgresql':
-                        query_str = self.__compose_sql(preprocessing_graph, table_name, dbms, pre_sql, pipeline)
-                        cost = get_pg_sql_cost(query_str)
-                    if cost < min_cost:
-                        min_cost_preprocessing_graph = preprocessing_graph
-                        min_cost = cost
-                min_cost_preprocessing_graph = merge_sql_operator_by_benifit_rules(min_cost_preprocessing_graph)
+            for graph_implement_plan in enumerate_graph_implement_plans():
+                preprocessing_graph = implement_operator_by_plan(preprocessing_graph, graph_implement_plan)
+                if cost_model == 'craftsman':
+                    cost = get_craftsman_graph_cost(preprocessing_graph, data_rows)
+                elif cost_model == 'postgresql':
+                    query_str = self.__compose_sql(preprocessing_graph, table_name, dbms, pre_sql, pipeline)
+                    cost = get_pg_sql_cost(query_str)
+                if cost < min_cost:
+                    min_cost_preprocessing_graph = preprocessing_graph
+                    min_cost = cost
+            min_cost_preprocessing_graph = merge_sql_operator_by_benifit_rules(min_cost_preprocessing_graph)
 
             min_cost_preprocessing_graph = merge_sql_operator_by_uncertain_rules(min_cost_preprocessing_graph)
+            t1 = time.time()
             min_cost_query_str = self.__compose_sql(join_the_operators(min_cost_preprocessing_graph), table_name, dbms, pre_sql, pipeline)
+            t2 = time.time()
+            print(f'uncertain sql generate time: {(t2 - t1):.4f} s', flush=True)
 
         if group == 'enum':
             concurrent_flag = True
@@ -267,13 +277,13 @@ class TransformerManager(object):
                     yield from enumerate_graph_fusion_plans(index + 1, current_graph_fusion_plan)
                     current_graph_fusion_plan.pop()
 
-            plan_num = 0
+            total_plan_num = 0
 
-            if not concurrent_flag:
+            if max_process_num == 1:
                 for graph_implement_plan in enumerate_graph_implement_plans():
                     for graph_fusion_plan in enumerate_graph_fusion_plans():
                         preprocessing_graph_list = merge_sql_operator_by_graph_plan(preprocessing_graph, graph_implement_plan, graph_fusion_plan)
-                        plan_num = plan_num + len(preprocessing_graph_list)
+                        total_plan_num = total_plan_num + len(preprocessing_graph_list)
                         for graph in preprocessing_graph_list:
                             if cost_model == 'craftsman':
                                 cost = get_craftsman_graph_cost(graph, data_rows)
@@ -293,36 +303,20 @@ class TransformerManager(object):
                 for graph_fusion_plan in enumerate_graph_fusion_plans():
                     all_graph_fusion_plans.append(graph_fusion_plan)
 
-                max_workers_num = 16
+                max_workers_num = max_process_num
                 graph_fusion_plan_num = len(all_graph_fusion_plans)
                 with ProcessPoolExecutor(max_workers=max_workers_num) as executor:
                     futures = []
-                    per_worker_plan_num = graph_fusion_plan_num // max_workers_num
-                    remain_plan_num = graph_fusion_plan_num % max_workers_num
-                    begin_plan_idx = 0
-                    for i in range(remain_plan_num):
-                        futures.append(
-                            executor.submit(
-                                task,
-                                all_graph_implements_plans,
-                                all_graph_fusion_plans[begin_plan_idx: begin_plan_idx + per_worker_plan_num + 1],
-                                preprocessing_graph.copy_graph(),
-                                cost_model,
-                                data_rows,
-                                table_name,
-                                dbms,
-                                pre_sql,
-                                pipeline,
-                            )
-                        )
-                        begin_plan_idx = begin_plan_idx + per_worker_plan_num + 1
-                    if per_worker_plan_num > 0:
-                        for i in range(max_workers_num - remain_plan_num):
+                    if graph_fusion_plan_num >= max_workers_num:
+                        per_worker_plan_num = graph_fusion_plan_num // max_workers_num
+                        remain_plan_num = graph_fusion_plan_num % max_workers_num
+                        begin_plan_idx = 0
+                        for i in range(remain_plan_num):
                             futures.append(
                                 executor.submit(
                                     task,
                                     all_graph_implements_plans,
-                                    all_graph_fusion_plans[begin_plan_idx: begin_plan_idx + per_worker_plan_num],
+                                    all_graph_fusion_plans[begin_plan_idx: begin_plan_idx + per_worker_plan_num + 1],
                                     preprocessing_graph.copy_graph(),
                                     cost_model,
                                     data_rows,
@@ -332,16 +326,82 @@ class TransformerManager(object):
                                     pipeline,
                                 )
                             )
-                            begin_plan_idx = begin_plan_idx + per_worker_plan_num
+                            begin_plan_idx = begin_plan_idx + per_worker_plan_num + 1
+                        if per_worker_plan_num > 0:
+                            for i in range(max_workers_num - remain_plan_num):
+                                futures.append(
+                                    executor.submit(
+                                        task,
+                                        all_graph_implements_plans,
+                                        all_graph_fusion_plans[begin_plan_idx: begin_plan_idx + per_worker_plan_num],
+                                        preprocessing_graph.copy_graph(),
+                                        cost_model,
+                                        data_rows,
+                                        table_name,
+                                        dbms,
+                                        pre_sql,
+                                        pipeline,
+                                    )
+                                )
+                                begin_plan_idx = begin_plan_idx + per_worker_plan_num
+                    else:
+                        per_plan_worker_num = max_workers_num // graph_fusion_plan_num
+                        remain_plan_num = max_workers_num % graph_fusion_plan_num
+                        plan_worker_nums = [per_plan_worker_num] * (graph_fusion_plan_num - remain_plan_num) + [per_plan_worker_num + 1] * remain_plan_num
+                        graph_implement_plan_num = len(all_graph_implements_plans)
+                        for i, woker_num in enumerate(plan_worker_nums):
+                            per_worker_implement_plan_num =  graph_implement_plan_num // woker_num
+                            remain_implement_plan_num = graph_implement_plan_num % woker_num
+                            begin_implement_plan_idx = 0
+                            for j in range(remain_implement_plan_num):
+                                futures.append(
+                                    executor.submit(
+                                        task,
+                                        all_graph_implements_plans[begin_implement_plan_idx: begin_implement_plan_idx + per_worker_implement_plan_num + 1],
+                                        all_graph_fusion_plans[i: i + 1],
+                                        preprocessing_graph.copy_graph(),
+                                        cost_model,
+                                        data_rows,
+                                        table_name,
+                                        dbms,
+                                        pre_sql,
+                                        pipeline,
+                                    )
+                                )
+                                begin_implement_plan_idx = begin_implement_plan_idx + per_worker_implement_plan_num + 1
+                            if per_worker_implement_plan_num > 0:
+                                for j in range(woker_num - remain_implement_plan_num):
+                                    futures.append(
+                                        executor.submit(
+                                                task,
+                                                all_graph_implements_plans[begin_implement_plan_idx: begin_implement_plan_idx + per_worker_implement_plan_num],
+                                                all_graph_fusion_plans[i: i + 1],
+                                                preprocessing_graph.copy_graph(),
+                                                cost_model,
+                                                data_rows,
+                                                table_name,
+                                                dbms,
+                                                pre_sql,
+                                                pipeline,
+                                            )
+                                    )
+                                    begin_implement_plan_idx = begin_implement_plan_idx + per_worker_implement_plan_num    
+                        
                     for future in futures:
-                        concurrent_min_cost_preprocessing_graph, concurrent_min_cost, process_plan_num = future.result()
-                        plan_num += process_plan_num
+                        try:
+                            concurrent_min_cost_preprocessing_graph, concurrent_min_cost, process_plan_num = future.result()
+                        except Exception as e:
+                            print(f"Future raised an exception: {e}")
+                        
+                        total_plan_num += process_plan_num
                         if concurrent_min_cost < min_cost:
                             min_cost_preprocessing_graph = concurrent_min_cost_preprocessing_graph
                             min_cost = concurrent_min_cost  
-
+            t1 = time.time()
             min_cost_query_str = self.__compose_sql(join_the_operators(min_cost_preprocessing_graph), table_name, dbms, pre_sql, pipeline)
-            print(f'plan num: {plan_num}')
+            t2 = time.time()
+            print(f'enum plan num: {total_plan_num}', flush=True)
+            print(f'enum sql generate time: {(t2 - t1):.4f} s', flush=True)
 
         if group == 'prune':
             # enumerate the chain implement plans
@@ -372,17 +432,19 @@ class TransformerManager(object):
                     yield from enumerate_graph_fusion_plans(index + 1, current_graph_fusion_plan)
                     current_graph_fusion_plan.pop()
 
-            plan_num = 0        
+            total_plan_num = 0        
             last_chain_min_cost_preprocessing_graph = preprocessing_graph.copy_graph()
             for chain_candidate_implement_plans, chain_candidate_fusion_plans, feature in zip(
                 all_chain_candidate_implement_plans,
                 all_chain_candidate_fusion_plans,
                 preprocessing_graph.chains.keys(),
             ):
+                # if feature == 'nom_5':
+                #     pass
                 for chain_implement_plan in chain_candidate_implement_plans.candidate_implement_plans:
                     for chain_fusion_plan in chain_candidate_fusion_plans.candidate_fusion_plans:
                         preprocessing_graph_list = merge_sql_operator_by_chain_plan(last_chain_min_cost_preprocessing_graph, chain_implement_plan, chain_fusion_plan, feature)
-                        plan_num = plan_num + len(preprocessing_graph_list)
+                        total_plan_num += len(preprocessing_graph_list)
                         for graph in preprocessing_graph_list:
                             if cost_model == 'craftsman':
                                 cost = get_craftsman_graph_cost(graph, data_rows)
@@ -395,8 +457,11 @@ class TransformerManager(object):
 
                 last_chain_min_cost_preprocessing_graph = min_cost_preprocessing_graph.copy_graph()
 
+            t1 = time.time()
             min_cost_query_str = self.__compose_sql(join_the_operators(min_cost_preprocessing_graph), table_name, dbms, pre_sql, pipeline)
-            print(f'plan num: {plan_num}')
+            t2 = time.time()
+            print(f'prune plan num: {total_plan_num}', flush=True)
+            print(f'prune sql generate time: {(t2 - t1):.4f} s', flush=True)
 
         return min_cost_query_str
         # return min_cost_query_str, min_cost_graph_implement_plan, min_cost_graph_fusion_plan, min_cost_preprocessing_graph

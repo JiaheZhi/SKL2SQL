@@ -16,7 +16,7 @@ class PathCost(object):
     def set_occurs(self, count):
         self.occurs_time = count  # TODO: extend "<=" to others:
 
-    def set_cost(self, primitive=PrimitiveType.LE, length=1):
+    def set_cost(self, primitive=PrimitiveType.LE_EQ, length=1):
         if self.infos[primitive.value].get(length):
             self.infos[primitive.value][length] += 1
         else:

@@ -14,27 +14,34 @@ class ChainCandidateFusionPlans(object):
         ops_num = len(chain.prep_operators)
         self.feature = feature
         self.candidate_fusion_plans = []
+        self.exist_begin_pairs = set()
         if ops_num == 0:
             self.candidate_fusion_plans.append(ChainFusionPlan(-1, []))
             
         for begin_idx in range(ops_num):
             left_remain_ops_num = begin_idx
             right_remain_ops_num = ops_num - begin_idx
-            for fusion_directions in self.generate_sequences(left_remain_ops_num, right_remain_ops_num):
+            for fusion_directions in self.generate_sequences(begin_idx, left_remain_ops_num, right_remain_ops_num):
                 self.candidate_fusion_plans.append(ChainFusionPlan(begin_idx, fusion_directions))
                 
                 
-    def generate_sequences(self, remaining_zeros, remaining_ones, current_seq:list = []):
+    def generate_sequences(self, begin_idx, remaining_zeros, remaining_ones, current_seq:list = []):
+        if len(current_seq) == 1:
+            if (current_seq[0] + begin_idx) in self.exist_begin_pairs:
+                return
+            else:
+                self.exist_begin_pairs.add(current_seq[0] + begin_idx)
+            
         if remaining_ones == 0 and remaining_zeros == 0:
             yield current_seq.copy()
             return
         if remaining_zeros > 0:
             current_seq.append(0)
-            yield from self.generate_sequences(remaining_zeros - 1, remaining_ones, current_seq)
+            yield from self.generate_sequences(begin_idx, remaining_zeros - 1, remaining_ones, current_seq)
             current_seq.pop()
         if remaining_ones > 0:
             current_seq.append(1)
-            yield from self.generate_sequences(remaining_zeros, remaining_ones - 1, current_seq)
+            yield from self.generate_sequences(begin_idx, remaining_zeros, remaining_ones - 1, current_seq)
             current_seq.pop()
 
 
@@ -59,22 +66,22 @@ class ChainCandidateImplementPlans(object):
             return
 
         # 获取当前算子的实现方式可能
-        if chain.prep_operators[index].op_type in [OperatorType.CAT_C_CAT, OperatorType.EXPAND]:
-            if defs.GROUP in ('org', 'pos', 'uncertain'):
-                # 启发式方法
-                if (
-                    chain.prep_operators[index].op_type == OperatorType.CAT_C_CAT
-                    and len(chain.prep_operators[index].mappings[0]) > 100
-                    or chain.prep_operators[index].op_type == OperatorType.EXPAND
-                    and len(chain.prep_operators[index].mapping) > 100
-                ):
-                    implementations = [SQLPlanType.JOIN]
-                else:
-                    implementations = [SQLPlanType.CASE, SQLPlanType.JOIN]
-            else:
-                implementations = [SQLPlanType.CASE, SQLPlanType.JOIN]
-        else:
-            implementations = [SQLPlanType.CASE]
+        # if chain.prep_operators[index].op_type in [OperatorType.CAT_C_CAT, OperatorType.EXPAND]:
+        #     if defs.GROUP in ('org', 'pos', 'uncertain'):
+        #         # 启发式方法
+        #         if (
+        #             chain.prep_operators[index].op_type == OperatorType.CAT_C_CAT
+        #             and len(chain.prep_operators[index].mappings[0]) > 100
+        #             or chain.prep_operators[index].op_type == OperatorType.EXPAND
+        #             and len(chain.prep_operators[index].mapping) > 100
+        #         ):
+        #             implementations = [SQLPlanType.JOIN]
+        #         else:
+        #             implementations = [SQLPlanType.CASE, SQLPlanType.JOIN]
+        #     else:
+        #         implementations = [SQLPlanType.CASE, SQLPlanType.JOIN]
+        # else:
+        implementations = [SQLPlanType.CASE]
 
         # 遍历当前算子的所有实现方式
         for i in range(len(implementations)):
