@@ -100,7 +100,7 @@ class TransformerManager(object):
         order_when=False,
         expriment_col=None,
         expriment_col_stragey=None,
-        group='enum',
+        group='prune',
         cost_model='craftsman',
         max_process_num=1
     ):
@@ -114,6 +114,7 @@ class TransformerManager(object):
         defs.EXPRIMENT_COL = expriment_col
         defs.EXPRIMENT_METHOD = expriment_col_stragey
         defs.GROUP = group
+        defs.MASQ = masq
 
         model = load_model(model_file)
         pipeline_features_in = model.feature_names_in_.tolist()
@@ -439,21 +440,24 @@ class TransformerManager(object):
                 all_chain_candidate_fusion_plans,
                 preprocessing_graph.chains.keys(),
             ):
-                # if feature == 'nom_5':
-                #     pass
                 for chain_implement_plan in chain_candidate_implement_plans.candidate_implement_plans:
                     for chain_fusion_plan in chain_candidate_fusion_plans.candidate_fusion_plans:
+                        # if feature == 'facid':
+                        #     pass
                         preprocessing_graph_list = merge_sql_operator_by_chain_plan(last_chain_min_cost_preprocessing_graph, chain_implement_plan, chain_fusion_plan, feature)
                         total_plan_num += len(preprocessing_graph_list)
                         for graph in preprocessing_graph_list:
-                            if cost_model == 'craftsman':
-                                cost = get_craftsman_graph_cost(graph, data_rows)
-                            elif cost_model == 'postgresql':
-                                query_str = self.__compose_sql(graph, table_name, dbms, pre_sql, pipeline)
-                                cost = get_pg_sql_cost(query_str)
-                            if cost < min_cost:
+                            if defs.MASQ:
                                 min_cost_preprocessing_graph = graph
-                                min_cost = cost
+                            else:
+                                if cost_model == 'craftsman':
+                                    cost = get_craftsman_graph_cost(graph, data_rows)
+                                elif cost_model == 'postgresql':
+                                    query_str = self.__compose_sql(graph, table_name, dbms, pre_sql, pipeline)
+                                    cost = get_pg_sql_cost(query_str)
+                                if cost < min_cost:
+                                    min_cost_preprocessing_graph = graph
+                                    min_cost = cost
 
                 last_chain_min_cost_preprocessing_graph = min_cost_preprocessing_graph.copy_graph()
 

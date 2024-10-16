@@ -5,6 +5,7 @@ from craftsman.model.base_model import TreeModel
 from craftsman.base.graph import PrepGraph, PrepChain
 from craftsman.base.plan import ChainImplementPlan, ChainFusionPlan
 from craftsman.base.operator import *
+import craftsman.base.defs as defs
 
 
 def merge_sql_operator_by_rules(preprocessing_graph: PrepGraph) -> PrepGraph:
@@ -107,41 +108,54 @@ def _merge_by_implement_method(first_op, second_op, first_implementaion, second_
     )
 
     if second_implementation != 'Tree' and second_implementation != 'Not-Tree':
-        choice = rule_table.loc[first_op.op_type.value + first_implementaion.value, second_op.op_type.value + second_implementation.value]
-        merged_implementation = implementation_table.loc[first_op.op_type.value + first_implementaion.value, second_op.op_type.value + second_implementation.value]
-        if choice == "apply":
-            return [[[second_op.apply(first_op)], [merged_implementation]]]
-        elif choice == "simply":
-            return [[[first_op.simply(second_op)], [merged_implementation]]]
-        elif choice == "disable":
+        if defs.MASQ:
             return [[[first_op, second_op], [first_implementaion, second_implementation]]]
-        elif choice == "uncertain":
-            merged_op = second_op.apply(first_op)
-            if merged_op is None:
-                merged_op = first_op.simply(second_op)
-            # special case, directly merge
-            if ((first_op.op_name == OperatorName.STANDARDSCALER and second_op.op_name == OperatorName.MINMAXSCALER) 
-                or (first_op.op_name == OperatorName.MINMAXSCALER and second_op.op_name == OperatorName.STANDARDSCALER)
-                or (first_op.op_name == OperatorName.STANDARDSCALER and second_op.op_name == OperatorName.KBINSDISCRETIZER)
-                or (first_op.op_name == OperatorName.MINMAXSCALER and second_op.op_name == OperatorName.KBINSDISCRETIZER)):
-                return [[[merged_op], [merged_implementation]]]
-            else:
-                return [[[merged_op], [merged_implementation]],
-                        [[first_op, second_op], [first_implementaion, second_implementation]]]
+        else:
+            choice = rule_table.loc[first_op.op_type.value + first_implementaion.value, second_op.op_type.value + second_implementation.value]
+            merged_implementation = implementation_table.loc[first_op.op_type.value + first_implementaion.value, second_op.op_type.value + second_implementation.value]
+            if choice == "apply":
+                return [[[second_op.apply(first_op)], [merged_implementation]]]
+            elif choice == "simply":
+                return [[[first_op.simply(second_op)], [merged_implementation]]]
+            elif choice == "disable":
+                return [[[first_op, second_op], [first_implementaion, second_implementation]]]
+            elif choice == "uncertain":
+                merged_op = second_op.apply(first_op)
+                if merged_op is None:
+                    merged_op = first_op.simply(second_op)
+                # special case, directly merge
+                if ((first_op.op_name == OperatorName.STANDARDSCALER and second_op.op_name == OperatorName.MINMAXSCALER) 
+                    or (first_op.op_name == OperatorName.MINMAXSCALER and second_op.op_name == OperatorName.STANDARDSCALER)
+                    or (first_op.op_name == OperatorName.STANDARDSCALER and second_op.op_name == OperatorName.KBINSDISCRETIZER)
+                    or (first_op.op_name == OperatorName.MINMAXSCALER and second_op.op_name == OperatorName.KBINSDISCRETIZER)):
+                    return [[[merged_op], [merged_implementation]]]
+                else:
+                    return [[[merged_op], [merged_implementation]],
+                            [[first_op, second_op], [first_implementaion, second_implementation]]]
                 
     elif second_implementation == 'Tree':
-        choice = rule_table.loc[first_op.op_type.value + first_implementaion.value, 'Tree']
-        if choice == "disable":
-            return [[[first_op, second_op], [first_implementaion, second_implementation]]]
-        elif choice == "uncertain":
-            copyed_model = copy.deepcopy(second_op)
-            first_op.fusion(copyed_model)
-            # special case, directly fusion
-            if first_op.op_name in (OperatorName.KBINSDISCRETIZER, OperatorName.STANDARDSCALER, OperatorName.MINMAXSCALER):
+        if defs.MASQ:
+            if first_op.op_name == OperatorName.ONEHOTENCODER:
+                copyed_model = copy.deepcopy(second_op)
+                first_op.fusion(copyed_model)
                 return[[[copyed_model], [second_implementation]]]
             else:
-                return[[[copyed_model], [second_implementation]],
-                    [[first_op, second_op], [first_implementaion, second_implementation]]]
+                return [[[first_op, second_op], [first_implementaion, second_implementation]]]
+            
+        else:
+        
+            choice = rule_table.loc[first_op.op_type.value + first_implementaion.value, 'Tree']
+            if choice == "disable":
+                return [[[first_op, second_op], [first_implementaion, second_implementation]]]
+            elif choice == "uncertain":
+                copyed_model = copy.deepcopy(second_op)
+                first_op.fusion(copyed_model)
+                # special case, directly fusion
+                if first_op.op_name in (OperatorName.KBINSDISCRETIZER, OperatorName.STANDARDSCALER, OperatorName.MINMAXSCALER):
+                    return[[[copyed_model], [second_implementation]]]
+                else:
+                    return[[[copyed_model], [second_implementation]],
+                        [[first_op, second_op], [first_implementaion, second_implementation]]]
         
     elif second_implementation == 'Not-Tree':
         return [[[first_op, second_op], [first_implementaion, second_implementation]]]
@@ -250,8 +264,8 @@ def merge_sql_operator_by_chain_plan(
                             graph.chains[feature].prep_operators.append(situation[0][1])
                             graph.implements[feature].append(situation[1][1])
                         else:
-                            graph.chains[feature].prep_operators.insert(0, situation[0][1])
-                            graph.implements[feature].insert(0, situation[1][1])
+                            graph.chains[feature].prep_operators.insert(0, situation[0][0])
+                            graph.implements[feature].insert(0, situation[1][0])
                 new_graph_list.append(graph)   
         
         step = step + 1            
@@ -375,8 +389,8 @@ def merge_sql_operator_by_graph_plan(
                                 graph.chains[feature].prep_operators.append(situation[0][1])
                                 graph.implements[feature].append(situation[1][1])
                             else:
-                                graph.chains[feature].prep_operators.insert(0, situation[0][1])
-                                graph.implements[feature].insert(0, situation[1][1])
+                                graph.chains[feature].prep_operators.insert(0, situation[0][0])
+                                graph.implements[feature].insert(0, situation[1][0])
                     new_graph_list.append(graph)   
             
             step = step + 1            

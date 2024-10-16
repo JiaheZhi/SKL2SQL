@@ -205,3 +205,5 @@ COST_DIR_PATH = '/home/postgres/craftsman_experiments/sql_result_cost/push_not_u
 TIMER = 'OFF' # ON/OFF
 
 GROUP = None
+
+MASQ = False
