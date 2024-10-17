@@ -92,14 +92,10 @@ class TransformerManager(object):
         table_name,
         dbms,
         *,
-        merge_flag=True,
-        cost_flag=True,
         just_push_flag=False,
         masq=False,
         pre_sql=None,
         order_when=False,
-        expriment_col=None,
-        expriment_col_stragey=None,
         group='prune',
         cost_model='craftsman',
         max_process_num=1
@@ -111,8 +107,6 @@ class TransformerManager(object):
         defs.DBMS = dbms
         defs.set_JUST_PUSH_FLAG(just_push_flag)
         defs.ORDER_WHEN = order_when
-        defs.EXPRIMENT_COL = expriment_col
-        defs.EXPRIMENT_METHOD = expriment_col_stragey
         defs.GROUP = group
         defs.MASQ = masq
 

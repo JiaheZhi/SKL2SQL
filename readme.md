@@ -1,7 +1,12 @@
-# SKL2SQL
+# Craftsman
 
-==gen_sql_debug_scripts==: 
-/root/volume/SKL2SQL/gen_sql_scripts/gen_sql_usa_rf5_1catenc_source_v1.py
+## How to train pipelines
+Template: /experiments/pipelines/duckdb/car_price/dt8.py
 
-debug at:
-![断点](docs/imgs/Snipaste_2024-05-29_17-01-06.png)
+## How to generate Prediction SQLs
+Template: /experiments/sqls/duckdb/car_price/dt8.py
+
+Parameters for manager.generate_query:
+- pre_sql: other sqls before the prediction sql
+- group: the algorithm of the graph selection, 'enum' / 'prune'
+- max_process_num: the parallelism of the 'enum' algorithm

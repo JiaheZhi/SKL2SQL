@@ -1,0 +1,1251 @@
+EXPLAIN ANALYZE
+SELECT
+  CASE
+    WHEN "ord_5" <= 0.218093141913414 THEN CASE
+      WHEN "ord_4" <= 0.13151776790618896 THEN CASE
+        WHEN "ord_2" <= 0.5 THEN CASE
+          WHEN "ord_1" <= 0.5 THEN CASE
+            WHEN "ord_3" <= 0.45052212476730347 THEN CASE
+              WHEN "nom_5" <= 0.10638746060431004 THEN CASE
+                WHEN "nom_6" <= 0.6902986168861389 THEN CASE
+                  WHEN "ord_0" <= 0.75 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "ord_3" <= -0.8231856822967529 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "nom_6" <= -0.11844085715711117 THEN CASE
+                  WHEN "ord_0" <= 0.75 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "month" <= 0.22727273404598236 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "ord_0" <= 0.75 THEN CASE
+                WHEN "nom_5" <= -0.5879248976707458 THEN CASE
+                  WHEN "ord_5" <= -0.9353124797344208 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_6" <= 0.9213670492172241 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "nom_6" <= 0.11262756586074829 THEN CASE
+                  WHEN "nom_3" <= 0.5 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "ord_4" <= -0.5228910595178604 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+          END
+          ELSE CASE
+            WHEN "nom_6" <= 0.2281617745757103 THEN CASE
+              WHEN "nom_0" <= 0.5 THEN CASE
+                WHEN "ord_5" <= -0.24326910078525543 THEN CASE
+                  WHEN "ord_3" <= 1.2147467732429504 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "ord_3" <= -0.3137025535106659 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "ord_3" <= 1.2147467732429504 THEN CASE
+                  WHEN "ord_0" <= 0.25 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_6" <= -0.46504348516464233 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "ord_3" <= 0.19578056782484055 THEN CASE
+                WHEN "nom_5" <= -0.24076872318983078 THEN CASE
+                  WHEN "bin_1" <= 0.5 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "ord_5" <= -0.5892907977104187 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "nom_0" <= 0.5 THEN CASE
+                  WHEN "nom_5" <= 1.032137244939804 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_5" <= -0.9350810647010803 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+          END
+        END
+        ELSE CASE
+          WHEN "ord_3" <= 0.19578056782484055 THEN CASE
+            WHEN "nom_5" <= 0.45354364812374115 THEN CASE
+              WHEN "nom_0" <= 0.5 THEN CASE
+                WHEN "ord_1" <= 0.5 THEN CASE
+                  WHEN "ord_5" <= -0.9353124797344208 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_6" <= -0.3495092839002609 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "bin_1" <= 0.5 THEN CASE
+                  WHEN "nom_6" <= -0.46504348516464233 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_5" <= -0.009331269189715385 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "ord_1" <= 0.5 THEN CASE
+                WHEN "nom_0" <= 0.5 THEN CASE
+                  WHEN "ord_3" <= -0.8231856822967529 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_3" <= 0.5 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "ord_0" <= 0.25 THEN CASE
+                  WHEN "nom_6" <= 0.9213670492172241 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "ord_4" <= -0.5228910595178604 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+          END
+          ELSE CASE
+            WHEN "nom_5" <= -0.24076872318983078 THEN CASE
+              WHEN "ord_1" <= 0.5 THEN CASE
+                WHEN "nom_6" <= 0.3436959832906723 THEN CASE
+                  WHEN "month" <= 0.6818181872367859 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "month" <= 0.3181818276643753 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "bin_1" <= 0.5 THEN CASE
+                  WHEN "month" <= 0.40909092128276825 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_6" <= 1.0369012653827667 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "ord_1" <= 0.5 THEN CASE
+                WHEN "nom_6" <= 1.2679696679115295 THEN CASE
+                  WHEN "ord_0" <= 0.25 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_4" <= 0.5 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "bin_1" <= 0.5 THEN CASE
+                  WHEN "nom_0" <= 0.5 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "month" <= 0.13636364042758942 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+          END
+        END
+      END
+      ELSE CASE
+        WHEN "ord_2" <= 0.5 THEN CASE
+          WHEN "ord_3" <= -0.3137025535106659 THEN CASE
+            WHEN "ord_1" <= 0.5 THEN CASE
+              WHEN "nom_6" <= -0.3495092839002609 THEN CASE
+                WHEN "month" <= 0.9545454680919647 THEN CASE
+                  WHEN "nom_5" <= 1.1478559374809265 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "ord_0" <= 0.75 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "nom_0" <= 0.5 THEN CASE
+                  WHEN "ord_3" <= -1.0779272019863129 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_4" <= 0.5 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "nom_6" <= 0.6902986168861389 THEN CASE
+                WHEN "nom_5" <= 0.10638746060431004 THEN CASE
+                  WHEN "ord_0" <= 0.25 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "ord_5" <= -0.12792854011058807 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "ord_5" <= -0.47395022213459015 THEN CASE
+                  WHEN "month" <= 0.6818181872367859 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_5" <= -0.009331269189715385 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+          END
+          ELSE CASE
+            WHEN "ord_1" <= 0.5 THEN CASE
+              WHEN "nom_5" <= -0.12504999339580536 THEN CASE
+                WHEN "month" <= 0.3181818276643753 THEN CASE
+                  WHEN "nom_6" <= -0.0029066484421491623 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "bin_1" <= 0.5 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "nom_6" <= 0.4592301845550537 THEN CASE
+                  WHEN "ord_5" <= -0.7046313583850861 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_0" <= 0.5 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "nom_5" <= -0.24076872318983078 THEN CASE
+                WHEN "ord_5" <= -0.47395022213459015 THEN CASE
+                  WHEN "nom_0" <= 0.5 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_4" <= 0.5 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "bin_1" <= 0.5 THEN CASE
+                  WHEN "month" <= 0.5000000149011612 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_6" <= -0.46504348516464233 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+          END
+        END
+        ELSE CASE
+          WHEN "ord_1" <= 0.5 THEN CASE
+            WHEN "ord_3" <= 0.19578056782484055 THEN CASE
+              WHEN "nom_5" <= 0.10638746060431004 THEN CASE
+                WHEN "month" <= 0.3181818276643753 THEN CASE
+                  WHEN "nom_6" <= -0.23397506773471832 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "ord_0" <= 0.25 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "ord_5" <= -0.5892907977104187 THEN CASE
+                  WHEN "month" <= 0.5909090936183929 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "ord_0" <= 0.75 THEN 0
+                  ELSE 1
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "nom_6" <= 0.5747644007205963 THEN CASE
+                WHEN "nom_5" <= -0.24076872318983078 THEN CASE
+                  WHEN "ord_5" <= -0.8199719190597534 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_0" <= 0.5 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "nom_0" <= 0.5 THEN CASE
+                  WHEN "nom_5" <= 1.2635746598243713 THEN 0
+                  ELSE 1
+                END
+                ELSE CASE
+                  WHEN "month" <= 0.13636364042758942 THEN 0
+                  ELSE 1
+                END
+              END
+            END
+          END
+          ELSE CASE
+            WHEN "nom_5" <= 0.10638746060431004 THEN CASE
+              WHEN "nom_6" <= 0.2281617745757103 THEN CASE
+                WHEN "month" <= 0.3181818276643753 THEN CASE
+                  WHEN "ord_3" <= -0.05896099656820297 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "ord_3" <= 0.45052212476730347 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "ord_3" <= -0.05896099656820297 THEN CASE
+                  WHEN "bin_1" <= 0.5 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_0" <= 0.5 THEN 0
+                  ELSE 1
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "ord_3" <= -0.05896099656820297 THEN CASE
+                WHEN "nom_6" <= -0.3495092839002609 THEN CASE
+                  WHEN "month" <= 0.3181818276643753 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "bin_1" <= 0.5 THEN 1
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "nom_6" <= -1.1582487225532532 THEN CASE
+                  WHEN "ord_5" <= -0.5892907977104187 THEN 0
+                  ELSE 1
+                END
+                ELSE CASE
+                  WHEN "nom_4" <= 0.5 THEN 0
+                  ELSE 1
+                END
+              END
+            END
+          END
+        END
+      END
+    END
+    ELSE CASE
+      WHEN "ord_4" <= -0.03208443894982338 THEN CASE
+        WHEN "ord_2" <= 0.5 THEN CASE
+          WHEN "ord_1" <= 0.5 THEN CASE
+            WHEN "nom_6" <= -0.0029066484421491623 THEN CASE
+              WHEN "ord_3" <= 0.19578056782484055 THEN CASE
+                WHEN "ord_0" <= 0.25 THEN CASE
+                  WHEN "nom_5" <= 0.10638746060431004 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "month" <= 0.3181818276643753 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "month" <= 0.22727273404598236 THEN CASE
+                  WHEN "ord_5" <= 0.6794553995132446 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_5" <= -1.0507997870445251 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "nom_5" <= -0.009331269189715385 THEN CASE
+                WHEN "ord_0" <= 0.75 THEN CASE
+                  WHEN "bin_1" <= 0.5 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "month" <= 0.13636364042758942 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "ord_3" <= 0.9600052237510681 THEN CASE
+                  WHEN "nom_0" <= 0.5 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "ord_0" <= 0.75 THEN 0
+                  ELSE 1
+                END
+              END
+            END
+          END
+          ELSE CASE
+            WHEN "ord_3" <= -0.05896099656820297 THEN CASE
+              WHEN "nom_6" <= 0.4592301845550537 THEN CASE
+                WHEN "nom_0" <= 0.5 THEN CASE
+                  WHEN "ord_0" <= 0.75 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "ord_5" <= 1.256158173084259 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "nom_5" <= 0.8006998300552368 THEN CASE
+                  WHEN "nom_0" <= 0.5 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "day" <= 0.2500000074505806 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "nom_5" <= -0.12504999339580536 THEN CASE
+                WHEN "nom_0" <= 0.5 THEN CASE
+                  WHEN "nom_4" <= 0.5 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_6" <= -0.11844085715711117 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "month" <= 0.3181818276643753 THEN CASE
+                  WHEN "nom_6" <= -1.2737829685211182 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "bin_1" <= 0.5 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+          END
+        END
+        ELSE CASE
+          WHEN "ord_1" <= 0.5 THEN CASE
+            WHEN "nom_6" <= -0.0029066484421491623 THEN CASE
+              WHEN "ord_3" <= 0.9600052237510681 THEN CASE
+                WHEN "nom_5" <= 0.2221061885356903 THEN CASE
+                  WHEN "ord_5" <= 1.025477111339569 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "bin_1" <= 0.5 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "nom_0" <= 0.5 THEN CASE
+                  WHEN "month" <= 0.6818181872367859 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_5" <= -0.472206175327301 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "nom_5" <= -0.009331269189715385 THEN CASE
+                WHEN "ord_3" <= -0.5684441179037094 THEN CASE
+                  WHEN "day" <= 0.9166666567325592 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "bin_1" <= 0.5 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "ord_3" <= -1.0779272019863129 THEN CASE
+                  WHEN "ord_4" <= -0.35928885638713837 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "bin_1" <= 0.5 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+          END
+          ELSE CASE
+            WHEN "nom_5" <= 0.10638746060431004 THEN CASE
+              WHEN "ord_3" <= 0.19578056782484055 THEN CASE
+                WHEN "nom_6" <= -0.0029066484421491623 THEN CASE
+                  WHEN "ord_0" <= 0.25 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_0" <= 0.5 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "nom_0" <= 0.5 THEN CASE
+                  WHEN "bin_1" <= 0.5 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_6" <= 0.9213670492172241 THEN 0
+                  ELSE 1
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "ord_3" <= -0.3137025535106659 THEN CASE
+                WHEN "month" <= 0.5000000149011612 THEN CASE
+                  WHEN "nom_6" <= -0.5805777013301849 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_6" <= 0.6902986168861389 THEN 0
+                  ELSE 1
+                END
+              END
+              ELSE CASE
+                WHEN "nom_0" <= 0.5 THEN CASE
+                  WHEN "month" <= 0.22727273404598236 THEN 0
+                  ELSE 1
+                END
+                ELSE CASE
+                  WHEN "ord_0" <= 0.25 THEN 1
+                  ELSE 1
+                END
+              END
+            END
+          END
+        END
+      END
+      ELSE CASE
+        WHEN "ord_2" <= 0.5 THEN CASE
+          WHEN "ord_1" <= 0.5 THEN CASE
+            WHEN "ord_3" <= -0.05896099656820297 THEN CASE
+              WHEN "nom_5" <= -0.12504999339580536 THEN CASE
+                WHEN "ord_5" <= 1.3714987635612488 THEN CASE
+                  WHEN "bin_1" <= 0.5 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_0" <= 0.5 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "nom_6" <= 0.2281617745757103 THEN CASE
+                  WHEN "nom_4" <= 0.5 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "bin_1" <= 0.5 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "nom_5" <= -0.7036436200141907 THEN CASE
+                WHEN "ord_0" <= 0.25 THEN CASE
+                  WHEN "nom_0" <= 0.5 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_6" <= 0.9213670492172241 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "nom_6" <= 0.2281617745757103 THEN CASE
+                  WHEN "nom_0" <= 0.5 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "bin_1" <= 0.5 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+          END
+          ELSE CASE
+            WHEN "ord_3" <= -0.05896099656820297 THEN CASE
+              WHEN "nom_5" <= -0.472206175327301 THEN CASE
+                WHEN "ord_0" <= 0.25 THEN CASE
+                  WHEN "nom_6" <= 0.3436959832906723 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_0" <= 0.5 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "nom_6" <= -1.2737829685211182 THEN CASE
+                  WHEN "day" <= 0.9166666567325592 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "nom_0" <= 0.5 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "nom_6" <= -0.11844085715711117 THEN CASE
+                WHEN "bin_1" <= 0.5 THEN CASE
+                  WHEN "nom_5" <= -0.12504999339580536 THEN 0
+                  ELSE 1
+                END
+                ELSE CASE
+                  WHEN "nom_5" <= -0.12504999339580536 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "bin_1" <= 0.5 THEN CASE
+                  WHEN "nom_5" <= 0.5692623853683472 THEN 1
+                  ELSE 1
+                END
+                ELSE CASE
+                  WHEN "ord_4" <= 1.1131309866905212 THEN 0
+                  ELSE 1
+                END
+              END
+            END
+          END
+        END
+        ELSE CASE
+          WHEN "ord_1" <= 0.5 THEN CASE
+            WHEN "ord_3" <= -0.05896099656820297 THEN CASE
+              WHEN "nom_6" <= 0.5747644007205963 THEN CASE
+                WHEN "nom_5" <= 0.8006998300552368 THEN CASE
+                  WHEN "nom_5" <= -0.8193623423576355 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "month" <= 0.22727273404598236 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "nom_4" <= 0.5 THEN CASE
+                  WHEN "ord_5" <= 0.794795960187912 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "month" <= 0.3181818276643753 THEN 0
+                  ELSE 1
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "nom_0" <= 0.5 THEN CASE
+                WHEN "nom_5" <= -0.009331269189715385 THEN CASE
+                  WHEN "nom_6" <= -1.042714536190033 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "ord_4" <= 0.7859266102313995 THEN 0
+                  ELSE 1
+                END
+              END
+              ELSE CASE
+                WHEN "bin_1" <= 0.5 THEN CASE
+                  WHEN "nom_6" <= -1.042714536190033 THEN 0
+                  ELSE 1
+                END
+                ELSE CASE
+                  WHEN "nom_5" <= 0.10638746060431004 THEN 0
+                  ELSE 1
+                END
+              END
+            END
+          END
+          ELSE CASE
+            WHEN "ord_3" <= 0.19578056782484055 THEN CASE
+              WHEN "nom_6" <= 0.2281617745757103 THEN CASE
+                WHEN "month" <= 0.22727273404598236 THEN CASE
+                  WHEN "nom_0" <= 0.5 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "bin_1" <= 0.5 THEN 1
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "nom_5" <= 0.33782491087913513 THEN CASE
+                  WHEN "nom_4" <= 0.5 THEN 0
+                  ELSE 1
+                END
+                ELSE CASE
+                  WHEN "month" <= 0.3181818276643753 THEN 1
+                  ELSE 1
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "nom_5" <= -0.5879248976707458 THEN CASE
+                WHEN "month" <= 0.22727273404598236 THEN CASE
+                  WHEN "nom_4" <= 0.5 THEN 0
+                  ELSE 1
+                END
+                ELSE CASE
+                  WHEN "nom_6" <= -0.23397506773471832 THEN 1
+                  ELSE 1
+                END
+              END
+              ELSE CASE
+                WHEN "nom_6" <= -0.46504348516464233 THEN CASE
+                  WHEN "nom_0" <= 0.5 THEN 1
+                  ELSE 1
+                END
+                ELSE CASE
+                  WHEN "ord_0" <= 0.25 THEN 1
+                  ELSE 1
+                END
+              END
+            END
+          END
+        END
+      END
+    END
+  END AS Score
+FROM
+  (
+    SELECT
+      "bin_1",
+      "bin_2",
+      "ord_0",
+      "day",
+      "month",
+      "bin_3",
+      "bin_4",
+      "nom_0",
+      "nom_1",
+      "nom_2",
+      "nom_3",
+      "nom_4",
+      "ord_1",
+      "ord_2",
+      "nom_5_cat_c_cat_col" AS "nom_5",
+      "nom_6_cat_c_cat_col" AS "nom_6",
+      "ord_3_cat_c_cat_col" AS "ord_3",
+      "ord_4_cat_c_cat_col" AS "ord_4",
+      "ord_5_cat_c_cat_col" AS "ord_5",
+      "nom_7_0",
+      "nom_7_1",
+      "nom_7_2",
+      "nom_7_3",
+      "nom_7_4",
+      "nom_7_5",
+      "nom_7_6",
+      "nom_7_7",
+      "nom_7_8",
+      "nom_7_9",
+      "nom_7_10",
+      "nom_8_0",
+      "nom_8_1",
+      "nom_8_2",
+      "nom_8_3",
+      "nom_8_4",
+      "nom_8_5",
+      "nom_8_6",
+      "nom_8_7",
+      "nom_8_8",
+      "nom_8_9",
+      "nom_8_10",
+      "nom_8_11",
+      "nom_9_0",
+      "nom_9_1",
+      "nom_9_2",
+      "nom_9_3",
+      "nom_9_4",
+      "nom_9_5",
+      "nom_9_6",
+      "nom_9_7",
+      "nom_9_8",
+      "nom_9_9",
+      "nom_9_10",
+      "nom_9_11",
+      "nom_9_12",
+      "nom_9_13"
+    FROM
+      (
+        SELECT
+          "bin_1",
+          "bin_2",
+          "ord_0",
+          "day",
+          "month",
+          "bin_3_cat_c_cat_col" AS "bin_3",
+          "bin_4_cat_c_cat_col" AS "bin_4",
+          "nom_0_cat_c_cat_col" AS "nom_0",
+          "nom_1_cat_c_cat_col" AS "nom_1",
+          "nom_2_cat_c_cat_col" AS "nom_2",
+          "nom_3_cat_c_cat_col" AS "nom_3",
+          "nom_4_cat_c_cat_col" AS "nom_4",
+          "ord_1_cat_c_cat_col" AS "ord_1",
+          "ord_2_cat_c_cat_col" AS "ord_2",
+          0.115718725987617 * "nom_5" - 1.68725279558728 AS "nom_5",
+          0.115534212093845 * "nom_6" - 1.67815272358002 AS "nom_6",
+          0.254741557042316 * "ord_3" - 1.71478111557566 AS "ord_3",
+          0.1636022100108 * "ord_4" - 1.74990764352414 AS "ord_4",
+          0.11534056267392 * "ord_5" - 1.68502613943066 AS "ord_5",
+          "nom_7_0",
+          "nom_7_1",
+          "nom_7_2",
+          "nom_7_3",
+          "nom_7_4",
+          "nom_7_5",
+          "nom_7_6",
+          "nom_7_7",
+          "nom_7_8",
+          "nom_7_9",
+          "nom_7_10",
+          "nom_8_0",
+          "nom_8_1",
+          "nom_8_2",
+          "nom_8_3",
+          "nom_8_4",
+          "nom_8_5",
+          "nom_8_6",
+          "nom_8_7",
+          "nom_8_8",
+          "nom_8_9",
+          "nom_8_10",
+          "nom_8_11",
+          "nom_9_0",
+          "nom_9_1",
+          "nom_9_2",
+          "nom_9_3",
+          "nom_9_4",
+          "nom_9_5",
+          "nom_9_6",
+          "nom_9_7",
+          "nom_9_8",
+          "nom_9_9",
+          "nom_9_10",
+          "nom_9_11",
+          "nom_9_12",
+          "nom_9_13"
+        FROM
+          (
+            SELECT
+              1.0 * "bin_1" AS "bin_1",
+              1.0 * "bin_2" AS "bin_2",
+              0.5 * "ord_0" - 0.5 AS "ord_0",
+              0.166666666666667 * "day" - 0.166666666666667 AS "day",
+              0.0909090909090909 * "month" - 0.0909090909090909 AS "month",
+              CASE
+                WHEN "bin_3_cat_c_cat_col" >= 0.3025848
+                AND "bin_3_cat_c_cat_col" < 0.30959356 THEN 0
+                ELSE 1
+              END AS "bin_3",
+              CASE
+                WHEN "bin_4_cat_c_cat_col" >= 0.29013263
+                AND "bin_4_cat_c_cat_col" < 0.33409505 THEN 0
+                ELSE 1
+              END AS "bin_4",
+              CASE
+                WHEN "nom_0" >= 0.24257264968367998
+                AND "nom_0" < 0.32719192394855345 THEN 0
+                ELSE 1
+              END AS "nom_0",
+              CASE
+                WHEN "nom_1" >= 0.2476500604270176
+                AND "nom_1" < 0.31084121777319923 THEN 0
+                ELSE 1
+              END AS "nom_1",
+              CASE
+                WHEN "nom_2" >= 0.24394383069346467
+                AND "nom_2" < 0.30651936715766503 THEN 0
+                ELSE 1
+              END AS "nom_2",
+              CASE
+                WHEN "nom_3" >= 0.24370798283841763
+                AND "nom_3" < 0.31329586489641875 THEN 0
+                ELSE 1
+              END AS "nom_3",
+              CASE
+                WHEN "nom_4" >= 0.23756613756613756
+                AND "nom_4" < 0.30456732548671256 THEN 0
+                ELSE 1
+              END AS "nom_4",
+              CASE
+                WHEN "ord_1" >= 0.24238888614228507
+                AND "ord_1" < 0.2767758127590031 THEN 0
+                ELSE 1
+              END AS "ord_1",
+              CASE
+                WHEN "ord_2" >= 0.2255772646536412
+                AND "ord_2" < 0.29176157934700075 THEN 0
+                ELSE 1
+              END AS "ord_2",
+              CASE
+                WHEN "nom_5" >= 0.15558710178855645
+                AND "nom_5" < 0.20641282565130262 THEN 0
+                WHEN "nom_5" >= 0.20641282565130262
+                AND "nom_5" < 0.22117202268431002 THEN 1
+                WHEN "nom_5" >= 0.22117202268431002
+                AND "nom_5" < 0.23415977961432508 THEN 2
+                WHEN "nom_5" >= 0.23415977961432508
+                AND "nom_5" < 0.23946360153256704 THEN 3
+                WHEN "nom_5" >= 0.23946360153256704
+                AND "nom_5" < 0.24722222222222223 THEN 4
+                WHEN "nom_5" >= 0.24722222222222223
+                AND "nom_5" < 0.2529711375212224 THEN 5
+                WHEN "nom_5" >= 0.2529711375212224
+                AND "nom_5" < 0.25818735719725816 THEN 6
+                WHEN "nom_5" >= 0.25818735719725816
+                AND "nom_5" < 0.2650103519668737 THEN 7
+                WHEN "nom_5" >= 0.2650103519668737
+                AND "nom_5" < 0.2702325581395349 THEN 8
+                WHEN "nom_5" >= 0.2702325581395349
+                AND "nom_5" < 0.27215799614643543 THEN 9
+                WHEN "nom_5" >= 0.27215799614643543
+                AND "nom_5" < 0.27746947835738067 THEN 10
+                WHEN "nom_5" >= 0.27746947835738067
+                AND "nom_5" < 0.2872692853762423 THEN 11
+                WHEN "nom_5" >= 0.2872692853762423
+                AND "nom_5" < 0.29292929292929293 THEN 12
+                WHEN "nom_5" >= 0.29292929292929293
+                AND "nom_5" < 0.2969858156028369 THEN 13
+                WHEN "nom_5" >= 0.2969858156028369
+                AND "nom_5" < 0.3045977011494253 THEN 14
+                WHEN "nom_5" >= 0.3045977011494253
+                AND "nom_5" < 0.3118756936736959 THEN 15
+                WHEN "nom_5" >= 0.3118756936736959
+                AND "nom_5" < 0.3168195718654434 THEN 16
+                WHEN "nom_5" >= 0.3168195718654434
+                AND "nom_5" < 0.32067851373182554 THEN 17
+                WHEN "nom_5" >= 0.32067851373182554
+                AND "nom_5" < 0.32837670384138784 THEN 18
+                WHEN "nom_5" >= 0.32837670384138784
+                AND "nom_5" < 0.33349514563106797 THEN 19
+                WHEN "nom_5" >= 0.33349514563106797
+                AND "nom_5" < 0.3387183629509962 THEN 20
+                WHEN "nom_5" >= 0.3387183629509962
+                AND "nom_5" < 0.34469515122419586 THEN 21
+                WHEN "nom_5" >= 0.34469515122419586
+                AND "nom_5" < 0.3532608695652174 THEN 22
+                WHEN "nom_5" >= 0.3532608695652174
+                AND "nom_5" < 0.36317489616982 THEN 23
+                WHEN "nom_5" >= 0.36317489616982
+                AND "nom_5" < 0.372463768115942 THEN 24
+                WHEN "nom_5" >= 0.372463768115942
+                AND "nom_5" < 0.37628865979381443 THEN 25
+                WHEN "nom_5" >= 0.37628865979381443
+                AND "nom_5" < 0.38372093023255816 THEN 26
+                WHEN "nom_5" >= 0.38372093023255816
+                AND "nom_5" < 0.3944037308461026 THEN 27
+                WHEN "nom_5" >= 0.3944037308461026
+                AND "nom_5" < 0.4178482068390325 THEN 28
+                ELSE 29
+              END AS "nom_5",
+              CASE
+                WHEN "nom_6" >= 0.1397610355629456
+                AND "nom_6" < 0.2094361334867664 THEN 0
+                WHEN "nom_6" >= 0.2094361334867664
+                AND "nom_6" < 0.22025316455696203 THEN 1
+                WHEN "nom_6" >= 0.22025316455696203
+                AND "nom_6" < 0.22727272727272727 THEN 2
+                WHEN "nom_6" >= 0.22727272727272727
+                AND "nom_6" < 0.2384737678855326 THEN 3
+                WHEN "nom_6" >= 0.2384737678855326
+                AND "nom_6" < 0.24352543349878786 THEN 4
+                WHEN "nom_6" >= 0.24352543349878786
+                AND "nom_6" < 0.25140712945590993 THEN 5
+                WHEN "nom_6" >= 0.25140712945590993
+                AND "nom_6" < 0.25903614457831325 THEN 6
+                WHEN "nom_6" >= 0.25903614457831325
+                AND "nom_6" < 0.2648401826484018 THEN 7
+                WHEN "nom_6" >= 0.2648401826484018
+                AND "nom_6" < 0.27053140096618356 THEN 8
+                WHEN "nom_6" >= 0.27053140096618356
+                AND "nom_6" < 0.27727272733194724 THEN 9
+                WHEN "nom_6" >= 0.27727272733194724
+                AND "nom_6" < 0.2853146853146853 THEN 10
+                WHEN "nom_6" >= 0.2853146853146853
+                AND "nom_6" < 0.291866028708134 THEN 11
+                WHEN "nom_6" >= 0.291866028708134
+                AND "nom_6" < 0.2972972972972973 THEN 12
+                WHEN "nom_6" >= 0.2972972972972973
+                AND "nom_6" < 0.3006535947712418 THEN 13
+                WHEN "nom_6" >= 0.3006535947712418
+                AND "nom_6" < 0.3041575492341357 THEN 14
+                WHEN "nom_6" >= 0.3041575492341357
+                AND "nom_6" < 0.3116883116883117 THEN 15
+                WHEN "nom_6" >= 0.3116883116883117
+                AND "nom_6" < 0.31607929515418504 THEN 16
+                WHEN "nom_6" >= 0.31607929515418504
+                AND "nom_6" < 0.32090395480225986 THEN 17
+                WHEN "nom_6" >= 0.32090395480225986
+                AND "nom_6" < 0.3254437869822485 THEN 18
+                WHEN "nom_6" >= 0.3254437869822485
+                AND "nom_6" < 0.33066666666666666 THEN 19
+                WHEN "nom_6" >= 0.33066666666666666
+                AND "nom_6" < 0.3362318840579708 THEN 20
+                WHEN "nom_6" >= 0.3362318840579708
+                AND "nom_6" < 0.3447488584474886 THEN 21
+                WHEN "nom_6" >= 0.3447488584474886
+                AND "nom_6" < 0.3546511627906973 THEN 22
+                WHEN "nom_6" >= 0.3546511627906973
+                AND "nom_6" < 0.3590308370044053 THEN 23
+                WHEN "nom_6" >= 0.3590308370044053
+                AND "nom_6" < 0.3652173913043474 THEN 24
+                WHEN "nom_6" >= 0.3652173913043474
+                AND "nom_6" < 0.3719862227324914 THEN 25
+                WHEN "nom_6" >= 0.3719862227324914
+                AND "nom_6" < 0.379912663693523 THEN 26
+                WHEN "nom_6" >= 0.379912663693523
+                AND "nom_6" < 0.3985714285714286 THEN 27
+                WHEN "nom_6" >= 0.3985714285714286
+                AND "nom_6" < 0.4097938144329897 THEN 28
+                ELSE 29
+              END AS "nom_6",
+              CASE
+                WHEN "ord_3" >= 0.20731361282542385
+                AND "ord_3" < 0.2223620725823369 THEN 0
+                WHEN "ord_3" >= 0.2223620725823369
+                AND "ord_3" < 0.23209832561453508 THEN 1
+                WHEN "ord_3" >= 0.23209832561453508
+                AND "ord_3" < 0.24140127388535032 THEN 2
+                WHEN "ord_3" >= 0.24140127388535032
+                AND "ord_3" < 0.258532872782624 THEN 3
+                WHEN "ord_3" >= 0.258532872782624
+                AND "ord_3" < 0.27512429473213784 THEN 4
+                WHEN "ord_3" >= 0.27512429473213784
+                AND "ord_3" < 0.2908747855917667 THEN 5
+                WHEN "ord_3" >= 0.2908747855917667
+                AND "ord_3" < 0.3054798667877687 THEN 6
+                WHEN "ord_3" >= 0.3054798667877687
+                AND "ord_3" < 0.3308545219753306 THEN 7
+                WHEN "ord_3" >= 0.3308545219753306
+                AND "ord_3" < 0.342581362441884 THEN 8
+                WHEN "ord_3" >= 0.342581362441884
+                AND "ord_3" < 0.35849056603653406 THEN 9
+                WHEN "ord_3" >= 0.35849056603653406
+                AND "ord_3" < 0.36471512084460345 THEN 10
+                WHEN "ord_3" >= 0.36471512084460345
+                AND "ord_3" < 0.3795396775653748 THEN 11
+                ELSE 12
+              END AS "ord_3",
+              CASE
+                WHEN "ord_4" >= 0.18773056428473836
+                AND "ord_4" < 0.19987837016014595 THEN 0
+                WHEN "ord_4" >= 0.19987837016014595
+                AND "ord_4" < 0.21247087540219683 THEN 1
+                WHEN "ord_4" >= 0.21247087540219683
+                AND "ord_4" < 0.21827057182705717 THEN 2
+                WHEN "ord_4" >= 0.21827057182705717
+                AND "ord_4" < 0.22274627505627612 THEN 3
+                WHEN "ord_4" >= 0.22274627505627612
+                AND "ord_4" < 0.2357971494862446 THEN 4
+                WHEN "ord_4" >= 0.2357971494862446
+                AND "ord_4" < 0.24532756246311233 THEN 5
+                WHEN "ord_4" >= 0.24532756246311233
+                AND "ord_4" < 0.25768705158865735 THEN 6
+                WHEN "ord_4" >= 0.25768705158865735
+                AND "ord_4" < 0.2654446707399864 THEN 7
+                WHEN "ord_4" >= 0.2654446707399864
+                AND "ord_4" < 0.266179718022762 THEN 8
+                WHEN "ord_4" >= 0.266179718022762
+                AND "ord_4" < 0.281820570077499 THEN 9
+                WHEN "ord_4" >= 0.281820570077499
+                AND "ord_4" < 0.30833333333333335 THEN 10
+                WHEN "ord_4" >= 0.30833333333333335
+                AND "ord_4" < 0.326353372575509 THEN 11
+                WHEN "ord_4" >= 0.326353372575509
+                AND "ord_4" < 0.33229109669350426 THEN 12
+                WHEN "ord_4" >= 0.33229109669350426
+                AND "ord_4" < 0.3510442033798244 THEN 13
+                WHEN "ord_4" >= 0.3510442033798244
+                AND "ord_4" < 0.36158229525576463 THEN 14
+                WHEN "ord_4" >= 0.36158229525576463
+                AND "ord_4" < 0.36919701623519086 THEN 15
+                WHEN "ord_4" >= 0.36919701623519086
+                AND "ord_4" < 0.37341277593279937 THEN 16
+                WHEN "ord_4" >= 0.37341277593279937
+                AND "ord_4" < 0.38450591479142576 THEN 17
+                WHEN "ord_4" >= 0.38450591479142576
+                AND "ord_4" < 0.41040305010893247 THEN 18
+                WHEN "ord_4" >= 0.41040305010893247
+                AND "ord_4" < 0.43125092305420176 THEN 19
+                ELSE 20
+              END AS "ord_4",
+              CASE
+                WHEN "ord_5" >= 0.1538554780495601
+                AND "ord_5" < 0.18820410868124585 THEN 0
+                WHEN "ord_5" >= 0.18820410868124585
+                AND "ord_5" < 0.1934931506849315 THEN 1
+                WHEN "ord_5" >= 0.1934931506849315
+                AND "ord_5" < 0.19948353776630084 THEN 2
+                WHEN "ord_5" >= 0.19948353776630084
+                AND "ord_5" < 0.20584988962472406 THEN 3
+                WHEN "ord_5" >= 0.20584988962472406
+                AND "ord_5" < 0.21133333333333335 THEN 4
+                WHEN "ord_5" >= 0.21133333333333335
+                AND "ord_5" < 0.21921308124680633 THEN 5
+                WHEN "ord_5" >= 0.21921308124680633
+                AND "ord_5" < 0.2255083179297597 THEN 6
+                WHEN "ord_5" >= 0.2255083179297597
+                AND "ord_5" < 0.23040604343720492 THEN 7
+                WHEN "ord_5" >= 0.23040604343720492
+                AND "ord_5" < 0.24528301886792453 THEN 8
+                WHEN "ord_5" >= 0.24528301886792453
+                AND "ord_5" < 0.25396825396825395 THEN 9
+                WHEN "ord_5" >= 0.25396825396825395
+                AND "ord_5" < 0.26121794871794873 THEN 10
+                WHEN "ord_5" >= 0.26121794871794873
+                AND "ord_5" < 0.273972602739726 THEN 11
+                WHEN "ord_5" >= 0.273972602739726
+                AND "ord_5" < 0.2849137931034483 THEN 12
+                WHEN "ord_5" >= 0.2849137931034483
+                AND "ord_5" < 0.2900932918702799 THEN 13
+                WHEN "ord_5" >= 0.2900932918702799
+                AND "ord_5" < 0.2943201376936317 THEN 14
+                WHEN "ord_5" >= 0.2943201376936317
+                AND "ord_5" < 0.3041958041958042 THEN 15
+                WHEN "ord_5" >= 0.3041958041958042
+                AND "ord_5" < 0.31555555555555553 THEN 16
+                WHEN "ord_5" >= 0.31555555555555553
+                AND "ord_5" < 0.3306744017403916 THEN 17
+                WHEN "ord_5" >= 0.3306744017403916
+                AND "ord_5" < 0.33992805755395683 THEN 18
+                WHEN "ord_5" >= 0.33992805755395683
+                AND "ord_5" < 0.3514328808446455 THEN 19
+                WHEN "ord_5" >= 0.3514328808446455
+                AND "ord_5" < 0.3628482972136223 THEN 20
+                WHEN "ord_5" >= 0.3628482972136223
+                AND "ord_5" < 0.37093023255813956 THEN 21
+                WHEN "ord_5" >= 0.37093023255813956
+                AND "ord_5" < 0.3809760956175299 THEN 22
+                WHEN "ord_5" >= 0.3809760956175299
+                AND "ord_5" < 0.39373040752351096 THEN 23
+                WHEN "ord_5" >= 0.39373040752351096
+                AND "ord_5" < 0.4052401746724891 THEN 24
+                WHEN "ord_5" >= 0.4052401746724891
+                AND "ord_5" < 0.41789748045178104 THEN 25
+                WHEN "ord_5" >= 0.41789748045178104
+                AND "ord_5" < 0.42618384401114184 THEN 26
+                WHEN "ord_5" >= 0.42618384401114184
+                AND "ord_5" < 0.43141153081510936 THEN 27
+                WHEN "ord_5" >= 0.43141153081510936
+                AND "ord_5" < 0.43778383287920075 THEN 28
+                ELSE 29
+              END AS "ord_5",
+              "nom_7_0" AS "nom_7_0",
+              "nom_7_1" AS "nom_7_1",
+              "nom_7_2" AS "nom_7_2",
+              "nom_7_3" AS "nom_7_3",
+              "nom_7_4" AS "nom_7_4",
+              "nom_7_5" AS "nom_7_5",
+              "nom_7_6" AS "nom_7_6",
+              "nom_7_7" AS "nom_7_7",
+              "nom_7_8" AS "nom_7_8",
+              "nom_7_9" AS "nom_7_9",
+              "nom_7_10" AS "nom_7_10",
+              "nom_8_0" AS "nom_8_0",
+              "nom_8_1" AS "nom_8_1",
+              "nom_8_2" AS "nom_8_2",
+              "nom_8_3" AS "nom_8_3",
+              "nom_8_4" AS "nom_8_4",
+              "nom_8_5" AS "nom_8_5",
+              "nom_8_6" AS "nom_8_6",
+              "nom_8_7" AS "nom_8_7",
+              "nom_8_8" AS "nom_8_8",
+              "nom_8_9" AS "nom_8_9",
+              "nom_8_10" AS "nom_8_10",
+              "nom_8_11" AS "nom_8_11",
+              "nom_9_0" AS "nom_9_0",
+              "nom_9_1" AS "nom_9_1",
+              "nom_9_2" AS "nom_9_2",
+              "nom_9_3" AS "nom_9_3",
+              "nom_9_4" AS "nom_9_4",
+              "nom_9_5" AS "nom_9_5",
+              "nom_9_6" AS "nom_9_6",
+              "nom_9_7" AS "nom_9_7",
+              "nom_9_8" AS "nom_9_8",
+              "nom_9_9" AS "nom_9_9",
+              "nom_9_10" AS "nom_9_10",
+              "nom_9_11" AS "nom_9_11",
+              "nom_9_12" AS "nom_9_12",
+              "nom_9_13" AS "nom_9_13"
+            FROM
+              cat
+              left join bin_3_cat_c_cat on cat."bin_3" = bin_3_cat_c_cat."bin_3"
+              left join bin_4_cat_c_cat on cat."bin_4" = bin_4_cat_c_cat."bin_4"
+              left join nom_0_cat_c_cat on cat."nom_0" = nom_0_cat_c_cat."nom_0"
+              left join nom_1_cat_c_cat on cat."nom_1" = nom_1_cat_c_cat."nom_1"
+              left join nom_2_cat_c_cat on cat."nom_2" = nom_2_cat_c_cat."nom_2"
+              left join nom_3_cat_c_cat on cat."nom_3" = nom_3_cat_c_cat."nom_3"
+              left join nom_4_cat_c_cat on cat."nom_4" = nom_4_cat_c_cat."nom_4"
+              left join ord_1_cat_c_cat on cat."ord_1" = ord_1_cat_c_cat."ord_1"
+              left join ord_2_cat_c_cat on cat."ord_2" = ord_2_cat_c_cat."ord_2"
+              left join nom_5_cat_c_cat on cat."nom_5" = nom_5_cat_c_cat."nom_5"
+              left join nom_6_cat_c_cat on cat."nom_6" = nom_6_cat_c_cat."nom_6"
+              left join ord_3_cat_c_cat on cat."ord_3" = ord_3_cat_c_cat."ord_3"
+              left join ord_4_cat_c_cat on cat."ord_4" = ord_4_cat_c_cat."ord_4"
+              left join ord_5_cat_c_cat on cat."ord_5" = ord_5_cat_c_cat."ord_5"
+              left join nom_7_expand on cat."nom_7" = nom_7_expand."nom_7"
+              left join nom_8_expand on cat."nom_8" = nom_8_expand."nom_8"
+              left join nom_9_expand on cat."nom_9" = nom_9_expand."nom_9"
+          ) AS data
+      ) AS data
+  ) AS data

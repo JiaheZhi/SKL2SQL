@@ -1,0 +1,331 @@
+EXPLAIN ANALYZE
+SELECT
+  CASE
+    WHEN "V12" <= -4.533257721883555 THEN CASE
+      WHEN "V9" <= -3.8349372853876407 THEN CASE
+        WHEN "V3" <= -37.82290937010679 THEN 0
+        ELSE CASE
+          WHEN "V22" <= -0.9851671585810035 THEN CASE
+            WHEN "V13" <= 0.05886101000899563 THEN CASE
+              WHEN "V13" <= -0.08758590306350895 THEN 1
+              ELSE 0
+            END
+            ELSE 1
+          END
+          ELSE 1
+        END
+      END
+      ELSE CASE
+        WHEN "V26" <= -0.16631278955726417 THEN CASE
+          WHEN "V15" <= -0.18856177314659953 THEN CASE
+            WHEN "V26" <= -0.3100620092337824 THEN CASE
+              WHEN "V18" <= -0.8374127508762742 THEN CASE
+                WHEN "V20" <= 0.6546008194416859 THEN 1
+                ELSE 0
+              END
+              ELSE 0
+            END
+            ELSE CASE
+              WHEN "V13" <= 1.0915235824222174 THEN 0
+              ELSE CASE
+                WHEN "V18" <= -0.8374127508762742 THEN CASE
+                  WHEN "V19" <= 0.8071437682378669 THEN 0
+                  ELSE 0
+                END
+                ELSE 1
+              END
+            END
+          END
+          ELSE CASE
+            WHEN "V20" <= -0.15886635631524565 THEN 1
+            ELSE CASE
+              WHEN "V24" <= -0.04560943338162036 THEN CASE
+                WHEN "V15" <= 1.007231153574425 THEN CASE
+                  WHEN "V11" <= 1.9290811937694174 THEN 0
+                  ELSE 1
+                END
+                ELSE 0
+              END
+              ELSE CASE
+                WHEN "V15" <= 0.4292501944011498 THEN CASE
+                  WHEN "V20" <= 0.6546008194416859 THEN 0
+                  ELSE 1
+                END
+                ELSE 1
+              END
+            END
+          END
+        END
+        ELSE CASE
+          WHEN "V3" <= -2.8139760624781047 THEN CASE
+            WHEN "V11" <= 4.171266079958413 THEN CASE
+              WHEN "V18" <= 0.45684872849179553 THEN CASE
+                WHEN "V26" <= 0.0020683281822858938 THEN CASE
+                  WHEN "V23" <= -0.14893298704151928 THEN 0
+                  ELSE 1
+                END
+                ELSE 1
+              END
+              ELSE CASE
+                WHEN "V27" <= -0.024609682530167078 THEN 0
+                ELSE 1
+              END
+            END
+            ELSE 1
+          END
+          ELSE CASE
+            WHEN "V23" <= -0.14893298704151928 THEN CASE
+              WHEN "V15" <= 0.5997435267969873 THEN 1
+              ELSE 0
+            END
+            ELSE 0
+          END
+        END
+      END
+    END
+    ELSE CASE
+      WHEN "V14" <= -1.2513836047838507 THEN CASE
+        WHEN "V12" <= -2.7644506079509608 THEN CASE
+          WHEN "V21" <= 0.05041396154449282 THEN CASE
+            WHEN "V9" <= -0.673198149817388 THEN CASE
+              WHEN "V18" <= 0.6356955809984586 THEN CASE
+                WHEN "V1" <= -5.39339529179415 THEN 0
+                ELSE 1
+              END
+              ELSE 0
+            END
+            ELSE CASE
+              WHEN "V13" <= -0.8243323772272154 THEN CASE
+                WHEN "V15" <= 0.2718990904225031 THEN 1
+                ELSE 0
+              END
+              ELSE 0
+            END
+          END
+          ELSE CASE
+            WHEN "V7" <= 0.21522123315038755 THEN CASE
+              WHEN "V16" <= 1.188892108054303 THEN CASE
+                WHEN "V23" <= -0.2772660100943308 THEN CASE
+                  WHEN "V24" <= -0.32534187616764465 THEN 1
+                  ELSE 1
+                END
+                ELSE 1
+              END
+              ELSE 0
+            END
+            ELSE CASE
+              WHEN "V20" <= 0.3289538380603463 THEN 0
+              ELSE 1
+            END
+          END
+        END
+        ELSE CASE
+          WHEN "V4" <= 1.836333879085866 THEN CASE
+            WHEN "V10" <= -3.3434901019018994 THEN CASE
+              WHEN "V26" <= -0.39065346534308415 THEN CASE
+                WHEN "V6" <= 0.362729125972141 THEN 1
+                ELSE 0
+              END
+              ELSE 0
+            END
+            ELSE CASE
+              WHEN "V8" <= -4.852505453649016 THEN CASE
+                WHEN "V15" <= -0.7475664752293211 THEN CASE
+                  WHEN "V4" <= 0.33243286363470315 THEN 0
+                  ELSE 1
+                END
+                ELSE 0
+              END
+              ELSE CASE
+                WHEN "V10" <= -0.6878935599836993 THEN CASE
+                  WHEN "V17" <= -0.9127530204628043 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "V21" <= 0.2353483103071293 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+          END
+          ELSE CASE
+            WHEN "V10" <= -0.6878935599836993 THEN CASE
+              WHEN "V16" <= -0.867408505060247 THEN CASE
+                WHEN "V12" <= 0.7731636199142251 THEN CASE
+                  WHEN "V26" <= -0.3100620092337824 THEN 0
+                  ELSE 1
+                END
+                ELSE 0
+              END
+              ELSE CASE
+                WHEN "V28" <= 0.10144001989767261 THEN CASE
+                  WHEN "V21" <= 0.4646065225375398 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "V25" <= 0.5276616210642969 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "V18" <= 0.8591538724759964 THEN CASE
+                WHEN "V21" <= 0.2353483103071293 THEN 0
+                ELSE CASE
+                  WHEN "V27" <= -0.09143684486643477 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "V25" <= -0.297898112089209 THEN 0
+                ELSE CASE
+                  WHEN "V20" <= -0.0827788309290317 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+          END
+        END
+      END
+      ELSE CASE
+        WHEN "V4" <= 1.836333879085866 THEN CASE
+          WHEN "V14" <= -0.3861379324172683 THEN CASE
+            WHEN "V10" <= -5.9990866438201 THEN 1
+            ELSE CASE
+              WHEN "V20" <= -0.4866655647565738 THEN CASE
+                WHEN "V13" <= -1.5005613744664106 THEN CASE
+                  WHEN "V15" <= 1.272847099938682 THEN 0
+                  ELSE 1
+                END
+                ELSE CASE
+                  WHEN "V16" <= -1.307810976069432 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "V23" <= -0.02785728098892021 THEN CASE
+                  WHEN "V28" <= -0.011974852149536152 THEN 0
+                  ELSE 0
+                END
+                ELSE 0
+              END
+            END
+          END
+          ELSE CASE
+            WHEN "V4" <= 0.33243286363470315 THEN CASE
+              WHEN "V15" <= 0.7929952836570701 THEN 0
+              ELSE CASE
+                WHEN "V19" <= 0.5828435345828875 THEN 0
+                ELSE CASE
+                  WHEN "V15" <= 1.007231153574425 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+            ELSE CASE
+              WHEN "V27" <= 0.33975907626777346 THEN CASE
+                WHEN "V21" <= 0.3169550746832824 THEN CASE
+                  WHEN "V13" <= 0.8297271509283081 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "V13" <= -1.5005613744664106 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "V26" <= -0.4884569210272638 THEN CASE
+                  WHEN "V11" <= 0.8079887506749195 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "V3" <= -2.8139760624781047 THEN 0
+                  ELSE 0
+                END
+              END
+            END
+          END
+        END
+        ELSE CASE
+          WHEN "V12" <= -2.7644506079509608 THEN CASE
+            WHEN "V22" <= -0.060251891345457706 THEN CASE
+              WHEN "V3" <= 0.6869172682847662 THEN CASE
+                WHEN "V13" <= 1.4668543847822535 THEN CASE
+                  WHEN "V28" <= 0.07044276890107051 THEN 0
+                  ELSE 0
+                END
+                ELSE CASE
+                  WHEN "V28" <= -0.24306579502925701 THEN 1
+                  ELSE 0
+                END
+              END
+              ELSE 0
+            END
+            ELSE 0
+          END
+          ELSE CASE
+            WHEN "V16" <= 0.4908993678331832 THEN CASE
+              WHEN "V23" <= 0.045404547782409994 THEN CASE
+                WHEN "V22" <= 0.817896962987329 THEN 0
+                ELSE CASE
+                  WHEN "V25" <= 0.41674524529386087 THEN 0
+                  ELSE 0
+                END
+              END
+              ELSE CASE
+                WHEN "V27" <= 0.13555335299563306 THEN CASE
+                  WHEN "V28" <= 0.0411634493033684 THEN 0
+                  ELSE 0
+                END
+                ELSE 0
+              END
+            END
+            ELSE CASE
+              WHEN "V24" <= 0.6497166918123957 THEN 0
+              ELSE CASE
+                WHEN "V27" <= -0.15033279260980661 THEN CASE
+                  WHEN "V22" <= 0.648441044192715 THEN 0
+                  ELSE 0
+                END
+                ELSE 0
+              END
+            END
+          END
+        END
+      END
+    END
+  END AS Score
+FROM
+  (
+    SELECT
+      "V13",
+      "V14",
+      "V15",
+      "V16",
+      "V17",
+      "V18",
+      "V19",
+      "V20",
+      "V21",
+      "V22",
+      "V23",
+      "V24",
+      "V25",
+      "V26",
+      "V27",
+      "V28",
+      "V1",
+      "V2",
+      "V3",
+      "V4",
+      "V5",
+      "V6",
+      "V7",
+      "V8",
+      "V9",
+      "V10",
+      "V11",
+      "V12"
+    FROM
+      credit_card
+  ) AS data
