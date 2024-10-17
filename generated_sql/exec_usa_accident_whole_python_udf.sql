@@ -1,2 +1,0 @@
-create temp table tt as
-select predict_model("Airport_Code","Zipcode","Source","Timezone","Country","Temperature(F)","Wind_Chill(F)","Humidity(%)","Pressure(in)","Visibility(mi)","Description","Start_Time","Weather_Condition") from usa_accident;
