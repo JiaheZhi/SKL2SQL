@@ -29,5 +29,5 @@ Template: `/experiments/sqls/duckdb/car_price/dt8.py`
 
 > Parameters for manager.generate_query:
 - `pre_sql`: other sqls before the prediction sql
-- `group`: the algorithm of the graph selection, 'enum'(chain-oblivious algorithm) / 'prune'(chain-aware algorithm)
-- `max_process_num`: the parallelism of the 'enum' algorithm
+- `group`: the algorithm of the graph selection, 'enum' (i.e., Enumeration-based algorithm) / 'prune' (i.e., Greedy-based algorithm)
+- `max_process_num`: the parallelism of the Enumeration-based algorithm
