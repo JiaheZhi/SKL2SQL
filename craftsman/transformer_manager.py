@@ -501,10 +501,17 @@ class TransformerManager(object):
         # compose join sqls
         join_feature_sqls = {}
         join_feature_list = {}
+        first_join_op_feature = []
+        left_join_ops = []
         for op in graph.join_operators:
-            input_table, feature_sql, join_features = op.get_join_sql(dbms, input_table, table_name, pipeline)
-            join_feature_sqls[op.features[0]] = feature_sql
-            join_feature_list[op.features[0]] = join_features
+            if op.features[0] not in first_join_op_feature:
+                first_join_op_feature.append(op.features[0])
+                input_table, feature_sql, join_features = op.get_join_sql(dbms, input_table, table_name, pipeline)
+                join_feature_sqls[op.features[0]] = feature_sql
+                join_feature_list[op.features[0]] = join_features
+            else:
+                left_join_ops.append(op)
+        graph.join_operators = left_join_ops     
 
         # compose imputer sql if exists missing cols
         if pipeline['imputer']['missing_cols'] or join_feature_sqls:
@@ -545,6 +552,10 @@ class TransformerManager(object):
         while prep_level <= max_level or len(join_feature_sqls) > 0:
             perp_level_sqls = []
             for feature, chain in graph.chains.items():
+                if prep_level > 1 and graph.implements[feature][prep_level] == SQLPlanType.JOIN:
+                    input_table, feature_sql, join_features = op.get_join_sql(dbms, input_table, table_name, pipeline)
+                    join_feature_sqls[op.features[0]] = feature_sql
+                    join_feature_list[op.features[0]] = join_features
                 if len(chain.prep_operators) > prep_level:
                     op = chain.prep_operators[prep_level]
                     perp_level_sqls.append(op.get_sql(dbms))

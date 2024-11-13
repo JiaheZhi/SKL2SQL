@@ -65,6 +65,7 @@ class ChainCandidateImplementPlans(object):
             yield current_combination.copy()
             return
 
+        # using join method
         # 获取当前算子的实现方式可能
         # if chain.prep_operators[index].op_type in [OperatorType.CAT_C_CAT, OperatorType.EXPAND]:
         #     if defs.GROUP in ('org', 'pos', 'uncertain'):
@@ -81,6 +82,9 @@ class ChainCandidateImplementPlans(object):
         #     else:
         #         implementations = [SQLPlanType.CASE, SQLPlanType.JOIN]
         # else:
+        #     implementations = [SQLPlanType.CASE]
+        
+        # not using join method
         implementations = [SQLPlanType.CASE]
 
         # 遍历当前算子的所有实现方式
