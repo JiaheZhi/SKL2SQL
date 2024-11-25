@@ -208,4 +208,4 @@ GROUP = None
 
 MASQ = False
 
-AUTO_RULE_GEN = True
+AUTO_RULE_GEN = False
