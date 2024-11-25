@@ -5,161 +5,214 @@ from craftsman.model.base_model import TreeModel
 from craftsman.base.graph import PrepGraph, PrepChain
 from craftsman.base.plan import ChainImplementPlan, ChainFusionPlan
 from craftsman.base.operator import *
+from craftsman.rule_based_optimize.merge_property import PropertyManager
 import craftsman.base.defs as defs
 
 
-def merge_sql_operator_by_rules(preprocessing_graph: PrepGraph) -> PrepGraph:
-    new_prep_graph = preprocessing_graph.get_empty_chains_graph()
+# def merge_sql_operator_by_rules(preprocessing_graph: PrepGraph) -> PrepGraph:
+#     new_prep_graph = preprocessing_graph.get_empty_chains_graph()
 
-    for feature, chain in preprocessing_graph.chains.items():
-        if chain.prep_operators:
-            first_op = chain.prep_operators[0]
-            op_idx = 1
-            while op_idx < len(chain.prep_operators):
-                second_op = chain.prep_operators[op_idx]
-                op_idx += 1
-                merged_op = _merge(first_op, second_op)
-                if merged_op is None:
-                    new_prep_graph.chains[feature].prep_operators.append(first_op)
-                    first_op = second_op
-                else:
-                    first_op = merged_op
+#     for feature, chain in preprocessing_graph.chains.items():
+#         if chain.prep_operators:
+#             first_op = chain.prep_operators[0]
+#             op_idx = 1
+#             while op_idx < len(chain.prep_operators):
+#                 second_op = chain.prep_operators[op_idx]
+#                 op_idx += 1
+#                 merged_op = _merge(first_op, second_op)
+#                 if merged_op is None:
+#                     new_prep_graph.chains[feature].prep_operators.append(first_op)
+#                     first_op = second_op
+#                 else:
+#                     first_op = merged_op
 
-            if (
-                not new_prep_graph.chains[feature].prep_operators
-                or first_op != new_prep_graph.chains[feature].prep_operators[-1]
-            ):
-                new_prep_graph.chains[feature].prep_operators.append(first_op)
+#             if (
+#                 not new_prep_graph.chains[feature].prep_operators
+#                 or first_op != new_prep_graph.chains[feature].prep_operators[-1]
+#             ):
+#                 new_prep_graph.chains[feature].prep_operators.append(first_op)
 
-    return new_prep_graph
+#     return new_prep_graph
 
 
-def _merge(first_op: Operator, second_op: Operator):
-    rule_table_content = [
-        ["simply", "simply", "disable", "disable"],
-        ["apply", "apply", "apply", "simply"],#"disable"
-        ["apply", "apply", "apply", "simply"],
-        ["apply", "apply", "apply", "disable"],
-    ]
+# def _merge(first_op: Operator, second_op: Operator):
+#     rule_table_content = [
+#         ["simply", "simply", "disable", "disable"],
+#         ["apply", "apply", "apply", "simply"],#"disable"
+#         ["apply", "apply", "apply", "simply"],
+#         ["apply", "apply", "apply", "disable"],
+#     ]
 
-    rule_table_index_columns = [
-        OperatorType.CON_A_CON.value,
-        OperatorType.CON_C_CAT.value,
-        OperatorType.CAT_C_CAT.value,
-        OperatorType.EXPAND.value,
-    ]
+#     rule_table_index_columns = [
+#         OperatorType.CON_A_CON.value,
+#         OperatorType.CON_C_CAT.value,
+#         OperatorType.CAT_C_CAT.value,
+#         OperatorType.EXPAND.value,
+#     ]
 
-    rule_table = DataFrame(
-        rule_table_content,
-        index=rule_table_index_columns,
-        columns=rule_table_index_columns,
-    )
+#     rule_table = DataFrame(
+#         rule_table_content,
+#         index=rule_table_index_columns,
+#         columns=rule_table_index_columns,
+#     )
 
-    choice = rule_table.loc[first_op.op_type.value, second_op.op_type.value]
+#     choice = rule_table.loc[first_op.op_type.value, second_op.op_type.value]
 
-    if choice == "apply":
-        return second_op.apply(first_op)
-    elif choice == "simply":
-        return first_op.simply(second_op)
-    elif choice == "disable":
-        return None
+#     if choice == "apply":
+#         return second_op.apply(first_op)
+#     elif choice == "simply":
+#         return first_op.simply(second_op)
+#     elif choice == "disable":
+#         return None
 
 def _merge_by_implement_method(first_op, second_op, first_implementaion, second_implementation):
-    rule_table_content = [
-        ["uncertain", "uncertain", "disable", "disable", "disable", "disable", "uncertain"],
-        ["apply", "apply", "apply", "apply", "uncertain", "disable", "uncertain"],
-        ["apply", "apply", "apply", "apply", "simply", "simply", "uncertain"],
-        ["apply", "apply", "apply", "apply", "simply", "simply", "disable"],
-        ["apply", "apply", "apply", "apply", "disable", "disable", "uncertain"],
-        ["apply", "apply", "apply", "apply", "disable", "disable", "disable"],
-        ["disable", "disable", "disable", "disable", "disable", "disable", "disable"]
-    ]
-    
-    implementation_table_content = [
-        [SQLPlanType.CASE, SQLPlanType.CASE, None, None, None, None, None],
-        [SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, None, None],
-        [SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.JOIN, None],
-        [SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.CASE, SQLPlanType.JOIN, None],
-        [SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, None, None, None],
-        [SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, None, None, None],
-        [None, None, None, None, None, None, None]
-    ]
-
-    rule_table_index_columns = [
-        OperatorType.CON_A_CON.value + SQLPlanType.CASE.value,
-        OperatorType.CON_C_CAT.value + SQLPlanType.CASE.value,
-        OperatorType.CAT_C_CAT.value + SQLPlanType.CASE.value,
-        OperatorType.CAT_C_CAT.value + SQLPlanType.JOIN.value,
-        OperatorType.EXPAND.value + SQLPlanType.CASE.value,
-        OperatorType.EXPAND.value + SQLPlanType.JOIN.value,
-        'Tree'
-    ]
-
-    rule_table = DataFrame(
-        rule_table_content,
-        index=rule_table_index_columns,
-        columns=rule_table_index_columns
-    )
-    
-    implementation_table = DataFrame(
-        implementation_table_content,
-        index=rule_table_index_columns,
-        columns=rule_table_index_columns
-    )
-
-    if second_implementation != 'Tree' and second_implementation != 'Not-Tree':
-        if defs.MASQ:
-            return [[[first_op, second_op], [first_implementaion, second_implementation]]]
-        else:
-            choice = rule_table.loc[first_op.op_type.value + first_implementaion.value, second_op.op_type.value + second_implementation.value]
-            merged_implementation = implementation_table.loc[first_op.op_type.value + first_implementaion.value, second_op.op_type.value + second_implementation.value]
-            if choice == "apply":
-                return [[[second_op.apply(first_op)], [merged_implementation]]]
-            elif choice == "simply":
-                return [[[first_op.simply(second_op)], [merged_implementation]]]
-            elif choice == "disable":
-                return [[[first_op, second_op], [first_implementaion, second_implementation]]]
-            elif choice == "uncertain":
-                merged_op = second_op.apply(first_op)
-                if merged_op is None:
-                    merged_op = first_op.simply(second_op)
-                # special case, directly merge
-                if ((first_op.op_name == OperatorName.STANDARDSCALER and second_op.op_name == OperatorName.MINMAXSCALER) 
-                    or (first_op.op_name == OperatorName.MINMAXSCALER and second_op.op_name == OperatorName.STANDARDSCALER)
-                    or (first_op.op_name == OperatorName.STANDARDSCALER and second_op.op_name == OperatorName.KBINSDISCRETIZER)
-                    or (first_op.op_name == OperatorName.MINMAXSCALER and second_op.op_name == OperatorName.KBINSDISCRETIZER)):
-                    return [[[merged_op], [merged_implementation]]]
-                else:
-                    return [[[merged_op], [merged_implementation]],
-                            [[first_op, second_op], [first_implementaion, second_implementation]]]
-                
-    elif second_implementation == 'Tree':
-        if defs.MASQ:
-            if first_op.op_name == OperatorName.ONEHOTENCODER:
-                copyed_model = copy.deepcopy(second_op)
-                first_op.fusion(copyed_model)
-                return[[[copyed_model], [second_implementation]]]
-            else:
-                return [[[first_op, second_op], [first_implementaion, second_implementation]]]
-            
-        else:
+    if not defs.AUTO_RULE_GEN:
+        rule_table_content = [
+            ["uncertain", "uncertain", "disable", "disable", "disable", "disable", "uncertain"],
+            ["apply", "apply", "apply", "apply", "uncertain", "disable", "uncertain"],
+            ["apply", "apply", "apply", "apply", "simply", "simply", "uncertain"],
+            ["apply", "apply", "apply", "apply", "simply", "simply", "disable"],
+            ["apply", "apply", "apply", "apply", "disable", "disable", "uncertain"],
+            ["apply", "apply", "apply", "apply", "disable", "disable", "disable"],
+            ["disable", "disable", "disable", "disable", "disable", "disable", "disable"]
+        ]
         
-            choice = rule_table.loc[first_op.op_type.value + first_implementaion.value, 'Tree']
-            if choice == "disable":
+        implementation_table_content = [
+            [SQLPlanType.CASE, SQLPlanType.CASE, None, None, None, None, None],
+            [SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, None, None],
+            [SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.JOIN, None],
+            [SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.CASE, SQLPlanType.JOIN, None],
+            [SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, None, None, None],
+            [SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, None, None, None],
+            [None, None, None, None, None, None, None]
+        ]
+
+        rule_table_index_columns = [
+            OperatorType.CON_A_CON.value + SQLPlanType.CASE.value,
+            OperatorType.CON_C_CAT.value + SQLPlanType.CASE.value,
+            OperatorType.CAT_C_CAT.value + SQLPlanType.CASE.value,
+            OperatorType.CAT_C_CAT.value + SQLPlanType.JOIN.value,
+            OperatorType.EXPAND.value + SQLPlanType.CASE.value,
+            OperatorType.EXPAND.value + SQLPlanType.JOIN.value,
+            'Tree'
+        ]
+
+        rule_table = DataFrame(
+            rule_table_content,
+            index=rule_table_index_columns,
+            columns=rule_table_index_columns
+        )
+        
+        implementation_table = DataFrame(
+            implementation_table_content,
+            index=rule_table_index_columns,
+            columns=rule_table_index_columns
+        )
+
+        if second_implementation != 'Tree' and second_implementation != 'Not-Tree':
+            if defs.MASQ:
                 return [[[first_op, second_op], [first_implementaion, second_implementation]]]
-            elif choice == "uncertain":
-                copyed_model = copy.deepcopy(second_op)
-                first_op.fusion(copyed_model)
-                # special case, directly fusion
-                if first_op.op_name in (OperatorName.KBINSDISCRETIZER, OperatorName.STANDARDSCALER, OperatorName.MINMAXSCALER):
+            else:
+                choice = rule_table.loc[first_op.op_type.value + first_implementaion.value, second_op.op_type.value + second_implementation.value]
+                merged_implementation = implementation_table.loc[first_op.op_type.value + first_implementaion.value, second_op.op_type.value + second_implementation.value]
+                if choice == "apply":
+                    return [[[second_op.apply(first_op)], [merged_implementation]]]
+                elif choice == "simply":
+                    return [[[first_op.simply(second_op)], [merged_implementation]]]
+                elif choice == "disable":
+                    return [[[first_op, second_op], [first_implementaion, second_implementation]]]
+                elif choice == "uncertain":
+                    merged_op = second_op.apply(first_op)
+                    if merged_op is None:
+                        merged_op = first_op.simply(second_op)
+                    # special case, directly merge
+                    if ((first_op.op_name == OperatorName.STANDARDSCALER and second_op.op_name == OperatorName.MINMAXSCALER) 
+                        or (first_op.op_name == OperatorName.MINMAXSCALER and second_op.op_name == OperatorName.STANDARDSCALER)
+                        or (first_op.op_name == OperatorName.STANDARDSCALER and second_op.op_name == OperatorName.KBINSDISCRETIZER)
+                        or (first_op.op_name == OperatorName.MINMAXSCALER and second_op.op_name == OperatorName.KBINSDISCRETIZER)):
+                        return [[[merged_op], [merged_implementation]]]
+                    else:
+                        return [[[merged_op], [merged_implementation]],
+                                [[first_op, second_op], [first_implementaion, second_implementation]]]
+                    
+        elif second_implementation == 'Tree':
+            if defs.MASQ:
+                if first_op.op_name == OperatorName.ONEHOTENCODER:
+                    copyed_model = copy.deepcopy(second_op)
+                    first_op.fusion(copyed_model)
                     return[[[copyed_model], [second_implementation]]]
                 else:
-                    return[[[copyed_model], [second_implementation]],
-                        [[first_op, second_op], [first_implementaion, second_implementation]]]
-        
-    elif second_implementation == 'Not-Tree':
-        return [[[first_op, second_op], [first_implementaion, second_implementation]]]
+                    return [[[first_op, second_op], [first_implementaion, second_implementation]]]
+                
+            else:
+            
+                choice = rule_table.loc[first_op.op_type.value + first_implementaion.value, 'Tree']
+                if choice == "disable":
+                    return [[[first_op, second_op], [first_implementaion, second_implementation]]]
+                elif choice == "uncertain":
+                    copyed_model = copy.deepcopy(second_op)
+                    first_op.fusion(copyed_model)
+                    # special case, directly fusion
+                    if first_op.op_name in (OperatorName.KBINSDISCRETIZER, OperatorName.STANDARDSCALER, OperatorName.MINMAXSCALER):
+                        return[[[copyed_model], [second_implementation]]]
+                    else:
+                        return[[[copyed_model], [second_implementation]],
+                            [[first_op, second_op], [first_implementaion, second_implementation]]]
+            
+        elif second_implementation == 'Not-Tree':
+            return [[[first_op, second_op], [first_implementaion, second_implementation]]]
     
+    else:
+        pm = PropertyManager()
+        properties = [method for method in dir(pm) if callable(getattr(pm, method)) and method.startswith('property')]
+        for property in properties:
+            merged_op = getattr(pm, property)(first_op, second_op)
+            if merged_op:
+                break
+
+        if second_implementation != 'Tree' and second_implementation != 'Not-Tree':
+            if defs.MASQ:
+                return [[[first_op, second_op], [first_implementaion, second_implementation]]]
+            else:
+                if merged_op:
+                    if property != 'property2':
+                        return [[[merged_op], [SQLPlanType.CASE]]]
+                    else:
+                        # special case, directly merge
+                        if ((first_op.op_name == OperatorName.STANDARDSCALER and second_op.op_name == OperatorName.MINMAXSCALER) 
+                            or (first_op.op_name == OperatorName.MINMAXSCALER and second_op.op_name == OperatorName.STANDARDSCALER)
+                            or (first_op.op_name == OperatorName.STANDARDSCALER and second_op.op_name == OperatorName.KBINSDISCRETIZER)
+                            or (first_op.op_name == OperatorName.MINMAXSCALER and second_op.op_name == OperatorName.KBINSDISCRETIZER)):
+                            return [[[merged_op], [SQLPlanType.CASE]]]
+                        else:
+                            return [[[merged_op], [SQLPlanType.CASE]],
+                                    [[first_op, second_op], [SQLPlanType.CASE, SQLPlanType.CASE]]]
+                else:
+                    return [[[first_op, second_op], [SQLPlanType.CASE, SQLPlanType.CASE]]]
+                        
+        elif second_implementation == 'Tree':
+            if defs.MASQ:
+                if first_op.op_name == OperatorName.ONEHOTENCODER:
+                    return[[[merged_op], ['Tree']]]
+                else:
+                    return [[[first_op, second_op], [first_implementaion, second_implementation]]]
+                
+            else:
+                if not merged_op:
+                    return [[[first_op, second_op], [first_implementaion, second_implementation]]]
+                else:
+                    if property != 'property2':
+                        return [[[merged_op], ['Tree']]]
+                    else:
+                        # special case, directly fusion
+                        if first_op.op_name in (OperatorName.KBINSDISCRETIZER, OperatorName.STANDARDSCALER, OperatorName.MINMAXSCALER):
+                            return[[[merged_op], ['Tree']]]
+                        else:
+                            return[[[merged_op], ['Tree']],
+                                [[first_op, second_op], [first_implementaion, second_implementation]]]
+            
+        elif second_implementation == 'Not-Tree':
+            return [[[first_op, second_op], [first_implementaion, second_implementation]]]
 
 def merge_sql_operator_by_chain_plan(
     preprocessing_graph: PrepGraph,

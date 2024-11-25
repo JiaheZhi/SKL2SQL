@@ -1,4 +1,5 @@
 import numpy as np
+from sympy import sympify, LessThan, Or, Eq, And, Symbol
 from sklearn.tree import DecisionTreeRegressor  
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.model.base_model import TreeModel
@@ -26,6 +27,13 @@ class DecisionTreeRegressorSQLModel(TreeModel):
             self.input_features = self.trained_model.feature_names_in_
             self.features = [DBMSUtils.get_delimited_col(defs.DBMS, self.input_features[i]) for i in self.trained_model.tree_.feature]
             self.features_origin = [self.input_features[i] for i in self.trained_model.tree_.feature]
+        # abstract the tree model to a operator consisted of inequations
+        for feature in self.input_features:
+            self.inequations[feature] = []
+            self.tree_node_mappings[feature] = []
+        for idx, thr in enumerate(self.thresholds):
+            self.inequations[self.features_origin[idx]].append(sympify(f'x {self.ops[idx]} {self.thresholds[idx]}'))
+            self.tree_node_mappings[self.features_origin[idx]].append(idx)
 
     def set_features(self, feature_names_in):
         self.trained_model.feature_names_in_ = feature_names_in
@@ -96,7 +104,44 @@ class DecisionTreeRegressorSQLModel(TreeModel):
                 )
 
     def query(self, input_table: str, dbms: str) -> str:
+        self.update_tree_by_inequalities()
         query = "SELECT {} AS Score".format(self.get_case_sql(dbms))
         query += " FROM {}".format(input_table)
 
         return query
+    
+    def update_tree_by_inequalities(self):
+        for feature in self.input_features:
+            for tree_node_idx, inequality in zip(self.tree_node_mappings[feature], self.inequations[feature]):
+                if isinstance(inequality, LessThan):
+                    self.thresholds[tree_node_idx] = float(inequality.rhs)
+                elif isinstance(inequality, Or):
+                    if isinstance(inequality.args[0], Eq): 
+                        equal_values = []
+                        for equality in inequality.args:
+                            if isinstance(equality.args[1], Symbol):
+                                equal_values.append(f"'{equality.args[1].name}'")
+                            else:
+                                equal_values.append(f"{equality.args[1]}")
+                        if self.features[tree_node_idx][-3] == '_':
+                            self.features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature[:-2]) 
+                        self.ops[tree_node_idx] = 'in'
+                        self.thresholds[tree_node_idx] = f"({','.join(equal_values)})"  
+                    elif isinstance(inequality.args[0], And):
+                        interval_strs = []
+                        for and_expr in inequality.args:
+                            lower_bound = and_expr.args[0].rhs
+                            upper_bound = and_expr.args[1].rhs
+                            interval_strs.append(f"{self.features[tree_node_idx]} >= {lower_bound}" 
+                                                 + " AND " + 
+                                                 f"{self.features[tree_node_idx]} < {upper_bound}")
+                        self.features[tree_node_idx] = " OR ".join(interval_strs)
+                        self.ops[tree_node_idx] = ''
+                        self.thresholds[tree_node_idx] = ''
+                elif isinstance(inequality, Eq):
+                    self.ops[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature)
+                    self.ops[tree_node_idx] = '='
+                    self.thresholds[tree_node_idx] = inequality.args[1].name
+                elif isinstance(inequality, And):
+                    upper_bound = inequality.args[1].rhs
+                    self.thresholds[tree_node_idx] = float(inequality.args[1].rhs)

@@ -1,5 +1,5 @@
 import numpy as np
-from pandas import DataFrame
+from pandas import DataFrame, Series
 from numpy import array
 
 from craftsman.base.operator import CON_C_CAT
@@ -22,6 +22,17 @@ class KBinsDiscretizerSQLOperator(CON_C_CAT):
             self.bin_edges.append(fitted_transform.bin_edges_[feature_idx])
             self.n_bins.append(fitted_transform.n_bins_[feature_idx])
             self.categories.append(array(list(range(fitted_transform.n_bins_[feature_idx]))))
+            intervals = [
+                (self.bin_edges[0][i], self.bin_edges[0][i + 1])
+                for i in range(self.n_bins[0])
+            ]
+            self.mappings.append(
+                Series(
+                    self.categories[-1],
+                    index=intervals
+                )
+            )
+        
 
 
     @staticmethod

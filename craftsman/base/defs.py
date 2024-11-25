@@ -207,3 +207,5 @@ TIMER = 'OFF' # ON/OFF
 GROUP = None
 
 MASQ = False
+
+AUTO_RULE_GEN = True

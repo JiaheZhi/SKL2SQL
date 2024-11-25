@@ -1,4 +1,5 @@
 import numpy as np
+from sympy import sympify
 from sklearn.tree import DecisionTreeClassifier  
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.model.base_model import TreeModel
@@ -28,6 +29,13 @@ class DecisionTreeClassifierSQLModel(TreeModel):
             self.input_features = self.trained_model.feature_names_in_
             self.features = [DBMSUtils.get_delimited_col(defs.DBMS, self.input_features[i]) for i in self.trained_model.tree_.feature]
             self.features_origin = [self.input_features[i] for i in self.trained_model.tree_.feature]
+        # abstract the tree model to a operator consisted of inequations
+        for feature in self.input_features:
+            self.inequations[feature] = []
+            self.tree_node_mappings[feature] = []
+        for idx, thr in enumerate(self.thresholds):
+            self.inequations[self.features_origin[idx]].append(sympify(f'x {self.ops[idx]} {self.thresholds[idx]}'))
+            self.tree_node_mappings[self.features_origin[idx]].append(idx)
 
     def set_features(self, feature_names_in):
         self.trained_model.feature_names_in_ = feature_names_in
@@ -102,3 +110,8 @@ class DecisionTreeClassifierSQLModel(TreeModel):
         query += " FROM {}".format(input_table)
 
         return query
+    
+    def update_tree_by_inequalities(self):
+        for feature in self.input_features:
+            for tree_node_idx, inequality in zip(self.tree_node_mappings[feature], self.inequations[feature]):
+                pass

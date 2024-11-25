@@ -26,6 +26,14 @@ class RandomForestRegressorSQLModel(TreeModel):
             decision_tree_classifier.set_features(trained_model.feature_names_in_)
             self.decision_tree_regressors.append(decision_tree_classifier)
         self.tree_weights = [1/len(self.decision_tree_regressors)] * len(self.decision_tree_regressors)
+        # abstract the tree model to a operator consisted of inequations
+        for feature in self.input_features:
+            self.inequations[feature] = []
+            self.tree_node_mappings[feature] = []
+        for tree_idx, dtc in enumerate(self.decision_tree_classifiers):
+            for feature in dtc.input_features:
+                self.inequations[feature].extand(dtc.inequations[feature])
+                self.tree_node_mappings[feature].extand([(tree_idx, node_idx) for node_idx in dtc.tree_node_mappings[feature]])
         
     def modify_model(self, feature: str, sql_operator: Operator):
         for decision_tree_classifier in self.decision_tree_regressors:
@@ -83,3 +91,6 @@ class RandomForestRegressorSQLModel(TreeModel):
         final_query = "{} FROM ({}) AS F".format(external_query, query)
 
         return final_query
+    
+    def update_tree_by_inequalities(self):
+        pass

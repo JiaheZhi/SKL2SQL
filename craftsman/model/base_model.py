@@ -23,6 +23,12 @@ class SQLModel(ABC):
         self.trained_model: ModelType
         self.input_features: list[str]
         self.model_name: ModelName
+        self.is_encoder: bool = False
+        self.is_arithmetic_op: bool = False
+        self.is_inequality_judgment_op: bool = False
+        self.is_contain_ca_op: bool = False
+        self.is_constant_output_op: bool = False
+        self.is_contain_multi_ca_op: bool = False
 
     @abstractmethod
     def query(self, input_table: str, dbms: str) -> str:
@@ -74,6 +80,10 @@ class TreeModel(SQLModel):
 
     def __init__(self) -> None:
         super().__init__()
+        self.inequations = {}
+        self.tree_node_mappings = {}
+        self.is_inequality_judgment_op = True
+        self.is_contain_multi_ca_op = True
 
     @abstractmethod
     def get_tree_costs(self, feature, operator):
@@ -93,4 +103,8 @@ class TreeModel(SQLModel):
             feature (_type_): _description_
             operator (_type_): _description_
         """
+        pass
+    
+    @abstractmethod
+    def update_tree_by_inequalities(self):
         pass

@@ -26,6 +26,11 @@ class SQLOperator(ABC):
         self.costs: dict
         self.stats = []
         self.is_encoder: bool = False
+        self.is_arithmetic_op: bool = False
+        self.is_inequality_judgment_op: bool = False
+        self.is_contain_ca_op: bool = False
+        self.is_constant_output_op: bool = False
+        self.is_contain_multi_ca_op: bool = False
 
     @abstractmethod
     def apply(self, first_op: Operator):
@@ -193,6 +198,8 @@ class EncoderOperator(SQLOperator):
     def __init__(self, op_name: OperatorName):
         super().__init__(op_name)
         self.is_encoder = True
+        self.is_contain_ca_op = True
+        self.is_constant_output_op = True
 
     def join(self, graph):
         graph.add_join_operator(self)
@@ -510,6 +517,7 @@ class EXPAND(EncoderOperator):
 
         self.mapping: DataFrame | Series
         self.con_c_cat_mapping = None  # using for the merge of the con_c_cat and expand
+        self.is_contain_multi_ca_op = True
 
     def apply(self, first_op: Operator):
         return None
@@ -892,6 +900,8 @@ class CON_A_CON(SQLOperator):
         self.equation: Eq
         self.symbols: dict = {}
         self.parameter_values: list = []
+        
+        self.is_arithmetic_op = True
 
     def apply(self, first_op: Operator):
         if first_op.op_type == OperatorType.CON_C_CAT:
@@ -1048,6 +1058,9 @@ class CON_C_CAT(SQLOperator):
         self.n_bins: list = []
         self.categories: list = []
         self.bin_distribution: dict = {}
+        self.mappings: list[Series] = []
+        self.is_contain_ca_op = True
+        self.is_constant_output_op = True
 
     def __judge_feature_value(self, xs, feature_idx):
         res_xs = []
