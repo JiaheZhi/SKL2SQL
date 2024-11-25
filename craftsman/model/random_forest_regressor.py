@@ -1,8 +1,11 @@
 from sklearn.ensemble import RandomForestRegressor
+from sympy import sympify, LessThan, Eq, And, Symbol
+from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.model.decision_tree_regressor import DecisionTreeRegressorSQLModel
 from craftsman.model.base_model import TreeModel
 from craftsman.base.operator import Operator
 from craftsman.base.defs import ModelName
+import craftsman.base.defs as defs
 from craftsman.cost_model.cost import TreeCost
 
 class RandomForestRegressorSQLModel(TreeModel):
@@ -22,26 +25,26 @@ class RandomForestRegressorSQLModel(TreeModel):
         self.estimators = trained_model.estimators_
         self.decision_tree_regressors: list[DecisionTreeRegressorSQLModel] = []
         for estimator in self.estimators:
-            decision_tree_classifier = DecisionTreeRegressorSQLModel(estimator)
-            decision_tree_classifier.set_features(trained_model.feature_names_in_)
-            self.decision_tree_regressors.append(decision_tree_classifier)
+            decision_tree_regressor = DecisionTreeRegressorSQLModel(estimator)
+            decision_tree_regressor.set_features(trained_model.feature_names_in_)
+            self.decision_tree_regressors.append(decision_tree_regressor)
         self.tree_weights = [1/len(self.decision_tree_regressors)] * len(self.decision_tree_regressors)
         # abstract the tree model to a operator consisted of inequations
         for feature in self.input_features:
             self.inequations[feature] = []
             self.tree_node_mappings[feature] = []
-        for tree_idx, dtc in enumerate(self.decision_tree_classifiers):
+        for tree_idx, dtc in enumerate(self.decision_tree_regressors):
             for feature in dtc.input_features:
-                self.inequations[feature].extand(dtc.inequations[feature])
-                self.tree_node_mappings[feature].extand([(tree_idx, node_idx) for node_idx in dtc.tree_node_mappings[feature]])
+                self.inequations[feature].extend(dtc.inequations[feature])
+                self.tree_node_mappings[feature].extend([(tree_idx, node_idx) for node_idx in dtc.tree_node_mappings[feature]])
         
     def modify_model(self, feature: str, sql_operator: Operator):
-        for decision_tree_classifier in self.decision_tree_regressors:
-            decision_tree_classifier.modify_model(feature, sql_operator)
+        for decision_tree_regressor in self.decision_tree_regressors:
+            decision_tree_regressor.modify_model(feature, sql_operator)
             
     def modify_model_p(self, feature: str, sql_operator: Operator):
-        for decision_tree_classifier in self.decision_tree_regressors:
-            decision_tree_classifier.modify_model_p(feature, sql_operator)
+        for decision_tree_regressor in self.decision_tree_regressors:
+            decision_tree_regressor.modify_model_p(feature, sql_operator)
             
     def get_tree_costs(self, feature, operator):
         tree_costs = []
@@ -71,8 +74,8 @@ class RandomForestRegressorSQLModel(TreeModel):
         query = "SELECT "
         # loop over the trees and create a CASE statement for each tree
         for i in range(len(self.decision_tree_regressors)):
-            decision_tree_classifier = self.decision_tree_regressors[i]
-            sql_case = decision_tree_classifier.get_case_sql(dbms)
+            decision_tree_regressor = self.decision_tree_regressors[i]
+            sql_case = decision_tree_regressor.get_case_sql(dbms)
             sql_case += " AS tree_{},".format(i)
             query += sql_case
         query = query[:-1]  # remove the last ","
@@ -93,4 +96,44 @@ class RandomForestRegressorSQLModel(TreeModel):
         return final_query
     
     def update_tree_by_inequalities(self):
-        pass
+        for feature in self.input_features:
+            for (tree_idx, tree_node_idx), inequality in zip(self.tree_node_mappings[feature], self.inequations[feature]):
+                if isinstance(inequality, LessThan):
+                    self.decision_tree_regressors[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature) 
+                    self.decision_tree_regressors[tree_idx].ops[tree_node_idx] = '<='
+                    self.decision_tree_regressors[tree_idx].thresholds[tree_node_idx] = float(inequality.rhs)
+                elif isinstance(inequality, list) and len(inequality) > 1:
+                    if isinstance(inequality[0], Eq): 
+                        equal_values = []
+                        for equality in inequality:
+                            if isinstance(equality.args[1], Symbol):
+                                equal_values.append(f"'{equality.args[1].name}'")
+                            else:
+                                equal_values.append(f"{equality.args[1]}")
+                        if feature == '_':
+                            self.decision_tree_regressors[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature[:-2])
+                        else:
+                            self.decision_tree_regressors[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature) 
+                        self.decision_tree_regressors[tree_idx].ops[tree_node_idx] = 'in'
+                        self.decision_tree_regressors[tree_idx].thresholds[tree_node_idx] = f"({','.join(equal_values)})"  
+                    elif isinstance(inequality[0], And):
+                        interval_strs = []
+                        for and_expr in inequality:
+                            lower_bound = and_expr.args[0].rhs
+                            upper_bound = and_expr.args[1].rhs
+                            interval_strs.append(f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} >= {lower_bound}" 
+                                                 + " AND " + 
+                                                 f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} < {upper_bound}")
+                        self.decision_tree_regressors[tree_idx].features[tree_node_idx] = " OR ".join(interval_strs)
+                        self.decision_tree_regressors[tree_idx].ops[tree_node_idx] = ''
+                        self.decision_tree_regressors[tree_idx].thresholds[tree_node_idx] = ''
+                elif isinstance(inequality, list) and len(inequality) == 1:
+                    if isinstance(inequality[0], Eq):
+                        self.decision_tree_regressors[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature)
+                        self.decision_tree_regressors[tree_idx].ops[tree_node_idx] = '='
+                        self.decision_tree_regressors[tree_idx].thresholds[tree_node_idx] = inequality[0].args[1].name
+                    elif isinstance(inequality[0], And):
+                        self.decision_tree_regressors[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature)
+                        self.decision_tree_regressors[tree_idx].ops[tree_node_idx] = '<='
+                        upper_bound = inequality[0].args[1].rhs
+                        self.decision_tree_regressors[tree_idx].thresholds[tree_node_idx] = float(inequality[0].args[1].rhs)

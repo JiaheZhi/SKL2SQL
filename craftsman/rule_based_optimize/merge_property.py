@@ -41,6 +41,8 @@ class PropertyManager(object):
                         merged_inequations.append(simplified_inequality)
                     merged_op.inequations[feature] = merged_inequations
                     
+                if isinstance(merged_op, TreeModel):
+                    merged_op.update_tree_by_inequalities()
             else:
                 return None
             
@@ -98,43 +100,43 @@ class PropertyManager(object):
                                     thr = float(inequation.rhs)
                                     filtered_indexs = [idx for idx in op1.mappings[feature_idx].index if op1.mappings[feature_idx][idx] <= thr]
                                     if isinstance(filtered_indexs[0], str): 
-                                        merged_inequation = Or(*[Eq(Symbol('x'), Symbol(val)) for val in filtered_indexs])
+                                        merged_inequation = [Eq(Symbol('x'), Symbol(val)) for val in filtered_indexs]
                                     else:
-                                        merged_inequation = Or(*[Eq(Symbol('x'), val) for val in filtered_indexs])
+                                        merged_inequation = [Eq(Symbol('x'), val) for val in filtered_indexs]
                                 elif op1.mappings[feature_idx].index.inferred_type == 'mixed':
                                     thr = float(inequation.rhs)
                                     filtered_intervals = [idx for idx in op1.mappings[feature_idx].index if op1.mappings[feature_idx][idx] <= thr]
                                     merged_intervals = merge_intervals(filtered_intervals)
                                     x = Symbol('x')
-                                    merged_inequation = Or(*[And(x > interval[0], x < interval[1]) for interval in merged_intervals])
+                                    merged_inequation = [And(x > interval[0], x < interval[1]) for interval in merged_intervals]
                             elif hasattr(op1, 'mapping'):
                                 thr = float(inequation.rhs)
                                 filtered_indexs = [idx for idx in op1.mapping.index if op1.mapping[feature][idx] <= thr]
                                 if isinstance(filtered_indexs[0], str): 
-                                    merged_inequation = Or(*[Eq(Symbol('x'), Symbol(val)) for val in filtered_indexs])
+                                    merged_inequation = [Eq(Symbol('x'), Symbol(val)) for val in filtered_indexs]
                                 else:
-                                    merged_inequation = Or(*[Eq(Symbol('x'), val) for val in filtered_indexs])
+                                    merged_inequation = [Eq(Symbol('x'), val) for val in filtered_indexs]
                             
-                        elif isinstance(inequation, Or):
-                            if isinstance(inequation.args[0], Eq): 
+                        elif isinstance(inequation, list) and len(inequation) > 1:
+                            if isinstance(inequation[0], Eq): 
                                 if hasattr(op1, 'mappings'):
                                     if op1.mappings[feature_idx].index.inferred_type == 'string':
                                         filtered_indexs = []
                                         inversed_mapping = Series(op1.mappings[feature_idx].index, index=op1.mappings[feature_idx].values)
-                                        for equality in inequation.args:
+                                        for equality in inequation:
                                             if isinstance(equality.args[1], Symbol): 
                                                 val = equality.args[1].name
                                             else:
                                                 val = equality.args[1]
                                             filtered_indexs.append(inversed_mapping[val])
                                         if isinstance(filtered_indexs[0], str): 
-                                            merged_inequation = Or(*[Eq(Symbol('x'), Symbol(val)) for val in filtered_indexs])
+                                            merged_inequation = [Eq(Symbol('x'), Symbol(val)) for val in filtered_indexs]
                                         else:
-                                            merged_inequation = Or(*[Eq(Symbol('x'), val) for val in filtered_indexs])
+                                            merged_inequation = [Eq(Symbol('x'), val) for val in filtered_indexs]
                                     elif op1.mappings[feature_idx].index.inferred_type == 'mixed':
                                         filtered_intervals = []
                                         inversed_mapping = Series(op1.mappings[feature_idx].index, index=op1.mappings[feature_idx].values)
-                                        for equality in inequation.args:
+                                        for equality in inequation:
                                             if isinstance(equality.args[1], Symbol): 
                                                 val = equality.args[1].name
                                             else:
@@ -146,79 +148,82 @@ class PropertyManager(object):
                                 elif hasattr(op1, 'mapping'):
                                     filtered_indexs = []
                                     inversed_mapping = Series(op1.mapping.index, index=op1.mapping[feature].values)
-                                    for equality in inequation.args:
+                                    for equality in inequation:
                                         if isinstance(equality.args[1], Symbol): 
                                             val = equality.args[1].name
                                         else:
                                             val = equality.args[1]
                                         filtered_indexs.append(inversed_mapping[val])
                                     if isinstance(filtered_indexs[0], str): 
-                                        merged_inequation = Or(*[Eq(Symbol('x'), Symbol(val)) for val in filtered_indexs])
+                                        merged_inequation = [Eq(Symbol('x'), Symbol(val)) for val in filtered_indexs]
                                     else:
-                                        merged_inequation = Or(*[Eq(Symbol('x'), val) for val in filtered_indexs])
+                                        merged_inequation = [Eq(Symbol('x'), val) for val in filtered_indexs]
                             
-                            elif isinstance(inequation.args[0], And): 
+                            elif isinstance(inequation[0], And): 
                                 filtered_intervals = []
                                 inversed_mapping = Series(op1.mappings[feature_idx].index, index=op1.mappings[feature_idx].values)
-                                for in_eq in inequation.args:
+                                for in_eq in inequation:
                                     for val in inversed_mapping.index:
                                         if val >= float(in_eq.args[0]) and val < float(in_eq.args[1]):
                                             filtered_intervals.append(inversed_mapping[val])
                                 merged_intervals = merge_intervals(filtered_intervals)
                                 x = Symbol('x')
-                                merged_inequation = Or(*[And(x > interval[0], x < interval[1]) for interval in merged_intervals])
+                                merged_inequation = [And(x > interval[0], x < interval[1]) for interval in merged_intervals]
                         
-                        elif isinstance(inequation, Eq):
-                            if hasattr(op1, 'mappings'):
-                                if op1.mappings[feature_idx].index.inferred_type == 'string':
+                        elif isinstance(inequation, list) and len(inequation) == 1:
+                            if isinstance(inequation[0], Eq):
+                                if hasattr(op1, 'mappings'):
+                                    if op1.mappings[feature_idx].index.inferred_type == 'string':
+                                        filtered_indexs = []
+                                        inversed_mapping = Series(op1.mappings[feature_idx].index, index=op1.mappings[feature_idx].values)
+                                        if isinstance(inequation[0].args[1], Symbol): 
+                                            val = inequation[0].args[1].name
+                                        else:
+                                            val = inequation[0].args[1]
+                                        filtered_indexs.append(inversed_mapping[val])
+                                        if isinstance(filtered_indexs[0], str): 
+                                            merged_inequation = [Eq(Symbol('x'), Symbol(val)) for val in filtered_indexs]
+                                        else:
+                                            merged_inequation = [Eq(Symbol('x'), val) for val in filtered_indexs]
+                                    elif op1.mappings[feature_idx].index.inferred_type == 'mixed':
+                                        filtered_intervals = []
+                                        inversed_mapping = Series(op1.mappings[feature_idx].index, index=op1.mappings[feature_idx].values)
+                                        if isinstance(inequation[0].args[1], Symbol): 
+                                            val = inequation[0].args[1].name
+                                        else:
+                                            val = inequation[0].args[1]
+                                        filtered_intervals.append(inversed_mapping[val])
+                                        merged_intervals = merge_intervals(filtered_intervals)
+                                        x = Symbol('x')
+                                        merged_inequation = [And(x > interval[0], x < interval[1]) for interval in merged_intervals]
+                                elif hasattr(op1, 'mapping'):
                                     filtered_indexs = []
-                                    inversed_mapping = Series(op1.mappings[feature_idx].index, index=op1.mappings[feature_idx].values)
-                                    if isinstance(inequation.args[1], Symbol): 
-                                        val = inequation.args[1].name
+                                    inversed_mapping = Series(op1.mapping.index, index=op1.mapping[feature].values)
+                                    if isinstance(inequation[0].args[1], Symbol): 
+                                        val = inequation[0].args[1].name
                                     else:
-                                        val = inequation.args[1]
+                                        val = inequation[0].args[1]
                                     filtered_indexs.append(inversed_mapping[val])
                                     if isinstance(filtered_indexs[0], str): 
-                                        merged_inequation = Or(*[Eq(Symbol('x'), Symbol(val)) for val in filtered_indexs])
+                                        merged_inequation = [Eq(Symbol('x'), Symbol(val)) for val in filtered_indexs]
                                     else:
-                                        merged_inequation = Or(*[Eq(Symbol('x'), val) for val in filtered_indexs])
-                                elif op1.mappings[feature_idx].index.inferred_type == 'mixed':
-                                    filtered_intervals = []
-                                    inversed_mapping = Series(op1.mappings[feature_idx].index, index=op1.mappings[feature_idx].values)
-                                    if isinstance(inequation.args[1], Symbol): 
-                                        val = inequation.args[1].name
-                                    else:
-                                        val = inequation.args[1]
-                                    filtered_intervals.append(inversed_mapping[val])
-                                    merged_intervals = merge_intervals(filtered_intervals)
-                                    x = Symbol('x')
-                                    merged_inequation = Or(*[And(x > interval[0], x < interval[1]) for interval in merged_intervals])
-                            elif hasattr(op1, 'mapping'):
-                                filtered_indexs = []
-                                inversed_mapping = Series(op1.mapping.index, index=op1.mapping[feature].values)
-                                if isinstance(inequation.args[1], Symbol): 
-                                    val = inequation.args[1].name
-                                else:
-                                    val = inequation.args[1]
-                                filtered_indexs.append(inversed_mapping[val])
-                                if isinstance(filtered_indexs[0], str): 
-                                    merged_inequation = Or(*[Eq(Symbol('x'), Symbol(val)) for val in filtered_indexs])
-                                else:
-                                    merged_inequation = Or(*[Eq(Symbol('x'), val) for val in filtered_indexs])
+                                        merged_inequation = [Eq(Symbol('x'), val) for val in filtered_indexs]
                         
-                        elif isinstance(inequation, And):
-                            filtered_intervals = []
-                            inversed_mapping = Series(op1.mappings[feature_idx].index, index=op1.mappings[feature_idx].values)
-                            for val in inversed_mapping.index:
-                                if val >= float(inequation.args[0]) and val < float(inequation.args[1]):
-                                    filtered_intervals.append(inversed_mapping[val])
-                            merged_intervals = merge_intervals(filtered_intervals)
-                            x = Symbol('x')
-                            merged_inequation = Or(*[And(x > interval[0], x < interval[1]) for interval in merged_intervals])
-                            
+                            elif isinstance(inequation[0], And):
+                                filtered_intervals = []
+                                inversed_mapping = Series(op1.mappings[feature_idx].index, index=op1.mappings[feature_idx].values)
+                                for val in inversed_mapping.index:
+                                    if val >= float(inequation[0].args[0]) and val < float(inequation[0].args[1]):
+                                        filtered_intervals.append(inversed_mapping[val])
+                                merged_intervals = merge_intervals(filtered_intervals)
+                                x = Symbol('x')
+                                merged_inequation = [And(x > interval[0], x < interval[1]) for interval in merged_intervals]
+                                
                         merged_inequations.append(merged_inequation)
                     merged_op.inequations[feature] = merged_inequations
                     
+                if isinstance(merged_op, TreeModel):
+                    merged_op.update_tree_by_inequalities()
             else:
                 return None
                 
