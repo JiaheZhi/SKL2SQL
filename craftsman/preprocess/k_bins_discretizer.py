@@ -1,5 +1,6 @@
 import numpy as np
 from pandas import DataFrame, Series
+from sympy import And, Symbol
 from numpy import array
 
 from craftsman.base.operator import CON_C_CAT
@@ -26,6 +27,14 @@ class KBinsDiscretizerSQLOperator(CON_C_CAT):
                 (self.bin_edges[0][i], self.bin_edges[0][i + 1])
                 for i in range(self.n_bins[0])
             ]
+            
+            self.inequations[feature] = []
+            self.inequations_mappings[feature] = []
+            x = Symbol('x')
+            for idx, interval in enumerate(intervals):
+                self.inequations[feature].append(And(x > interval[0], x < interval[1]))
+                self.inequations_mappings[feature].append(idx)
+                
             self.mappings.append(
                 Series(
                     self.categories[-1],
@@ -33,7 +42,6 @@ class KBinsDiscretizerSQLOperator(CON_C_CAT):
                 )
             )
         
-
 
     @staticmethod
     def trans_feature_names_in(input_data: DataFrame):

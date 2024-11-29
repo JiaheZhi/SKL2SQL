@@ -1,5 +1,5 @@
 from sklearn.ensemble import RandomForestClassifier
-from sympy import sympify, LessThan, Eq, And, Symbol
+from sympy import sympify, LessThan, Eq, And, Symbol, Ne
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.model.decision_tree_classifier import DecisionTreeClassifierSQLModel
 from craftsman.model.base_model import TreeModel
@@ -129,8 +129,8 @@ class RandomForestClassifierSQLModel(TreeModel):
                                 equal_values.append(f"'{equality.args[1].name}'")
                             else:
                                 equal_values.append(f"{equality.args[1]}")
-                        if feature == '_':
-                            self.decision_tree_classifiers[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature[:-2])
+                        if feature.split('_')[-1].isnumeric():
+                            self.decision_tree_classifiers[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature.rsplit('_', 1)[0])
                         else:
                             self.decision_tree_classifiers[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature) 
                         self.decision_tree_classifiers[tree_idx].ops[tree_node_idx] = 'in'
@@ -138,8 +138,8 @@ class RandomForestClassifierSQLModel(TreeModel):
                     elif isinstance(inequality[0], And):
                         interval_strs = []
                         for and_expr in inequality:
-                            lower_bound = and_expr.args[0].rhs
-                            upper_bound = and_expr.args[1].rhs
+                            lower_bound = and_expr.args[0].args[1]
+                            upper_bound = and_expr.args[1].args[1]
                             interval_strs.append(f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} >= {lower_bound}" 
                                                  + " AND " + 
                                                  f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} < {upper_bound}")
@@ -148,11 +148,27 @@ class RandomForestClassifierSQLModel(TreeModel):
                         self.decision_tree_classifiers[tree_idx].thresholds[tree_node_idx] = ''
                 elif isinstance(inequality, list) and len(inequality) == 1:
                     if isinstance(inequality[0], Eq):
-                        self.decision_tree_classifiers[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature)
+                        if feature not in defs.PIPELINE_FEATURES_IN and feature.split('_')[-1].isnumeric():
+                            self.decision_tree_classifiers[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature.rsplit('_', 1)[0])
+                        else:
+                            self.decision_tree_classifiers[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature) 
                         self.decision_tree_classifiers[tree_idx].ops[tree_node_idx] = '='
-                        self.decision_tree_classifiers[tree_idx].thresholds[tree_node_idx] = inequality[0].args[1].name
+                        if isinstance(inequality[0].args[1], Symbol):
+                            self.decision_tree_classifiers[tree_idx].thresholds[tree_node_idx] = f"'{inequality[0].args[1].name}'"
+                        else:
+                            self.decision_tree_classifiers[tree_idx].thresholds[tree_node_idx] = inequality[0].args[1]
+                    elif isinstance(inequality[0], Ne):
+                        if feature not in defs.PIPELINE_FEATURES_IN and feature.split('_')[-1].isnumeric():
+                            self.decision_tree_classifiers[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature.rsplit('_', 1)[0])
+                        else:
+                            self.decision_tree_classifiers[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature) 
+                        self.decision_tree_classifiers[tree_idx].ops[tree_node_idx] = '<>'
+                        if isinstance(inequality[0].args[1], Symbol):
+                            self.decision_tree_classifiers[tree_idx].thresholds[tree_node_idx] = f"'{inequality[0].args[1].name}'"
+                        else:
+                            self.decision_tree_classifiers[tree_idx].thresholds[tree_node_idx] = inequality[0].args[1]
                     elif isinstance(inequality[0], And):
                         self.decision_tree_classifiers[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature)
                         self.decision_tree_classifiers[tree_idx].ops[tree_node_idx] = '<='
-                        upper_bound = inequality[0].args[1].rhs
-                        self.decision_tree_classifiers[tree_idx].thresholds[tree_node_idx] = float(inequality[0].args[1].rhs)
+                        upper_bound = inequality[0].args[1].args[1]
+                        self.decision_tree_classifiers[tree_idx].thresholds[tree_node_idx] = float(upper_bound)

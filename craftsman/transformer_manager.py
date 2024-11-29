@@ -112,6 +112,7 @@ class TransformerManager(object):
 
         model = load_model(model_file)
         pipeline_features_in = model.feature_names_in_.tolist()
+        defs.PIPELINE_FEATURES_IN = pipeline_features_in
         pipeline = self.__extract_pipeline(model)
         data_rows = model.data_rows
         model_name = pipeline['model']['model_name']
@@ -552,7 +553,7 @@ class TransformerManager(object):
         while prep_level <= max_level or len(join_feature_sqls) > 0:
             perp_level_sqls = []
             for feature, chain in graph.chains.items():
-                if prep_level > 1 and graph.implements[feature][prep_level] == SQLPlanType.JOIN:
+                if prep_level > 1 and len(graph.implements[feature]) > prep_level and graph.implements[feature][prep_level] == SQLPlanType.JOIN:
                     input_table, feature_sql, join_features = op.get_join_sql(dbms, input_table, table_name, pipeline)
                     join_feature_sqls[op.features[0]] = feature_sql
                     join_feature_list[op.features[0]] = join_features

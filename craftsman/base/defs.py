@@ -208,4 +208,6 @@ GROUP = None
 
 MASQ = False
 
-AUTO_RULE_GEN = False
+AUTO_RULE_GEN = True
+
+PIPELINE_FEATURES_IN = []

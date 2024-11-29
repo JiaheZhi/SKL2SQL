@@ -1061,14 +1061,29 @@ class CON_C_CAT(SQLOperator):
         self.mappings: list[Series] = []
         self.is_contain_ca_op = True
         self.is_constant_output_op = True
+        
+        self.inequations = {}
+        self.inequations_mappings = {}
+        self.is_inequality_judgment_op = True
 
+    def update_intervals_by_inequalities(self):
+        for feature_idx, feature in enumerate(self.features):
+            new_intervals = []
+            for eq_idx, equation in enumerate(self.inequations[feature]):
+                new_intervals.append((equation.args[0].args[1], equation.args[1].args[1]))
+                if eq_idx == 0:
+                    self.bin_edges[feature_idx][eq_idx] = equation.args[0].args[1]
+                self.bin_edges[feature_idx][eq_idx+1] = equation.args[1].args[1]
+                self.categories[feature_idx][eq_idx] = self.mappings[feature_idx].iloc[eq_idx]
+            self.mappings[feature_idx].index = new_intervals
+    
     def __judge_feature_value(self, xs, feature_idx):
         res_xs = []
         for x in xs:
             for i in range(self.n_bins[feature_idx]):
                 if (
                     x >= self.bin_edges[feature_idx][i]
-                    and x <= self.bin_edges[feature_idx][i + 1]
+                    and x < self.bin_edges[feature_idx][i + 1]
                 ):
                     res_xs.append(self.categories[feature_idx][i])
                     break

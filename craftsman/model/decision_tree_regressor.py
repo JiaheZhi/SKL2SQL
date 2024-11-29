@@ -1,5 +1,5 @@
 import numpy as np
-from sympy import sympify, LessThan, Eq, And, Symbol
+from sympy import sympify, LessThan, Eq, And, Symbol, Ne
 from sklearn.tree import DecisionTreeRegressor  
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.model.base_model import TreeModel
@@ -27,6 +27,16 @@ class DecisionTreeRegressorSQLModel(TreeModel):
             self.input_features = self.trained_model.feature_names_in_
             self.features = [DBMSUtils.get_delimited_col(defs.DBMS, self.input_features[i]) for i in self.trained_model.tree_.feature]
             self.features_origin = [self.input_features[i] for i in self.trained_model.tree_.feature]
+            
+            # abstract the tree model to a operator consisted of inequations
+            for feature in self.input_features:
+                self.inequations[feature] = []
+                self.tree_node_mappings[feature] = []
+            for idx, thr in enumerate(self.thresholds):
+                if self.left[idx] == -1 and self.right[idx] == -1:
+                    continue
+                self.inequations[self.features_origin[idx]].append(sympify(f'x {self.ops[idx]} {self.thresholds[idx]}'))
+                self.tree_node_mappings[self.features_origin[idx]].append(idx)
 
     def set_features(self, feature_names_in):
         self.trained_model.feature_names_in_ = feature_names_in
@@ -39,6 +49,8 @@ class DecisionTreeRegressorSQLModel(TreeModel):
             self.inequations[feature] = []
             self.tree_node_mappings[feature] = []
         for idx, thr in enumerate(self.thresholds):
+            if self.left[idx] == -1 and self.right[idx] == -1:
+                continue
             self.inequations[self.features_origin[idx]].append(sympify(f'x {self.ops[idx]} {self.thresholds[idx]}'))
             self.tree_node_mappings[self.features_origin[idx]].append(idx)
 
@@ -126,8 +138,8 @@ class DecisionTreeRegressorSQLModel(TreeModel):
                                 equal_values.append(f"'{equality.args[1].name}'")
                             else:
                                 equal_values.append(f"{equality.args[1]}")
-                        if feature[-3] == '_':
-                            self.features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature[:-2])
+                        if feature.split('_')[-1].isnumeric():
+                            self.features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature.rsplit('_', 1)[0])
                         else:
                             self.features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature) 
                         self.ops[tree_node_idx] = 'in'
@@ -135,8 +147,8 @@ class DecisionTreeRegressorSQLModel(TreeModel):
                     elif isinstance(inequality[0], And):
                         interval_strs = []
                         for and_expr in inequality:
-                            lower_bound = and_expr.args[0].rhs
-                            upper_bound = and_expr.args[1].rhs
+                            lower_bound = and_expr.args[0].args[1]
+                            upper_bound = and_expr.args[1].args[1]
                             interval_strs.append(f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} >= {lower_bound}" 
                                                  + " AND " + 
                                                  f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} < {upper_bound}")
@@ -145,10 +157,26 @@ class DecisionTreeRegressorSQLModel(TreeModel):
                         self.thresholds[tree_node_idx] = ''
                 elif isinstance(inequality, list) and len(inequality) == 1:
                     if isinstance(inequality[0], Eq):
-                        self.features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature)
+                        if feature not in defs.PIPELINE_FEATURES_IN and feature.split('_')[-1].isnumeric():
+                            self.features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature.rsplit('_', 1)[0])
+                        else:
+                            self.features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature) 
                         self.ops[tree_node_idx] = '='
-                        self.thresholds[tree_node_idx] = inequality[0].args[1].name
+                        if isinstance(inequality[0].args[1], Symbol):
+                            self.thresholds[tree_node_idx] = inequality[0].args[1].name
+                        else:
+                            self.thresholds[tree_node_idx] = inequality[0].args[1]
+                    elif isinstance(inequality[0], Ne):
+                        if feature not in defs.PIPELINE_FEATURES_IN and feature.split('_')[-1].isnumeric():
+                            self.features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature.rsplit('_', 1)[0])
+                        else:
+                            self.features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature) 
+                        self.ops[tree_node_idx] = '<>'
+                        if isinstance(inequality[0].args[1], Symbol):
+                            self.thresholds[tree_node_idx] = inequality[0].args[1].name
+                        else:
+                            self.thresholds[tree_node_idx] = inequality[0].args[1]
                     elif isinstance(inequality[0], And):
                         self.features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature)
-                        upper_bound = inequality[0].args[1].rhs
-                        self.thresholds[tree_node_idx] = float(inequality[0].args[1].rhs)
+                        upper_bound = inequality[0].args[1].args[1]
+                        self.thresholds[tree_node_idx] = float(upper_bound)
