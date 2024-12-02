@@ -42,6 +42,7 @@ class OperatorName(Enum):
     # CON_A_CON
     MINMAXSCALER = 'MinMaxScaler'
     STANDARDSCALER = 'StandardScaler'
+    ROBUSTSCALER = 'RobustScaler'
 
     # CON_C_CAT
     KBINSDISCRETIZER = 'KBinsDiscretizer'
