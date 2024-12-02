@@ -43,9 +43,12 @@ class OperatorName(Enum):
     MINMAXSCALER = 'MinMaxScaler'
     STANDARDSCALER = 'StandardScaler'
     ROBUSTSCALER = 'RobustScaler'
+    QUANTILETRANSFORMER = 'QuantileTransformer'
+    POWERTRANSFORMER = 'PowerTransformer'
 
     # CON_C_CAT
     KBINSDISCRETIZER = 'KBinsDiscretizer'
+    BINARIZERDISCRETIZER = 'BinarizerDiscretizer'
 
     # CON_M_CON
 
