@@ -45,11 +45,12 @@ class OperatorName(Enum):
     ROBUSTSCALER = 'RobustScaler'
     QUANTILETRANSFORMER = 'QuantileTransformer'
     POWERTRANSFORMER = 'PowerTransformer'
+    NORMALIZER = 'Normalizer'
 
     # CON_C_CAT
     KBINSDISCRETIZER = 'KBinsDiscretizer'
     BINARIZERDISCRETIZER = 'BinarizerDiscretizer'
-
+    CATBOOSTENCODER = 'CatBoostEncoder'
     # CON_M_CON
 
 
@@ -63,6 +64,8 @@ class OperatorName(Enum):
     # EXPAND
     ONEHOTENCODER = 'OneHotEncoder'
     BINARYENCODER = 'BinaryEncoder'
+    BASENENCODER = 'BaseNEncoder'
+    HASHINGENCODER = 'HashingEncoder'
 
     # IMPUTE
     SIMPLEIMPUTER = 'SimpleImputer'
