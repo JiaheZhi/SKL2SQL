@@ -1,14 +1,11 @@
-import sys
+import pathlib
 import time
-
-sys.path.append("/root/volume/SKL2SQL/")
 from craftsman.transformer_manager import TransformerManager
 
 
 if __name__ == "__main__":
     manager = TransformerManager()
-
-    pipeline_file = "/home/postgres/craftsman_experiments/new_trained_pipeline/Car_price/car_dt8.joblib"
+    pipeline_file = pathlib.Path(__file__).parent / "../../../pipelines/duckdb/car_price/car_dt6.joblib"
     table_name = "car_price"
     dbms = 'duckdb'
     pre_sql = "EXPLAIN ANALYZE "

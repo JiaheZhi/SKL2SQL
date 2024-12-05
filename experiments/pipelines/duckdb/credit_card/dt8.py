@@ -1,7 +1,4 @@
-import sys
-
-# sys.path.append("/root/volume/SKL2SQL_pqf/SKL2SQL/")
-sys.path.append("/root/volume/SKL2SQL/")
+import pathlib
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score, f1_score, recall_score, precision_score
 from sklearn.pipeline import Pipeline
@@ -13,9 +10,9 @@ from craftsman.base.defs import OperatorName, ModelName
 from craftsman.utility.training_helper import *
 
 # files
-tran_data_path = "/home/postgres/craftsman_experiments/dataset/Credit_card/train.csv"
-pipeline_save_path = "/home/postgres/craftsman_experiments/new_trained_pipeline/Credit_card/credit_card_dt8.joblib"
-test_data_path = "/home/postgres/craftsman_experiments/dataset/Credit_card/test.csv"
+tran_data_path = pathlib.Path(__file__).parent / "../../../../dataset/Credit_card/train.csv"
+pipeline_save_path = pathlib.Path(__file__).parent / "./credit_card_dt8.joblib"
+test_data_path = pathlib.Path(__file__).parent / "../../../../dataset/Credit_card/test.csv"
 
 
 # load dataset

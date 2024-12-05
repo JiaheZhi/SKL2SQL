@@ -1,6 +1,4 @@
-import sys
-sys.path.append("/root/volume/")
-sys.path.append("/root/volume/SKL2SQL/")
+import pathlib
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score, f1_score, recall_score, precision_score
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, KBinsDiscretizer
@@ -15,9 +13,9 @@ from craftsman.utility.training_helper import *
 from craftsman_experiments.tool import *
 
 
-train_data_path = "/home/postgres/craftsman_experiments/dataset/Hospital/train.csv"
-pipeline_save_path = "/home/postgres/craftsman_experiments/new_trained_pipeline/Hospital/hospital_dt.joblib"
-test_data_path = "/home/postgres/craftsman_experiments/dataset/Hospital/test.csv"
+train_data_path = pathlib.Path(__file__).parent / "../../../../dataset/Hospital/train.csv"
+pipeline_save_path = pathlib.Path(__file__).parent / "./hospital_dt.joblib"
+test_data_path = pathlib.Path(__file__).parent / "../../../../dataset/Hospital/test.csv"
 
 
 # load dataset

@@ -7,7 +7,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import LabelEncoder, KBinsDiscretizer, OrdinalEncoder, OneHotEncoder
 from scipy import sparse
-from category_encoders import TargetEncoder, CountEncoder, LeaveOneOutEncoder, BinaryEncoder
+from category_encoders import TargetEncoder, CountEncoder, LeaveOneOutEncoder, BinaryEncoder, CatBoostEncoder, BaseNEncoder, HashingEncoder
 
 from craftsman.base.defs import *
 import craftsman.base.defs as defs
@@ -225,6 +225,52 @@ class CraftsmanTargetEncoder(TargetEncoder):
         trans_data = super().fit_transform(X, y, **fit_params)
         return pd.DataFrame(trans_data)
 
+class CraftsmanCatBoostEncoder(CatBoostEncoder):
+
+    def __init__(
+        self, verbose=0, cols=None, drop_invariant=False, return_df=True, handle_missing='value',
+                 handle_unknown='value', min_samples_leaf=20, smoothing=10, hierarchy=None
+    ):
+        super().__init__(
+            verbose=verbose,
+            cols=cols,
+            drop_invariant=drop_invariant,
+            return_df=return_df,
+            handle_missing=handle_missing,
+            handle_unknown=handle_unknown,
+            min_samples_leaf=min_samples_leaf,
+            smoothing=smoothing,
+            hierarchy=hierarchy,
+        )
+
+    def fit(self, X, y=None, **kwargs):
+        X = pd.DataFrame(X)
+        if not hasattr(self, 'value_counts'):
+            self.value_counts = {}
+            for col in X.columns:
+                self.value_counts[col] = X[col].value_counts()
+        non_string_columns = X.select_dtypes(exclude=['object']).columns
+        X[non_string_columns] = X[non_string_columns].astype(str)
+        super().fit(X, y, **kwargs)
+        return self
+
+    def transform(self, X, y=None, override_return_df=False):
+        X = pd.DataFrame(X)
+        trans_data = super().transform(X, y, override_return_df=override_return_df)
+        return pd.DataFrame(trans_data)
+
+    def fit_transform(self, X, y=None, **fit_params):
+        X = pd.DataFrame(X)
+        if not hasattr(self, 'value_counts'):
+            self.value_counts = {}
+            for col in X.columns:
+                self.value_counts[col] = X[col].value_counts()
+        non_string_columns = X.select_dtypes(exclude=['object']).columns
+        column_types = X.dtypes
+        self.non_string_columns = {col: column_types[col] for col in non_string_columns} 
+        X[non_string_columns] = X[non_string_columns].astype(str)
+        trans_data = super().fit_transform(X, y, **fit_params)
+        return pd.DataFrame(trans_data)
 
 class CraftsmanKBinsDiscretizer(KBinsDiscretizer):
 
@@ -478,7 +524,82 @@ class CraftsmanBinaryEncoder(BinaryEncoder):
             for col in trans_data.columns:
                 self.value_counts[col] = trans_data[col].value_counts()
         return trans_data
+
+class CraftsmanBaseNEncoder(BaseNEncoder):
     
+    def __init__(self, verbose=0, cols=None, mapping=None, drop_invariant=False, return_df=True, base=2,
+                 handle_unknown='value', handle_missing='value'):
+        super().__init__(verbose=verbose, cols=cols, mapping=mapping, drop_invariant=drop_invariant, return_df=return_df,
+                         base=base, handle_unknown=handle_unknown, handle_missing=handle_missing)
+        
+    def fit(self, X, y=None, **kwargs):
+        X = pd.DataFrame(X)
+        for col in X.columns:
+            X[col] = X[col].astype(str)
+        super().fit(X, y, **kwargs)
+        trans_data = self.transform(X)
+        if not hasattr(self, 'value_counts'):
+            self.value_counts = {}
+            for col in trans_data.columns:
+                self.value_counts[col] = trans_data[col].value_counts()
+        return self
+
+    def transform(self, X, override_return_df=False):
+        X = pd.DataFrame(X)
+        for col in X.columns:
+            X[col] = X[col].astype(str)
+        trans_data = super().transform(X, override_return_df=override_return_df)
+        return pd.DataFrame(trans_data)
+
+    def fit_transform(self, X, y=None, **fit_params):
+        X = pd.DataFrame(X)
+        for col in X.columns:
+            X[col] = X[col].astype(str)
+        trans_data = super().fit_transform(X, y, **fit_params)
+        if not hasattr(self, 'value_counts'):
+            self.value_counts = {}
+            for col in trans_data.columns:
+                self.value_counts[col] = trans_data[col].value_counts()
+        return trans_data  
+
+class CraftsmanHashingEncoder(HashingEncoder):
+    
+    def __init__(self, verbose=0, cols=None, mapping=None, drop_invariant=False, return_df=True, base=2,
+                 handle_unknown='value', handle_missing='value'):
+        super().__init__(verbose=verbose, cols=cols, mapping=mapping, drop_invariant=drop_invariant, return_df=return_df,
+                         base=base, handle_unknown=handle_unknown, handle_missing=handle_missing)
+        
+    def fit(self, X, y=None, **kwargs):
+        X = pd.DataFrame(X)
+        for col in X.columns:
+            X[col] = X[col].astype(str)
+        super().fit(X, y, **kwargs)
+        trans_data = self.transform(X)
+        self.x_unique = X[self.cols[0]].unique()
+        if not hasattr(self, 'value_counts'):
+            self.value_counts = {}
+            for col in trans_data.columns:
+                self.value_counts[col] = trans_data[col].value_counts()
+        return self
+
+    def transform(self, X, override_return_df=False):
+        X = pd.DataFrame(X)
+        for col in X.columns:
+            X[col] = X[col].astype(str)
+        trans_data = super().transform(X, override_return_df=override_return_df)
+        return pd.DataFrame(trans_data)
+
+    def fit_transform(self, X, y=None, **fit_params):
+        X = pd.DataFrame(X)
+        for col in X.columns:
+            X[col] = X[col].astype(str)
+        trans_data = super().fit_transform(X, y, **fit_params)
+        self.x_unique = X[self.cols[0]].unique()
+        if not hasattr(self, 'value_counts'):
+            self.value_counts = {}
+            for col in trans_data.columns:
+                self.value_counts[col] = trans_data[col].value_counts()
+        return trans_data  
     
 def insert_encoders_table_to_db(pipeline):
     steps = pipeline.steps

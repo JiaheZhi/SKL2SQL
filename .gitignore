@@ -5,7 +5,6 @@ __pycache__/
 *.pkl
 *.log
 *.joblib
-*.csv
 *.zip
 merge
 test_lmx/

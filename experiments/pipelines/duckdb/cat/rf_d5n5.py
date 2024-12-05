@@ -1,15 +1,10 @@
-import sys
-
-sys.path.append("/root/volume/SKL2SQL")
-
+import pathlib
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import f1_score,accuracy_score,recall_score,precision_score
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.pipeline import Pipeline
 
 import pandas as pd
-import category_encoders as ce
 from craftsman.utility.loader import save_model
 from craftsman.base.defs import OperatorName, ModelName
 import craftsman.base.defs as defs
@@ -17,9 +12,9 @@ from craftsman.utility.training_helper import *
 
 
 
-train_data_path = "/home/postgres/craftsman_experiments/dataset/Cat/train.csv"
-pipeline_save_path = "/home/postgres/craftsman_experiments/new_trained_pipeline/Cat/cat_rf_d5n5_count.joblib"
-test_data_path = "/home/postgres/craftsman_experiments/dataset/Cat/test.csv"
+train_data_path = pathlib.Path(__file__).parent / "../../../../dataset/Cat/train.csv"
+pipeline_save_path = pathlib.Path(__file__).parent / "./cat_rf_d5n5_count.joblib"
+test_data_path = pathlib.Path(__file__).parent / "../../../../dataset/Cat/test.csv"
 
 
 # load dataset

@@ -1,5 +1,4 @@
-import sys
-sys.path.append("/root/volume/SKL2SQL")
+import pathlib
 
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import f1_score,accuracy_score,recall_score,precision_score
@@ -15,9 +14,9 @@ from craftsman.utility.training_helper import *
 
 
 
-train_data_path = "/home/postgres/craftsman_experiments/dataset/criteo/train.csv"
-pipeline_save_path = "/home/postgres/craftsman_experiments/new_trained_pipeline/Criteo/criteo_dt8_bnc.joblib"
-test_data_path = "/home/postgres/craftsman_experiments/dataset/criteo/test.csv"
+train_data_path = pathlib.Path(__file__).parent / "../../../../dataset/criteo/train.csv"
+pipeline_save_path = pathlib.Path(__file__).parent / "./criteo_dt10_bnc.joblib"
+test_data_path = pathlib.Path(__file__).parent / "../../../../dataset/criteo/test.csv"
 
 
 # load dataset

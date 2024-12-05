@@ -1,21 +1,19 @@
-import sys
-sys.path.append("/root/volume/SKL2SQL/")
+import pathlib
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import OneHotEncoder,MinMaxScaler
 from sklearn.pipeline import Pipeline
 
 import pandas as pd
-import category_encoders as ce
 from craftsman.utility.loader import save_model
 from craftsman.base.defs import OperatorName, ModelName
 import craftsman.base.defs as defs
 from craftsman.utility.training_helper import *
 
 
-train_data_path = "/home/postgres/craftsman_experiments/dataset/Car_price/train.csv"
-pipeline_save_path = "/home/postgres/craftsman_experiments/new_trained_pipeline/Car_price/car_dt6.joblib"
-test_data_path = "/home/postgres/craftsman_experiments/dataset/Car_price/test.csv"
+train_data_path = pathlib.Path(__file__).parent / "../../../../dataset/Car_price/train.csv"
+pipeline_save_path = pathlib.Path(__file__).parent / "./car_dt6.joblib"
+test_data_path = pathlib.Path(__file__).parent / "../../../../dataset/Car_price/test.csv"
 
 
 # load dataset

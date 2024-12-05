@@ -12,11 +12,15 @@ class CatBoostEncoderSQLOperator(CAT_C_CAT):
 
 
     def _extract(self, fitted_transform) -> None:
-        self.value_counts = fitted_transform.value_counts
+        self.a = fitted_transform.a
+        self.mean = fitted_transform._mean
+        cat_info = fitted_transform.mapping
         for feature in self.features:
             self.features_out.append(feature)
-            count_mapping = fitted_transform.mapping[feature]
-            self.mappings.append(count_mapping)
+            colmap = cat_info[feature]
+            level_notunique = colmap['count'] > 1
+            level_means = ((colmap['sum'] + self.mean * self.a) / (colmap['count'] + self.a)).where(level_notunique, self.mean)
+            self.mappings.append(level_means)
 
 
     @staticmethod
