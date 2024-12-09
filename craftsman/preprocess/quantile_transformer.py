@@ -1,11 +1,11 @@
-from pandas import DataFrame
+from pandas import DataFrame, Series
 from sympy import symbols, Eq
 
-from craftsman.base.operator import CON_A_CON
-from craftsman.base.defs import  OperatorName
+from craftsman.base.operator import CON_S_CON
+from craftsman.base.defs import OperatorName
 
 
-class QuantileTransformerSQLOperator(CON_A_CON):
+class QuantileTransformerSQLOperator(CON_S_CON):
     """
     This class implements the SQL wrapper for a Sklearn QuantileTransformer object.
     """
@@ -16,25 +16,33 @@ class QuantileTransformerSQLOperator(CON_A_CON):
         self._extract(fitted_transform)
 
     def _extract(self, fitted_transform) -> None:
-        n_quantiles_list = fitted_transform.n_quantiles_
-        quantiles_list = fitted_transform.quantiles_  
-        references_list = fitted_transform.references_       
-        
+        n_quantiles = fitted_transform.n_quantiles_
+        quantiles_list = fitted_transform.quantiles_
+        references_list = fitted_transform.references_
+        symbols_list = symbols("y x scale base")
+        y, x, scale, base = symbols_list
+        self.symbols = {symb.name: symb for symb in symbols_list}
         for feature in self.features:
             self.features_out.append(feature)
             feature_idx = fitted_transform.feature_names_in_.tolist().index(feature)
-            self.parameter_values.append(
-                {
-                    "n_quantiles": n_quantiles_list[feature_idx],
-                    "quantiles": quantiles_list[feature_idx],
-                    "references": references_list[feature_idx]
-                }
-            )
+            intervals = []
+            scales = []
+            bases = []
+            for i in range(n_quantiles - 1):
+                intervals.append(
+                    f"({quantiles_list[feature_idx][i]}, {quantiles_list[feature_idx][i+1]})"
+                )
+                scales.append(
+                    f"({references_list[feature_idx][i+1]} - {references_list[feature_idx][i]}) / ({quantiles_list[feature_idx][i+1]} - {quantiles_list[feature_idx][i]})"
+                )
+                bases.append(
+                    f"{references_list[feature_idx][i]} - {quantiles_list[feature_idx][i]} * {scales[i]}"
+                )
+            equations = [Eq(y, x * scale + base)] * (n_quantiles - 1)
 
-        symbols_list = symbols("y x n_quantiles quantiles references")
-        y, x, n_quantiles, quantiles, references = symbols_list
-        self.symbols = {symb.name: symb for symb in symbols_list}   
-        self.equation = Eq(y, (x - n_quantiles) / quantiles + references)
+            self.parameter_values.append({"scale": scales, "base": bases})
+
+            self.mappings.append(Series(equations, index=intervals))
 
     @staticmethod
     def trans_feature_names_in(input_data: DataFrame):

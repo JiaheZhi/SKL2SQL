@@ -1,6 +1,7 @@
 from enum import Enum
 
-DBMS = ''
+DBMS = 'duckdb'
+TABLE_NAME = 'car_price'
 JUST_PUSH_FLAG = False
 
 def set_JUST_PUSH_FLAG(flag):
@@ -36,6 +37,7 @@ class OperatorType(Enum):
     EXPAND = 'expand'
     IMPUTE = 'impute'
     TEMP = 'temp' # con-c-cat fuse expand
+    CON_S_CON = 'con_s_con'
 
 
 class OperatorName(Enum):
@@ -43,9 +45,11 @@ class OperatorName(Enum):
     MINMAXSCALER = 'MinMaxScaler'
     STANDARDSCALER = 'StandardScaler'
     ROBUSTSCALER = 'RobustScaler'
+    NORMALIZER = 'Normalizer'
+
+    # CON_S_CON
     QUANTILETRANSFORMER = 'QuantileTransformer'
     POWERTRANSFORMER = 'PowerTransformer'
-    NORMALIZER = 'Normalizer'
 
     # CON_C_CAT
     KBINSDISCRETIZER = 'KBinsDiscretizer'
@@ -218,3 +222,6 @@ MASQ = False
 AUTO_RULE_GEN = True
 
 PIPELINE_FEATURES_IN = []
+
+HASHING_ENCODER_N_COMPONENTS = 2
+HASHING_ENCODER_FEATURE = None

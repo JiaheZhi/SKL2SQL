@@ -1,8 +1,11 @@
 from pandas import DataFrame
 from sympy import symbols, Eq
+import numpy as np
 
 from craftsman.base.operator import CON_A_CON
 from craftsman.base.defs import  OperatorName
+from craftsman.utility.dbms_utils import DBMSUtils
+import craftsman.base.defs as defs
 
 
 class NormalizerSQLOperator(CON_A_CON):
@@ -16,23 +19,26 @@ class NormalizerSQLOperator(CON_A_CON):
         self._extract(fitted_transform)
 
     def _extract(self, fitted_transform) -> None:
-        center_list = fitted_transform.center_
-        scale_list = fitted_transform.scale_
-        
+        self.norm = fitted_transform.norm
         for feature in self.features:
             self.features_out.append(feature)
             feature_idx = fitted_transform.feature_names_in_.tolist().index(feature)
+            if self.norm == 'l1':
+                scale = np.linalg.norm(DBMSUtils.fetch_data_as_numpy(defs.DBMS, defs.TABLE_NAME, feature), ord=1)
+            elif self.norm == 'l2':
+                scale = np.linalg.norm(DBMSUtils.fetch_data_as_numpy(defs.DBMS, defs.TABLE_NAME, feature), ord=2)
+            elif self.norm == 'max':
+                scale = np.max(DBMSUtils.fetch_data_as_numpy(defs.DBMS, defs.TABLE_NAME, feature))
             self.parameter_values.append(
                 {
-                    "center": center_list[feature_idx],
-                    "scale": scale_list[feature_idx]
+                    "scale": scale
                 }
             )
 
-        symbols_list = symbols("y x center scale")
-        y, x, center, scale = symbols_list
+        symbols_list = symbols("y x scale")
+        y, x, scale = symbols_list
         self.symbols = {symb.name: symb for symb in symbols_list}
-        self.equation = Eq(y, (x - center) / scale)
+        self.equation = Eq(y, x / scale)
 
     @staticmethod
     def trans_feature_names_in(input_data: DataFrame):

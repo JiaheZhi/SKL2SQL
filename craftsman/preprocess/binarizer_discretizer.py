@@ -15,15 +15,16 @@ class BinarizerDiscretizerSQLOperator(CON_C_CAT):
 
 
     def _extract(self, fitted_transform) -> None:  
-        self.strategy = fitted_transform.strategy
-        self.bin_distribution = fitted_transform.bin_distribution
+        self.categories = []
+        self.bin_edges = []
+        self.n_bins = []
         self.threshold = fitted_transform.threshold
         for feature in self.features:
             self.features_out.append(feature)
+            self.n_bins.append(2)
             feature_idx = fitted_transform.feature_names_in_.tolist().index(feature)
-            self.bin_edges.append(fitted_transform.bin_edges_[feature_idx])
-            self.n_bins.append(fitted_transform.n_bins_[feature_idx])
-            self.categories.append(array(list(range(fitted_transform.n_bins_[feature_idx]))))
+            self.bin_edges.append([-float("inf"), self.threshold, float("inf")])
+            self.categories.append([0, 1])
             intervals = [
                 (self.bin_edges[0][i], self.bin_edges[0][i + 1])
                 for i in range(self.n_bins[0])

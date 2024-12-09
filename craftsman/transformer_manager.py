@@ -109,6 +109,7 @@ class TransformerManager(object):
         defs.ORDER_WHEN = order_when
         defs.GROUP = group
         defs.MASQ = masq
+        defs.TABLE_NAME = table_name
 
         model = load_model(model_file)
         pipeline_features_in = model.feature_names_in_.tolist()

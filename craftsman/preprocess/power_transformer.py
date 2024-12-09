@@ -1,11 +1,11 @@
-from pandas import DataFrame
-from sympy import symbols, Eq
+from pandas import DataFrame, Series
+from sympy import symbols, Eq, log
 
-from craftsman.base.operator import CON_A_CON
+from craftsman.base.operator import CON_S_CON
 from craftsman.base.defs import  OperatorName
 
 
-class PowerTransformerSQLOperator(CON_A_CON):
+class PowerTransformerSQLOperator(CON_S_CON):
     """
     This class implements the SQL wrapper for a Sklearn PowerTransformer object.
     """
@@ -17,7 +17,10 @@ class PowerTransformerSQLOperator(CON_A_CON):
 
     def _extract(self, fitted_transform) -> None:
         lambdas_list = fitted_transform.lambdas_
-        
+        method = fitted_transform.method
+        symbols_list = symbols("y x lambdas")
+        y, x, lambdas = symbols_list
+        self.symbols = {symb.name: symb for symb in symbols_list}
         for feature in self.features:
             self.features_out.append(feature)
             feature_idx = fitted_transform.feature_names_in_.tolist().index(feature)
@@ -26,11 +29,28 @@ class PowerTransformerSQLOperator(CON_A_CON):
                     "lambdas": lambdas_list[feature_idx]
                 }
             )
-
-        symbols_list = symbols("y x lambdas")
-        y, x, lambdas = symbols_list
-        self.symbols = {symb.name: symb for symb in symbols_list}   
-        self.equation = Eq(y, (x - lambdas))
+        
+            if method == "yeo-johnson":
+                self.intervals = [(-float("inf"), 0), (0, float("inf"))]
+                self.equations = []
+                if lambdas_list[feature_idx] != 2:
+                    self.equations.append(Eq(y, -((-x+1)**(2-lambdas) - 1)/(2-lambdas)))
+                else:
+                    self.equations.append(Eq(y, -log(-x+1)))
+                if lambdas_list[feature_idx] != 0:
+                    self.equations.append(Eq(y, ((x+1)**lambdas - 1)/lambdas))
+                else:
+                    self.equations.append(Eq(y, log(x+1)))
+                
+            elif method == "box-cox":
+                self.intervals = [(-float("inf"), float("inf"))]
+                self.equations = []
+                if lambdas_list[feature_idx] != 0:
+                    self.equations.append(Eq(y, (x**lambdas - 1)/lambdas))
+                else:
+                    self.equations.append(Eq(y, log(x)))
+            
+            self.mappings.append(Series(self.equations, index=self.intervals))
 
     @staticmethod
     def trans_feature_names_in(input_data: DataFrame):
