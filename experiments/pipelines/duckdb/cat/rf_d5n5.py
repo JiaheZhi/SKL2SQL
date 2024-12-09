@@ -25,8 +25,6 @@ X = data.drop(["target"], axis=1)
 columns = X.columns.tolist()
 
 
-# 指定要删除的列名
-
 scaler_cols = ["bin_1","bin_2","ord_0","day","month"] 
 
 
@@ -162,18 +160,3 @@ save_model(pipeline, pipeline_save_path)
 
 # # evaluate the test result
 # y_predict = pipeline.predict(X_test)
-
-
-
-# step_models = list(pipeline.named_steps.values())
-# for i in range(3):
-#     X = step_models[i].transform(X)
-# for i in range(3):
-#     X_test = step_models[i].transform(X_test)
-
-# print("train: \n")
-# print_distribute(model,X)
-
-
-# print("\n test: \n")
-# print_distribute(model,X_test)

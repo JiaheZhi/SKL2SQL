@@ -36,8 +36,6 @@ X = X[all_cols]
 #############################  define pipline  ##############################
 
 # define transfomer
-# k_bins_discretizer_quantile = CraftsmanKBinsDiscretizer(encode="ordinal",n_bins=20,strategy="quantile")
-# k_bins_discretizer_uniform = CraftsmanKBinsDiscretizer(encode="ordinal",n_bins=20,strategy="uniform")
 minmax_scalar = MinMaxScaler()
 standard_scaler = StandardScaler()
 # define model

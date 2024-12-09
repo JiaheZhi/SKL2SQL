@@ -117,20 +117,3 @@ save_model(pipeline, pipeline_save_path)
 # print("F1 score on test set:", f1)
 # print("Recall (R) on test set:", recall)
 # print("Precision (P) on test set:", precision)
-
-
-# model  = pipeline.named_steps[ModelName.RANDOMFORESTCLASSIFIER.value]
-
-
-# step_models = list(pipeline.named_steps.values())
-# for i in range(3):
-#     X = step_models[i].transform(X)
-# for i in range(3):
-#     X_test = step_models[i].transform(X_test)
-
-# print("train: \n")
-# print_distribute(model,X)
-
-
-# print("\n test: \n")
-# print_distribute(model,X_test)

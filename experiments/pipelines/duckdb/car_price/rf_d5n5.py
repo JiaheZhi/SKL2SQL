@@ -24,7 +24,6 @@ X = data.drop(["Price"], axis=1)
 
 columns = X.columns.tolist()
 
-# 指定要删除的列名
 ordinal_cols = ['Owner_Type']
 binary_cols = ['Location','Fuel_Type','Transmission','Name']
 kbins_cols = ['Year','Kilometers_Driven','Engine','Power','Mileage','Seats']
@@ -142,30 +141,3 @@ X_test = X_test[all_cols]
 y_predict = pipeline.predict(X_test)
 
 print(f"RMSE: {mean_squared_error(y_predict,(y_test))}")
-
-# accuracy = accuracy_score(y_test, y_predict)
-# f1 = f1_score(y_test, y_predict,average='macro')
-# recall = recall_score(y_test, y_predict,average='macro')
-# precision = precision_score(y_test, y_predict,average='macro')
-
-# print("Accuracy on test set:", accuracy)
-# print("F1 score on test set:", f1)
-# print("Recall (R) on test set:", recall)
-# print("Precision (P) on test set:", precision)
-
-
-# model  = pipeline.named_steps[ModelName.RANDOMFORESTCLASSIFIER.value]
-
-
-# step_models = list(pipeline.named_steps.values())
-# for i in range(3):
-#     X = step_models[i].transform(X)
-# for i in range(3):
-#     X_test = step_models[i].transform(X_test)
-
-# print("train: \n")
-# print_distribute(model,X)
-
-
-# print("\n test: \n")
-# print_distribute(model,X_test)

@@ -27,8 +27,6 @@ X = data.drop(["target"], axis=1)
 columns = X.columns.tolist()
 
 
-# 指定要删除的列名
-
 num_cols = ["n1", "n2", "n3", "n4", "n5", "n6", "n7", "n8", "n9", "n10", "n11", "n12", "n13"] 
 
 # catg_cols = ["c1", "c2", "c5", "c6", "c7", "c8", "c9", "c10", "c11", "c13","c14", "c15", "c17", "c18", "c19", "c20", "c22", "c23", "c25"]
@@ -126,17 +124,3 @@ save_model(pipeline, pipeline_save_path)
 # # evaluate the test result
 # y_predict = pipeline.predict(X_test)
 
-
-
-# step_models = list(pipeline.named_steps.values())
-# for i in range(3):
-#     X = step_models[i].transform(X)
-# for i in range(3):
-#     X_test = step_models[i].transform(X_test)
-
-# print("train: \n")
-# print_distribute(model,X)
-
-
-# print("\n test: \n")
-# print_distribute(model,X_test)

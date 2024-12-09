@@ -1,20 +1,19 @@
-# Craftsman Tools and Experiment
+# Craftsman
 
 
-## Workflow from training a pipeline to executing the trained pipeline in database
+## From training a pipeline to executing the trained pipeline in database
 
-Take car dataset as an example. We introduce how to build and train an ML pipeline, and how to translate the trained
-pipeline into pure SQL, to execute the pipeline in databases natively.
+Take car dataset as an example. We briefly introduce how to build and train an ML pipeline, and how to translate the trained pipeline into pure SQL, to execute the pipeline in databases natively.
 
->**step1**: constrcut a pipeline using craftsman `training_helper` tool and train the pipeline
+>**step1**: build a pipeline using craftsman `training_helper` tool and train the pipeline
 >
  See `/experiments/pipelines/duckdb/car_price/dt8.py`
->**step2**: generating pure SQL query using craftsman `transform_manager` tool
+>**step2**: generating pure SQL query for the trained pipeline using craftsman `transform_manager` tool
 >
 See `/experiments/sqls/duckdb/car_price/dt8.py`
 
 Parameters for manager.generate_query:
-- `pre_sql`: other sqls before the prediction sql
+- `pre_sql`: other SQL statements, like 'EXPLAIN ANALYZE'
 - `group`: the algorithm of the graph selection, 'enum' (i.e., Enumeration-based algorithm) / 'prune' (i.e., Greedy-based algorithm)
 - `max_process_num`: the parallelism of the Enumeration-based algorithm
 <!-- >**step3**: create table of dataset in database, and insert test data -->
@@ -60,7 +59,7 @@ COPY car_price FROM '/dataset/Car_price/test.csv' DELIMITERS ',' csv header;
 python ./experiments/pipelines/duckdb/car_price/dt8.py
 ```
 
-### Generate SQL
+### Generate SQL query
 ```shell
 python ./experiments/sqls/duckdb/car_price/dt8.py
 ```

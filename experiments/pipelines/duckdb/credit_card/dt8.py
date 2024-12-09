@@ -87,8 +87,6 @@ X_copy = transformers.fit_transform(X_copy)
 step3_pipeline_estimator = (ModelName.DECISIONTREECLASSIFIER.value, dt)
 X_copy = transformers.fit_transform(X_copy)
 
-# step4_pipeline_estimator = (ModelName.RANDOMFORESTCLASSIFIER.value, rf)
-# step2_pipeline_estimator = (ModelName.LOGISTICREGRESSION.value, lr)
 
 
 # define pipline
