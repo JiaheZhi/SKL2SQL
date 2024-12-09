@@ -43,9 +43,9 @@ class PropertyManager(object):
                             merged_inequations.append(simplified_inequality)
                         elif isinstance(inequation, And):
                             substituted_inequality_left = inequation.args[0].subs(op1.symbols['x'], sub_equation)
-                            simplified_inequality_left = simplify(substituted_inequality)
+                            simplified_inequality_left = simplify(substituted_inequality_left)
                             substituted_inequality_right= inequation.args[1].subs(op1.symbols['x'], sub_equation)
-                            simplified_inequality_right = simplify(substituted_inequality)
+                            simplified_inequality_right = simplify(substituted_inequality_right)
                             merged_inequations.append(And(simplified_inequality_left, simplified_inequality_right))
                             
                     merged_op.inequations[feature] = merged_inequations
