@@ -122,7 +122,7 @@ print("before fit")
 pipeline.fit(X, y)
 
 # insert join tables to database
-defs.DBMS = 'duckdb'
+defs.DBMS = 'postgresql'
 insert_encoders_table_to_db(pipeline)
 
 print("fit done!")

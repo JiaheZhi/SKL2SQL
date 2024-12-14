@@ -163,7 +163,7 @@ class DecisionTreeRegressorSQLModel(TreeModel):
                             self.features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature) 
                         self.ops[tree_node_idx] = '='
                         if isinstance(inequality[0].args[1], Symbol):
-                            self.thresholds[tree_node_idx] = inequality[0].args[1].name
+                            self.thresholds[tree_node_idx] = f"'{inequality[0].args[1].name}'"
                         else:
                             self.thresholds[tree_node_idx] = inequality[0].args[1]
                     elif isinstance(inequality[0], Ne):
@@ -173,7 +173,7 @@ class DecisionTreeRegressorSQLModel(TreeModel):
                             self.features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature) 
                         self.ops[tree_node_idx] = '<>'
                         if isinstance(inequality[0].args[1], Symbol):
-                            self.thresholds[tree_node_idx] = inequality[0].args[1].name
+                            self.thresholds[tree_node_idx] = f"'{inequality[0].args[1].name}'"
                         else:
                             self.thresholds[tree_node_idx] = inequality[0].args[1]
                     elif isinstance(inequality[0], And):
