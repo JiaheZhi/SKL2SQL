@@ -442,6 +442,8 @@ class TransformerManager(object):
                         #     pass
                         preprocessing_graph_list = merge_sql_operator_by_chain_plan(last_chain_min_cost_preprocessing_graph, chain_implement_plan, chain_fusion_plan, feature)
                         total_plan_num += len(preprocessing_graph_list)
+                        print(f'current plan num: {total_plan_num}')
+                        t1 = time.time()
                         for graph in preprocessing_graph_list:
                             if defs.MASQ:
                                 min_cost_preprocessing_graph = graph
@@ -454,7 +456,8 @@ class TransformerManager(object):
                                 if cost < min_cost:
                                     min_cost_preprocessing_graph = graph
                                     min_cost = cost
-
+                        t2 = time.time()
+                        print(f'{len(preprocessing_graph_list)} plans\' cost evaluate time: {(t2 - t1):.4f} s', flush=True)
                 last_chain_min_cost_preprocessing_graph = min_cost_preprocessing_graph.copy_graph()
 
             t1 = time.time()

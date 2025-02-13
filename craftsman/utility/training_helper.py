@@ -73,6 +73,10 @@ class CraftsmanColumnTransformer(ColumnTransformer):
                     after_expand_features = [
                         f_in for f_in in self.feature_names_in_ if feature in f_in
                     ]
+                    if not after_expand_features:
+                        after_expand_features = [
+                            f_in for f_in in self.feature_names_in_ if defs.HASHING_ENCODER_FEATURE in f_in and f_in not in new_trans_features
+                        ]
                     new_trans_features.extend(after_expand_features)
 
             features_trans.extend(new_trans_features)
@@ -564,10 +568,10 @@ class CraftsmanBaseNEncoder(BaseNEncoder):
 
 class CraftsmanHashingEncoder(HashingEncoder):
     
-    def __init__(self, verbose=0, cols=None, mapping=None, drop_invariant=False, return_df=True, base=2,
-                 handle_unknown='value', handle_missing='value'):
-        super().__init__(verbose=verbose, cols=cols, mapping=mapping, drop_invariant=drop_invariant, return_df=return_df,
-                         base=base, handle_unknown=handle_unknown, handle_missing=handle_missing)
+    def __init__(self, max_process=0, max_sample=0, verbose=0, n_components=8, cols=None, drop_invariant=False,
+                 return_df=True, hash_method='md5'):
+        super().__init__(max_process=max_process, max_sample=max_sample, verbose=verbose, n_components=n_components, cols=cols, drop_invariant=drop_invariant,
+                 return_df=return_df, hash_method=hash_method)
         
     def fit(self, X, y=None, **kwargs):
         X = pd.DataFrame(X)
@@ -575,7 +579,8 @@ class CraftsmanHashingEncoder(HashingEncoder):
             X[col] = X[col].astype(str)
         super().fit(X, y, **kwargs)
         trans_data = self.transform(X)
-        self.x_unique = X[self.cols[0]].unique()
+        X_unique = X.drop_duplicates()
+        self.x_unique = X.unique()
         if not hasattr(self, 'value_counts'):
             self.value_counts = {}
             for col in trans_data.columns:
@@ -594,7 +599,7 @@ class CraftsmanHashingEncoder(HashingEncoder):
         for col in X.columns:
             X[col] = X[col].astype(str)
         trans_data = super().fit_transform(X, y, **fit_params)
-        self.x_unique = X[self.cols[0]].unique()
+        self.x_unique = X.unique()
         if not hasattr(self, 'value_counts'):
             self.value_counts = {}
             for col in trans_data.columns:

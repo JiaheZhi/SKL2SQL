@@ -292,6 +292,9 @@ class CAT_C_CAT(EncoderOperator):
         for idx in range(len(self.features)):
             feature_sql = "CASE "
             mapping = self.mappings[idx]
+            print("-------------\n")
+            print(defs.ORDER_WHEN)
+            print("-------------\n")
             if defs.ORDER_WHEN:
                 value_counts = np.array(
                     [
@@ -300,16 +303,26 @@ class CAT_C_CAT(EncoderOperator):
                     ]
                 )
                 pos_2_val = np.argsort(-value_counts)
-            for i in range(len(mapping.index)):
-                if defs.ORDER_WHEN:
-                    val_idx = pos_2_val[i]
-                    category = mapping.index[val_idx]
-                else:
-                    category = mapping.index[i]
-                if type(category) == str:
-                    feature_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} = '{category}' THEN {mapping[category]} "
-                else:
-                    feature_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} = {category} THEN {mapping[category]} "
+            if mapping.index.inferred_type == 'mixed':
+                for i in range(len(mapping.index)):
+                    if defs.ORDER_WHEN:
+                        val_idx = pos_2_val[i]
+                        interval = mapping.index[val_idx]
+                    else:
+                        interval = mapping.index[i]
+                    
+                    feature_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} >= {interval[0]} AND {DBMSUtils.get_delimited_col(dbms, self.features[idx])} < {interval[1]} THEN {mapping[category]} "
+            else:
+                for i in range(len(mapping.index)):
+                    if defs.ORDER_WHEN:
+                        val_idx = pos_2_val[i]
+                        category = mapping.index[val_idx]
+                    else:
+                        category = mapping.index[i]
+                    if type(category) == str:
+                        feature_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} = '{category}' THEN {mapping[category]} "
+                    else:
+                        feature_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, self.features[idx])} = {category} THEN {mapping[category]} "
             feature_sql += (
                 f"END AS {DBMSUtils.get_delimited_col(dbms, self.features[idx])}"
             )
@@ -376,11 +389,18 @@ class CAT_C_CAT(EncoderOperator):
                 in_list = [
                     in_list[pos] for pos in np.argsort(-np.array(in_list_value_counts))
                 ]
-            return (
-                DBMSUtils.get_delimited_col(defs.DBMS, feature),
-                "in",
-                f"({','.join(in_list)})",
-            )
+            if in_list:
+                return (
+                    DBMSUtils.get_delimited_col(defs.DBMS, feature),
+                    "in",
+                    f"({','.join(in_list)})",
+                )
+            else:
+                return (
+                    'False',
+                    '',
+                    '',
+                )
 
         elif op == "in":
             in_list = []
@@ -392,11 +412,18 @@ class CAT_C_CAT(EncoderOperator):
                     else:
                         in_list.append(f"{idx}")
 
-            return (
-                DBMSUtils.get_delimited_col(defs.DBMS, feature),
-                "in",
-                f"({','.join(in_list)})",
-            )
+            if in_list:
+                return (
+                    DBMSUtils.get_delimited_col(defs.DBMS, feature),
+                    "in",
+                    f"({','.join(in_list)})",
+                )
+            else:
+                return (
+                    'False',
+                    '',
+                    '',
+                )
 
         elif op == "":
             intervals = []
@@ -419,12 +446,19 @@ class CAT_C_CAT(EncoderOperator):
                         in_list.append(f"'{idx}'")
                     else:
                         in_list.append(f"{idx}")
-
-            return (
-                DBMSUtils.get_delimited_col(defs.DBMS, feature),
-                "in",
-                f"({','.join(in_list)})",
-            )
+            
+            if in_list:
+                return (
+                    DBMSUtils.get_delimited_col(defs.DBMS, feature),
+                    "in",
+                    f"({','.join(in_list)})",
+                )
+            else:
+                return (
+                    'False',
+                    '',
+                    '',
+                )
 
     def modify_leaf_p(self, feature, op, thr):
         mapping = self.mappings[self.features_out.index(feature)]
@@ -497,15 +531,27 @@ class CAT_C_CAT(EncoderOperator):
         if defs.ORDER_WHEN:
             pos_2_val = np.argsort(-value_counts)
             val_2_pos = {val: pos for pos, val in enumerate(pos_2_val)}
-            return (
-                sum([(val_2_pos[i] + 1) * num for i, num in enumerate(value_counts)])
-                * PrimitiveCost.EQUAL.value
-            )
+            if mapping.index.inferred_type == 'mixed':
+                return (
+                    sum([(val_2_pos[i] + 1) * num for i, num in enumerate(value_counts)])
+                    * PrimitiveCost.OR.value
+                )
+            else:
+                return (
+                    sum([(val_2_pos[i] + 1) * num for i, num in enumerate(value_counts)])
+                    * PrimitiveCost.EQUAL.value
+                )
         else:
-            return (
-                sum([(i + 1) * num for i, num in enumerate(value_counts)])
-                * PrimitiveCost.EQUAL.value
-            )
+            if mapping.index.inferred_type == 'mixed':
+                return (
+                    sum([(i + 1) * num for i, num in enumerate(value_counts)])
+                    * PrimitiveCost.OR.value
+                )
+            else:
+                return (
+                    sum([(i + 1) * num for i, num in enumerate(value_counts)])
+                    * PrimitiveCost.EQUAL.value
+                )
 
     def get_push_primitive_type(self, feature, thr):
         return PrimitiveType.EQUAL
@@ -570,19 +616,31 @@ class EXPAND(EncoderOperator):
             )
             if self.con_c_cat_mapping is None:
                 for enc_value in categories_list.index.tolist()[:-1]:
-                    if len(categories_list[enc_value]) == 1:
-                        if type(categories_list[enc_value][0]) == str:
-                            col_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, feature)} = '{categories_list[enc_value][0]}' THEN {enc_value} "
-                        else:
-                            col_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, feature)} = {categories_list[enc_value][0]} THEN {enc_value} "
+                    if isinstance(categories_list[enc_value][0], tuple):
+                        inquality_str = " OR ".join(
+                                    [
+                                        f"{DBMSUtils.get_delimited_col(feature)} >= {interval[0]} AND {DBMSUtils.get_delimited_col(feature)} < {interval[1]}" 
+                                        for interval in categories_list[enc_value]
+                                    ]
+                                )
+                        col_sql += f"WHEN {inquality_str} THEN {enc_value} "
                     else:
-                        in_str = ",".join(
-                            [
-                                f"'{c}'" if type(c) == str else f"{c}"
-                                for c in categories_list[enc_value]
-                            ]
-                        )
-                        col_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, feature)} in ({in_str}) THEN {enc_value} "
+                        if len(categories_list[enc_value]) == 1:
+                            if type(categories_list[enc_value][0]) == str:
+                                col_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, feature)} = '{categories_list[enc_value][0]}' THEN {enc_value} "
+                            else:
+                                col_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, feature)} = {categories_list[enc_value][0]} THEN {enc_value} "
+                        else:
+                            if categories_list[enc_value]:
+                                in_str = ",".join(
+                                    [
+                                        f"'{c}'" if type(c) == str else f"{c}"
+                                        for c in categories_list[enc_value]
+                                    ]
+                                )
+                                col_sql += f"WHEN {DBMSUtils.get_delimited_col(dbms, feature)} in ({in_str}) THEN {enc_value} "
+                            else:
+                                col_sql += f'WHEN False THEN {enc_value} '
             else:
                 for enc_value in categories_list.index.tolist()[:-1]:
                     intervals = []
@@ -823,15 +881,23 @@ class EXPAND(EncoderOperator):
             # return sum(data_primitive_costs)
             cost = 0
             before_len = 0
+            n = 0
             for enc_value in categories_list.index.tolist()[:-1]:
                 list_len = len(categories_list[enc_value])
-                if list_len == 0:
-                    cost += PrimitiveCost.EQUAL * value_counts[enc_value]
+                if list_len == 1:
+                    if isinstance(categories_list[enc_value][0], tuple):
+                        cost += PrimitiveCost.OR.value * value_counts[enc_value]
+                    else:
+                        cost += PrimitiveCost.EQUAL.value * value_counts[enc_value]
                 else:
-                    cost += (
-                        PrimitiveCost.IN(before_len + list_len)
-                        * value_counts[enc_value]
-                    )
+                    if isinstance(categories_list[enc_value][0], tuple):
+                        cost += PrimitiveCost.OR.value * (before_len + list_len) * value_counts[enc_value]
+                    else:
+                        cost += (
+                            (PrimitiveCost.IN(before_len + list_len) + PrimitiveCost.IN(0) * n)
+                            * value_counts[enc_value]
+                        )
+                n = n + 1
                 before_len += list_len
             return cost
         else:
@@ -861,10 +927,10 @@ class EXPAND(EncoderOperator):
                 intervals = []
                 for in_value in in_list:
                     intervals.extend(self.con_c_cat_mapping[in_value])
-                    merged_intervals = merge_intervals(intervals)
+                merged_intervals = merge_intervals(intervals)
                 inequal_len = len(merged_intervals)
                 cost += (
-                    PrimitiveCost.OR
+                    PrimitiveCost.OR.value
                     * (before_len + inequal_len)
                     * value_counts[enc_value]
                 )
@@ -1111,7 +1177,7 @@ class CON_S_CON(SQLOperator):
             if len(mapping) == 1 and mapping.index[0] == (-float("inf"), float("inf")):
                 sub_equation = mapping.iloc[0].rhs.subs(
                     {
-                        self.symbols[sym_name]: self.parameter_values[idx][sym_name]
+                        self.symbols[sym_name]: self.parameter_values[idx][sym_name][0]
                         for sym_name in self.parameter_values[idx]
                     }
                 )
@@ -1124,10 +1190,10 @@ class CON_S_CON(SQLOperator):
                 sqls.append(feature_sql)
             else:
                 feature_sql = "CASE "
-                for interval, equation in mapping.items():
+                for eq_idx, (interval, equation) in enumerate(mapping.items()):
                     sub_equation = equation.subs(
                         {
-                            self.symbols[sym_name]: self.parameter_values[idx][sym_name]
+                            self.symbols[sym_name]: self.parameter_values[idx][sym_name][eq_idx]
                             for sym_name in self.parameter_values[idx]
                         }
                     )
@@ -1277,6 +1343,7 @@ class CON_C_CAT(SQLOperator):
                 lambda x: x.index.tolist()
             )
             merged_op.con_c_cat_mapping = cat_interval_map
+            merged_op.value_counts = second_op.value_counts
 
             return merged_op
 

@@ -61,7 +61,10 @@ class DecisionTreeClassifierSQLModel(TreeModel):
         def visit_tree(node):
             # leaf node
             if self.left[node] == -1 and self.right[node] == -1:
-                return " {} ".format(self.classes[np.argmax(self.trained_model.tree_.value[node][0])])
+                if isinstance(self.classes[np.argmax(self.trained_model.tree_.value[node][0])], str):
+                    return f" '{self.classes[np.argmax(self.trained_model.tree_.value[node][0])]}' "
+                else:
+                    return " {} ".format(self.classes[np.argmax(self.trained_model.tree_.value[node][0])])
 
             # internal node
             op = self.ops[node]

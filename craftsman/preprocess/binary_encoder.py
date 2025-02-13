@@ -36,7 +36,7 @@ class BinaryEncoderSQLOperator(EXPAND):
 
         binary_encoder = BinaryEncoder(cols=input_data.columns)
         binary_encoder.fit(input_data)
-        binary_encoder.transform(input_data)
+        # binary_encoder.transform(input_data)
 
         for feature in input_data.columns:
             for m in binary_encoder.mapping:

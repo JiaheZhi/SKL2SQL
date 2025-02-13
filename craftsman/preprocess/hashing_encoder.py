@@ -18,7 +18,7 @@ class HashingEncoderSQLOperator(EXPAND):
         self.n_components = fitted_transform.n_components
         defs.HASHING_ENCODER_N_COMPONENTS = self.n_components
         defs.HASHING_ENCODER_FEATURE = self.features[0]
-        self.hashing_method = fitted_transform.hashing_method
+        self.hashing_method = fitted_transform.hash_method
         self.mapping = self.hashing_trick(DataFrame(self.x_unique), self.hashing_method, self.n_components, self.features)
         self.mapping = self.x_unique.values.tolist()
 

@@ -1,5 +1,5 @@
 from sklearn.ensemble import RandomForestClassifier
-from sympy import sympify, LessThan, Eq, And, Symbol, Ne
+from sympy import sympify, LessThan, Eq, And, Symbol, Ne, Tuple
 from craftsman.utility.dbms_utils import DBMSUtils
 from craftsman.model.decision_tree_classifier import DecisionTreeClassifierSQLModel
 from craftsman.model.base_model import TreeModel
@@ -158,15 +158,27 @@ class RandomForestClassifierSQLModel(TreeModel):
                         else:
                             self.decision_tree_classifiers[tree_idx].thresholds[tree_node_idx] = inequality[0].args[1]
                     elif isinstance(inequality[0], Ne):
-                        if feature not in defs.PIPELINE_FEATURES_IN and feature.split('_')[-1].isnumeric():
-                            self.decision_tree_classifiers[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature.rsplit('_', 1)[0])
-                        else:
-                            self.decision_tree_classifiers[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature) 
-                        self.decision_tree_classifiers[tree_idx].ops[tree_node_idx] = '<>'
-                        if isinstance(inequality[0].args[1], Symbol):
-                            self.decision_tree_classifiers[tree_idx].thresholds[tree_node_idx] = f"'{inequality[0].args[1].name}'"
-                        else:
-                            self.decision_tree_classifiers[tree_idx].thresholds[tree_node_idx] = inequality[0].args[1]
+                        # if feature == 'var_191_9':
+                        #     pass
+                        if isinstance(inequality[0].args[1], Tuple):
+                            if feature not in defs.PIPELINE_FEATURES_IN and feature.split('_')[-1].isnumeric():
+                                self.decision_tree_classifiers[tree_idx].features[tree_node_idx] = f"{DBMSUtils.get_delimited_col(defs.DBMS, feature.rsplit('_', 1)[0])} < {inequality[0].args[1][0]}" + \
+                                    " OR " + \
+                                        f"{DBMSUtils.get_delimited_col(defs.DBMS, feature.rsplit('_', 1)[0])} >= {inequality[0].args[1][1]}"
+                            else:
+                                self.decision_tree_classifiers[tree_idx].features[tree_node_idx] = f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} < {inequality[0].args[1][0]}" +\
+                                    " OR " + \
+                                        f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} >= {inequality[0].args[1][1]}"
+                        else: 
+                            if feature not in defs.PIPELINE_FEATURES_IN and feature.split('_')[-1].isnumeric():
+                                self.decision_tree_classifiers[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature.rsplit('_', 1)[0])
+                            else:
+                                self.decision_tree_classifiers[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature) 
+                            self.decision_tree_classifiers[tree_idx].ops[tree_node_idx] = '<>'
+                            if isinstance(inequality[0].args[1], Symbol):
+                                self.decision_tree_classifiers[tree_idx].thresholds[tree_node_idx] = f"'{inequality[0].args[1].name}'"
+                            else:
+                                self.decision_tree_classifiers[tree_idx].thresholds[tree_node_idx] = inequality[0].args[1]
                     elif isinstance(inequality[0], And):
                         self.decision_tree_classifiers[tree_idx].features[tree_node_idx] = DBMSUtils.get_delimited_col(defs.DBMS, feature)
                         self.decision_tree_classifiers[tree_idx].ops[tree_node_idx] = '<='

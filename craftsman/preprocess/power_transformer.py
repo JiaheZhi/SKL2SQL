@@ -24,11 +24,7 @@ class PowerTransformerSQLOperator(CON_S_CON):
         for feature in self.features:
             self.features_out.append(feature)
             feature_idx = fitted_transform.feature_names_in_.tolist().index(feature)
-            self.parameter_values.append(
-                {
-                    "lambdas": lambdas_list[feature_idx]
-                }
-            )
+            
         
             if method == "yeo-johnson":
                 self.intervals = [(-float("inf"), 0), (0, float("inf"))]
@@ -41,6 +37,12 @@ class PowerTransformerSQLOperator(CON_S_CON):
                     self.equations.append(Eq(y, ((x+1)**lambdas - 1)/lambdas))
                 else:
                     self.equations.append(Eq(y, log(x+1)))
+
+                self.parameter_values.append(
+                    {
+                        "lambdas": [lambdas_list[feature_idx]] * 2
+                    }
+                )
                 
             elif method == "box-cox":
                 self.intervals = [(-float("inf"), float("inf"))]
@@ -49,6 +51,12 @@ class PowerTransformerSQLOperator(CON_S_CON):
                     self.equations.append(Eq(y, (x**lambdas - 1)/lambdas))
                 else:
                     self.equations.append(Eq(y, log(x)))
+                
+                self.parameter_values.append(
+                    {
+                        "lambdas": [lambdas_list[feature_idx]]
+                    }
+                )
             
             self.mappings.append(Series(self.equations, index=self.intervals))
 

@@ -14,11 +14,12 @@ class OrdinalEncoderSQLOperator(CAT_C_CAT):
 
     def _extract(self, fitted_transform) -> None:
         self.value_counts = fitted_transform.value_counts
-        for idx, feature in enumerate(self.features):
+        for feature in self.features:
             self.features_out.append(feature)
+            idx = fitted_transform.feature_names_in_.tolist().index(feature)
             categories = fitted_transform.categories_[idx]
-            encs = fitted_transform.transform(categories.reshape(-1, 1))
-            self.mappings.append(Series(np.array(encs).reshape(-1)  ,index=categories)) 
+            # encs = fitted_transform.transform(categories.reshape(-1, 1))
+            self.mappings.append(Series(np.arange(1, len(categories) + 1)  ,index=categories))
 
 
     @staticmethod

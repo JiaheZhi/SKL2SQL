@@ -164,7 +164,8 @@ def _merge_by_implement_method(first_op, second_op, first_implementaion, second_
     
     else:
         pm = PropertyManager()
-        properties = [method for method in dir(pm) if callable(getattr(pm, method)) and method.startswith('property')]
+        properties = ['property1', 'property3', 'property2']
+        # properties = [method for method in dir(pm) if callable(getattr(pm, method)) and method.startswith('property')]
         for property in properties:
             merged_op = getattr(pm, property)(first_op, second_op)
             if merged_op:
