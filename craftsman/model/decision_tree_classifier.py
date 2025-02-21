@@ -30,6 +30,24 @@ class DecisionTreeClassifierSQLModel(TreeModel):
             self.features = [DBMSUtils.get_delimited_col(defs.DBMS, self.input_features[i]) for i in self.trained_model.tree_.feature]
             self.features_origin = [self.input_features[i] for i in self.trained_model.tree_.feature]
             
+            if defs.AUTO_RULE_GEN:
+                # abstract the tree model to a operator consisted of inequations
+                for feature in self.input_features:
+                    self.inequations[feature] = []
+                    self.tree_node_mappings[feature] = []
+                for idx, thr in enumerate(self.thresholds):
+                    if self.left[idx] == -1 and self.right[idx] == -1:
+                        continue
+                    self.inequations[self.features_origin[idx]].append(sympify(f'x {self.ops[idx]} {self.thresholds[idx]}'))
+                    self.tree_node_mappings[self.features_origin[idx]].append(idx)
+
+    def set_features(self, feature_names_in):
+        self.trained_model.feature_names_in_ = feature_names_in
+        self.input_features = self.trained_model.feature_names_in_
+        self.features = [DBMSUtils.get_delimited_col(defs.DBMS, self.input_features[i]) for i in self.trained_model.tree_.feature]
+        self.features_origin = [self.input_features[i] for i in self.trained_model.tree_.feature]
+        
+        if defs.AUTO_RULE_GEN:
             # abstract the tree model to a operator consisted of inequations
             for feature in self.input_features:
                 self.inequations[feature] = []
@@ -39,22 +57,6 @@ class DecisionTreeClassifierSQLModel(TreeModel):
                     continue
                 self.inequations[self.features_origin[idx]].append(sympify(f'x {self.ops[idx]} {self.thresholds[idx]}'))
                 self.tree_node_mappings[self.features_origin[idx]].append(idx)
-
-    def set_features(self, feature_names_in):
-        self.trained_model.feature_names_in_ = feature_names_in
-        self.input_features = self.trained_model.feature_names_in_
-        self.features = [DBMSUtils.get_delimited_col(defs.DBMS, self.input_features[i]) for i in self.trained_model.tree_.feature]
-        self.features_origin = [self.input_features[i] for i in self.trained_model.tree_.feature]
-        
-        # abstract the tree model to a operator consisted of inequations
-        for feature in self.input_features:
-            self.inequations[feature] = []
-            self.tree_node_mappings[feature] = []
-        for idx, thr in enumerate(self.thresholds):
-            if self.left[idx] == -1 and self.right[idx] == -1:
-                continue
-            self.inequations[self.features_origin[idx]].append(sympify(f'x {self.ops[idx]} {self.thresholds[idx]}'))
-            self.tree_node_mappings[self.features_origin[idx]].append(idx)
 
     def get_case_sql(self, dbms: str) -> str:
 

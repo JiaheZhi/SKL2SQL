@@ -44,3 +44,9 @@ class PrepChain(object):
         new_chain = PrepChain(self.feature)
         new_chain.prep_operators = copy.deepcopy(self.prep_operators)
         return new_chain
+    
+    def copy_prune(self):
+        new_chain = PrepChain(self.feature)
+        for op in self.prep_operators:
+            new_chain.prep_operators.append(op)
+        return new_chain

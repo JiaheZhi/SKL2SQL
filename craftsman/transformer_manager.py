@@ -98,7 +98,8 @@ class TransformerManager(object):
         order_when=False,
         group='prune',
         cost_model='craftsman',
-        max_process_num=1
+        max_process_num=1,
+        assigned_rule=None
     ):
         assert group in ('org', 'pos', 'uncertain', 'enum', 'prune'), "group must in ('org', 'pos', 'uncertain', 'enum', 'prune')"
         assert cost_model in ('craftsman', 'postgresql'), "cost_model must in ('craftsman', 'postgresql')"
@@ -438,11 +439,11 @@ class TransformerManager(object):
             ):
                 for chain_implement_plan in chain_candidate_implement_plans.candidate_implement_plans:
                     for chain_fusion_plan in chain_candidate_fusion_plans.candidate_fusion_plans:
-                        # if feature == 'facid':
-                        #     pass
-                        preprocessing_graph_list = merge_sql_operator_by_chain_plan(last_chain_min_cost_preprocessing_graph, chain_implement_plan, chain_fusion_plan, feature)
+                        
+                        preprocessing_graph_list = merge_sql_operator_by_chain_plan(last_chain_min_cost_preprocessing_graph, chain_implement_plan, chain_fusion_plan, feature, assigned_rule)
+                        
                         total_plan_num += len(preprocessing_graph_list)
-                        print(f'current plan num: {total_plan_num}')
+                        # print(f'current plan num: {total_plan_num}')
                         t1 = time.time()
                         for graph in preprocessing_graph_list:
                             if defs.MASQ:

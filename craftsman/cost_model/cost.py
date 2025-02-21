@@ -1,5 +1,6 @@
 from craftsman.cost_model.utils import tree_paths
 from craftsman.base.defs import PrimitiveType, PrimitiveCost
+import craftsman.base.defs as defs
 
 
 class PathCost(object):
@@ -64,10 +65,16 @@ class TreeCost(object):
                         primitive_length = 1
                     elif op == 'in':
                         primitive_type = PrimitiveType.IN
-                        primitive_length = len(model.thresholds[node].split(','))
+                        primitive_length = defs.tree_node_in_length.get(node)
+                        if not primitive_length:
+                            primitive_length = len(model.thresholds[node].split(','))
+                            defs.tree_node_in_length[node] = primitive_length
                     elif op == '':
                         primitive_type = PrimitiveType.OR
-                        primitive_length = len(model.features[node].split('OR'))
+                        primitive_length = defs.tree_node_or_length.get(node)
+                        if not primitive_length:
+                            primitive_length = len(model.features[node].split('OR'))
+                            defs.tree_node_or_length[node] = primitive_length
                      
                     path_cost.set_cost(primitive_type, primitive_length)
 

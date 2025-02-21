@@ -5,6 +5,7 @@ from numpy import array
 
 from craftsman.base.operator import CON_C_CAT
 from craftsman.base.defs import OperatorName
+import craftsman.base.defs as defs
 
 class KBinsDiscretizerSQLOperator(CON_C_CAT):
 
@@ -28,12 +29,13 @@ class KBinsDiscretizerSQLOperator(CON_C_CAT):
                 for i in range(self.n_bins[0])
             ]
             
-            self.inequations[feature] = []
-            self.inequations_mappings[feature] = []
-            x = Symbol('x')
-            for idx, interval in enumerate(intervals):
-                self.inequations[feature].append(And(x > interval[0], x < interval[1]))
-                self.inequations_mappings[feature].append(idx)
+            if defs.AUTO_RULE_GEN:
+                self.inequations[feature] = []
+                self.inequations_mappings[feature] = []
+                x = Symbol('x')
+                for idx, interval in enumerate(intervals):
+                    self.inequations[feature].append(And(x > interval[0], x < interval[1]))
+                    self.inequations_mappings[feature].append(idx)
                 
             self.mappings.append(
                 Series(

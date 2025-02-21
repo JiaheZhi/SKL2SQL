@@ -29,14 +29,15 @@ class RandomForestRegressorSQLModel(TreeModel):
             decision_tree_regressor.set_features(trained_model.feature_names_in_)
             self.decision_tree_regressors.append(decision_tree_regressor)
         self.tree_weights = [1/len(self.decision_tree_regressors)] * len(self.decision_tree_regressors)
-        # abstract the tree model to a operator consisted of inequations
-        for feature in self.input_features:
-            self.inequations[feature] = []
-            self.tree_node_mappings[feature] = []
-        for tree_idx, dtc in enumerate(self.decision_tree_regressors):
-            for feature in dtc.input_features:
-                self.inequations[feature].extend(dtc.inequations[feature])
-                self.tree_node_mappings[feature].extend([(tree_idx, node_idx) for node_idx in dtc.tree_node_mappings[feature]])
+        if defs.AUTO_RULE_GEN:
+            # abstract the tree model to a operator consisted of inequations
+            for feature in self.input_features:
+                self.inequations[feature] = []
+                self.tree_node_mappings[feature] = []
+            for tree_idx, dtc in enumerate(self.decision_tree_regressors):
+                for feature in dtc.input_features:
+                    self.inequations[feature].extend(dtc.inequations[feature])
+                    self.tree_node_mappings[feature].extend([(tree_idx, node_idx) for node_idx in dtc.tree_node_mappings[feature]])
         
     def modify_model(self, feature: str, sql_operator: Operator):
         for decision_tree_regressor in self.decision_tree_regressors:

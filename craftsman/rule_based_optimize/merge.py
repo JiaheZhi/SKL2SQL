@@ -1,4 +1,5 @@
 import copy
+import time
 from pandas import DataFrame
 
 from craftsman.model.base_model import TreeModel
@@ -65,49 +66,14 @@ import craftsman.base.defs as defs
 #     elif choice == "disable":
 #         return None
 
-def _merge_by_implement_method(first_op, second_op, first_implementaion, second_implementation):
+def _merge_by_implement_method(first_op, second_op, first_implementaion, second_implementation, assigned_rule=None):
     if not defs.AUTO_RULE_GEN:
-        rule_table_content = [
-            ["uncertain", "uncertain", "disable", "disable", "disable", "disable", "uncertain"],
-            ["apply", "apply", "apply", "apply", "uncertain", "disable", "uncertain"],
-            ["apply", "apply", "apply", "apply", "simply", "simply", "uncertain"],
-            ["apply", "apply", "apply", "apply", "simply", "simply", "disable"],
-            ["apply", "apply", "apply", "apply", "disable", "disable", "uncertain"],
-            ["apply", "apply", "apply", "apply", "disable", "disable", "disable"],
-            ["disable", "disable", "disable", "disable", "disable", "disable", "disable"]
-        ]
-        
-        implementation_table_content = [
-            [SQLPlanType.CASE, SQLPlanType.CASE, None, None, None, None, None],
-            [SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, None, None],
-            [SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.JOIN, None],
-            [SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.CASE, SQLPlanType.JOIN, None],
-            [SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, None, None, None],
-            [SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, None, None, None],
-            [None, None, None, None, None, None, None]
-        ]
-
-        rule_table_index_columns = [
-            OperatorType.CON_A_CON.value + SQLPlanType.CASE.value,
-            OperatorType.CON_C_CAT.value + SQLPlanType.CASE.value,
-            OperatorType.CAT_C_CAT.value + SQLPlanType.CASE.value,
-            OperatorType.CAT_C_CAT.value + SQLPlanType.JOIN.value,
-            OperatorType.EXPAND.value + SQLPlanType.CASE.value,
-            OperatorType.EXPAND.value + SQLPlanType.JOIN.value,
-            'Tree'
-        ]
-
-        rule_table = DataFrame(
-            rule_table_content,
-            index=rule_table_index_columns,
-            columns=rule_table_index_columns
-        )
-        
-        implementation_table = DataFrame(
-            implementation_table_content,
-            index=rule_table_index_columns,
-            columns=rule_table_index_columns
-        )
+        rule_table = defs.rule_table
+        implementation_table = defs.implementation_table
+        if assigned_rule != None:
+            rule_table = rule_table.applymap(lambda x: "disable")
+            for rule in assigned_rule:
+                rule_table.loc[rule[0], rule[1]] = defs.rule_table.loc[rule[0], rule[1]]
 
         if second_implementation != 'Tree' and second_implementation != 'Not-Tree':
             if defs.MASQ:
@@ -138,8 +104,10 @@ def _merge_by_implement_method(first_op, second_op, first_implementaion, second_
         elif second_implementation == 'Tree':
             if defs.MASQ:
                 if first_op.op_name == OperatorName.ONEHOTENCODER:
+                    
                     copyed_model = copy.deepcopy(second_op)
                     first_op.fusion(copyed_model)
+                    
                     return[[[copyed_model], [second_implementation]]]
                 else:
                     return [[[first_op, second_op], [first_implementaion, second_implementation]]]
@@ -150,8 +118,10 @@ def _merge_by_implement_method(first_op, second_op, first_implementaion, second_
                 if choice == "disable":
                     return [[[first_op, second_op], [first_implementaion, second_implementation]]]
                 elif choice == "uncertain":
+                    
                     copyed_model = copy.deepcopy(second_op)
                     first_op.fusion(copyed_model)
+                    
                     # special case, directly fusion
                     if first_op.op_name in (OperatorName.KBINSDISCRETIZER, OperatorName.STANDARDSCALER, OperatorName.MINMAXSCALER):
                         return[[[copyed_model], [second_implementation]]]
@@ -219,12 +189,13 @@ def merge_sql_operator_by_chain_plan(
     preprocessing_graph: PrepGraph,
     chain_implement_plan: ChainImplementPlan,
     chain_fusion_plan: ChainFusionPlan,
-    feature: str):
+    feature: str,
+    assigned_rule = None):
     # aim to maintain a list of graph, to contain all possible plan
     graph_list: list[PrepGraph] = []
     
     # original graph
-    new_prep_graph = preprocessing_graph.copy_graph()
+    new_prep_graph = preprocessing_graph.copy_prune_graph(feature)
     new_prep_graph.chains[feature] = PrepChain(feature)
     new_prep_graph.implements[feature] = []
     graph_list.append(new_prep_graph)
@@ -250,6 +221,7 @@ def merge_sql_operator_by_chain_plan(
         graph.implements[feature].append(chain_implement_plan.chain_implement_plan[first_index])
     
     # fusion ops for every chain   
+    new_prep_graph = preprocessing_graph.copy_prune_graph(feature)
     step = 0
     while(step < len(fusion_directions)):
         next_direction = fusion_directions[step]
@@ -286,11 +258,11 @@ def merge_sql_operator_by_chain_plan(
                     second_op = graph.chains[feature].prep_operators[0]
                     second_implementaion = graph.implements[feature][0]
 
-            merged_res = _merge_by_implement_method(first_op, second_op, first_implementaion, second_implementaion)
+            merged_res = _merge_by_implement_method(first_op, second_op, first_implementaion, second_implementaion, assigned_rule)
             
             res_graphs = [graph]
             if len(merged_res) == 2:
-                twin_graph = graph.copy_graph()
+                twin_graph = graph.copy_prune_graph(feature)
                 res_graphs.append(twin_graph)
             
             for situation, graph in zip(merged_res, res_graphs):
@@ -323,8 +295,7 @@ def merge_sql_operator_by_chain_plan(
                 new_graph_list.append(graph)   
         
         step = step + 1            
-        graph_list = new_graph_list
-        
+        graph_list = new_graph_list 
     # join the op to model if the implement is join
     # for graph in graph_list:
     #     chain = graph.chains[feature]
@@ -415,7 +386,8 @@ def merge_sql_operator_by_graph_plan(
                 
                 res_graphs = [graph]
                 if len(merged_res) == 2:
-                    twin_graph = graph.copy_graph()
+                    # twin_graph = graph.copy_graph()
+                    twin_graph = graph.copy_prune_graph(feature)
                     res_graphs.append(twin_graph)
                 
                 for situation, graph in zip(merged_res, res_graphs):

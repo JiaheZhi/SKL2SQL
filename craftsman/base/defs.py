@@ -1,4 +1,5 @@
 from enum import Enum
+from pandas import DataFrame
 
 DBMS = 'duckdb'
 TABLE_NAME = 'car_price'
@@ -225,3 +226,49 @@ PIPELINE_FEATURES_IN = []
 
 HASHING_ENCODER_N_COMPONENTS = 1000
 HASHING_ENCODER_FEATURE = 'col'
+
+value_counts_sum_cache = {}
+tree_node_in_length = {}
+tree_node_or_length = {}
+
+rule_table_content = [
+    ["uncertain", "uncertain", "disable", "disable", "disable", "disable", "uncertain"],
+    ["apply", "apply", "apply", "apply", "uncertain", "disable", "uncertain"],
+    ["apply", "apply", "apply", "apply", "simply", "simply", "uncertain"],
+    ["apply", "apply", "apply", "apply", "simply", "simply", "disable"],
+    ["apply", "apply", "apply", "apply", "disable", "disable", "uncertain"],
+    ["apply", "apply", "apply", "apply", "disable", "disable", "disable"],
+    ["disable", "disable", "disable", "disable", "disable", "disable", "disable"]
+]
+
+implementation_table_content = [
+    [SQLPlanType.CASE, SQLPlanType.CASE, None, None, None, None, None],
+    [SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, None, None],
+    [SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.JOIN, None],
+    [SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.CASE, SQLPlanType.JOIN, None],
+    [SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, SQLPlanType.CASE, None, None, None],
+    [SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, SQLPlanType.JOIN, None, None, None],
+    [None, None, None, None, None, None, None]
+]
+
+rule_table_index_columns = [
+    OperatorType.CON_A_CON.value + SQLPlanType.CASE.value,
+    OperatorType.CON_C_CAT.value + SQLPlanType.CASE.value,
+    OperatorType.CAT_C_CAT.value + SQLPlanType.CASE.value,
+    OperatorType.CAT_C_CAT.value + SQLPlanType.JOIN.value,
+    OperatorType.EXPAND.value + SQLPlanType.CASE.value,
+    OperatorType.EXPAND.value + SQLPlanType.JOIN.value,
+    'Tree'
+]
+
+rule_table = DataFrame(
+    rule_table_content,
+    index=rule_table_index_columns,
+    columns=rule_table_index_columns
+)
+
+implementation_table = DataFrame(
+    implementation_table_content,
+    index=rule_table_index_columns,
+    columns=rule_table_index_columns
+)

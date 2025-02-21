@@ -292,9 +292,6 @@ class CAT_C_CAT(EncoderOperator):
         for idx in range(len(self.features)):
             feature_sql = "CASE "
             mapping = self.mappings[idx]
-            print("-------------\n")
-            print(defs.ORDER_WHEN)
-            print("-------------\n")
             if defs.ORDER_WHEN:
                 value_counts = np.array(
                     [
@@ -525,31 +522,48 @@ class CAT_C_CAT(EncoderOperator):
 
     def _get_op_cost(self, feature):
         mapping = self.mappings[self.features.index(feature)]
-        value_counts = np.array(
-            [self.value_counts[feature][category] for category in mapping.index]
-        )
+        cached = False
+        if defs.value_counts_sum_cache.get(feature):
+            cached = True
+        if not cached:
+            value_counts = np.array(
+                [self.value_counts[feature][category] for category in mapping.index]
+            )
+        
         if defs.ORDER_WHEN:
-            pos_2_val = np.argsort(-value_counts)
-            val_2_pos = {val: pos for pos, val in enumerate(pos_2_val)}
+            if not cached:
+                pos_2_val = np.argsort(-value_counts)
+                val_2_pos = {val: pos for pos, val in enumerate(pos_2_val)}
+                value_sum = sum([(val_2_pos[i] + 1) * num for i, num in enumerate(value_counts)])
+                defs.value_counts_sum_cache[feature] = value_sum
+            else:
+                value_sum = defs.value_counts_sum_cache.get(feature)
+            
             if mapping.index.inferred_type == 'mixed':
                 return (
-                    sum([(val_2_pos[i] + 1) * num for i, num in enumerate(value_counts)])
+                    value_sum
                     * PrimitiveCost.OR.value
                 )
             else:
                 return (
-                    sum([(val_2_pos[i] + 1) * num for i, num in enumerate(value_counts)])
+                    value_sum
                     * PrimitiveCost.EQUAL.value
                 )
         else:
+            if not cached:
+                value_sum = sum([(i + 1) * num for i, num in enumerate(value_counts)])
+                defs.value_counts_sum_cache[feature] = value_sum
+            else:
+                value_sum = defs.value_counts_sum_cache.get(feature)
+                
             if mapping.index.inferred_type == 'mixed':
                 return (
-                    sum([(i + 1) * num for i, num in enumerate(value_counts)])
+                    value_sum
                     * PrimitiveCost.OR.value
                 )
             else:
                 return (
-                    sum([(i + 1) * num for i, num in enumerate(value_counts)])
+                    value_sum
                     * PrimitiveCost.EQUAL.value
                 )
 
@@ -894,11 +908,28 @@ class EXPAND(EncoderOperator):
                         cost += PrimitiveCost.OR.value * (before_len + list_len) * value_counts[enc_value]
                     else:
                         cost += (
-                            (PrimitiveCost.IN(before_len + list_len) + PrimitiveCost.IN(0) * n)
+                            (PrimitiveCost.IN(before_len + list_len) + PrimitiveCost.IN(0) * n) \
                             * value_counts[enc_value]
                         )
-                n = n + 1
-                before_len += list_len
+                    n = n + 1
+                    before_len += list_len
+            
+            if len(categories_list) > 1:
+                last_enc_value = categories_list.index.tolist()[-1]
+                if list_len == 1:
+                    if isinstance(categories_list[enc_value][0], tuple):
+                        cost += PrimitiveCost.OR.value * value_counts[last_enc_value]
+                    else:
+                        cost += PrimitiveCost.EQUAL.value * value_counts[last_enc_value]
+                else:
+                    if isinstance(categories_list[enc_value][0], tuple):
+                        cost += PrimitiveCost.OR.value * (before_len) * value_counts[last_enc_value]
+                    else:
+                        cost += (
+                            (PrimitiveCost.IN(before_len) + PrimitiveCost.IN(0) * (n-1)) \
+                            * value_counts[last_enc_value]
+                        )
+                
             return cost
         else:
 
@@ -935,6 +966,13 @@ class EXPAND(EncoderOperator):
                     * value_counts[enc_value]
                 )
                 before_len += inequal_len
+            if len(categories_list) > 1:
+                last_enc_value = categories_list.index.tolist()[-1]
+                cost += (
+                    PrimitiveCost.OR.value
+                    * (before_len)
+                    * value_counts[last_enc_value]
+                )
             return cost
 
     def get_push_primitive_type(self, feature, thr):
@@ -1289,7 +1327,7 @@ class CON_C_CAT(SQLOperator):
             for i in range(self.n_bins[feature_idx]):
                 if (
                     x >= self.bin_edges[feature_idx][i]
-                    and x < self.bin_edges[feature_idx][i + 1]
+                    and x <= self.bin_edges[feature_idx][i + 1]
                 ):
                     res_xs.append(self.categories[feature_idx][i])
                     break

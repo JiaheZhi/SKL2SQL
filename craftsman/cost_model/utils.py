@@ -66,7 +66,7 @@ def get_pg_sql_cost(sql: str):
 
 def get_craftsman_graph_cost(graph, data_rows):
     cost = 0
-    timer = False
+    timer = True
     
     if timer:
         t1 = time.time()
