@@ -104,16 +104,19 @@ class DecisionTreeClassifierSQLModel(TreeModel):
         tree_cost.analyze_path_push_cost(feature, operator, self)
         return [tree_cost]
     
-    def get_tree_costs_static(self, feature):
-        tree_cost = TreeCost(feature, model=self)
-        tree_cost.analyze_path_cost(feature, self)
+    def get_tree_costs_static(self):
+        tree_cost = TreeCost(model=self)
+        tree_cost.analyze_path_cost(self)
         return [tree_cost]
 
     def modify_model(self, feature: str, sql_operator: Operator):
         for idx, node in enumerate(self.trained_model.tree_.feature):
-            if self.input_features[node] == feature:
+            # if self.features[idx] == feature:
+            if self.input_features[node] == feature or \
+                (feature in self.input_features[node] and sql_operator.op_type != defs.OperatorType.EXPAND):
                 self.features[idx], self.ops[idx], self.thresholds[idx] = sql_operator.modify_leaf(
-                    self.features_origin[idx], self.ops[idx], self.thresholds[idx], self.features[idx]
+                    feature, self.ops[idx], self.thresholds[idx], self.features[idx]
+                    # self.features_origin[idx], self.ops[idx], self.thresholds[idx], self.features[idx]
                 )
                 
     def modify_model_p(self, feature: str, sql_operator: Operator):

@@ -1,7 +1,7 @@
 import pathlib
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_squared_error
-from sklearn.preprocessing import OneHotEncoder,MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.pipeline import Pipeline
 
 import pandas as pd

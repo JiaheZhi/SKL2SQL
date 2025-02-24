@@ -64,11 +64,11 @@ class RandomForestClassifierSQLModel(TreeModel):
             tree_costs.append(tree_cost)
         return tree_costs
     
-    def get_tree_costs_static(self, feature):
+    def get_tree_costs_static(self):
         tree_costs = []
         for dtc in self.decision_tree_classifiers:
-            tree_cost = TreeCost(feature, model=dtc)
-            tree_cost.analyze_path_cost(feature, dtc)
+            tree_cost = TreeCost(model=dtc)
+            tree_cost.analyze_path_cost(dtc)
             tree_costs.append(tree_cost)
         return tree_costs
 

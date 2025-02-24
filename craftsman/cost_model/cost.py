@@ -8,7 +8,7 @@ class PathCost(object):
     Path cost of specific field
     """
 
-    def __init__(self, path, feature):
+    def __init__(self, path, feature=None):
         self.path = path
         self.feature = feature
         self.occurs_time = 0
@@ -29,54 +29,54 @@ class TreeCost(object):
     Tree cost for a special field
     """
 
-    def __init__(self, feature, operator=None, model=None) -> None:
+    def __init__(self, feature=None, operator=None, model=None) -> None:
         self.feature = feature
         self.path_costs: list[PathCost] = []
         self.n_node_samples = model.trained_model.tree_.n_node_samples
 
-    def analyze_path_cost(self, feature, model):
+    def analyze_path_cost(self, model):
         tree = model.trained_model.tree_
         for path in tree_paths(tree):
-            path_cost = PathCost(path, feature)
+            path_cost = PathCost(path)
             occurs_time = 0
             for node in path:
-                if model.input_features[tree.feature[node]] == feature:
-                    # use for no fusion
-                    occurs_time += 1
-                    # use for fusion
-                    op = model.ops[node]
-                    if op == '<=':
-                        primitive_type = PrimitiveType.LE_EQ
-                        primitive_length = 1
-                    elif op == '=':
-                        primitive_type = PrimitiveType.EQUAL
-                        primitive_length = 1
-                    elif op == '<>':
-                        primitive_type = PrimitiveType.INEQUAL
-                        primitive_length = 1
-                    elif op == '<':
-                        primitive_type = PrimitiveType.LE
-                        primitive_length = 1
-                    elif op == '>':
-                        primitive_type = PrimitiveType.GE
-                        primitive_length = 1
-                    elif op == '>=':
-                        primitive_type = PrimitiveType.GE_EQ
-                        primitive_length = 1
-                    elif op == 'in':
-                        primitive_type = PrimitiveType.IN
-                        primitive_length = defs.tree_node_in_length.get(node)
-                        if not primitive_length:
-                            primitive_length = len(model.thresholds[node].split(','))
-                            defs.tree_node_in_length[node] = primitive_length
-                    elif op == '':
-                        primitive_type = PrimitiveType.OR
-                        primitive_length = defs.tree_node_or_length.get(node)
-                        if not primitive_length:
-                            primitive_length = len(model.features[node].split('OR'))
-                            defs.tree_node_or_length[node] = primitive_length
+                
+                # use for no fusion
+                occurs_time += 1
+                # use for fusion
+                op = model.ops[node]
+                if op == '<=':
+                    primitive_type = PrimitiveType.LE_EQ
+                    primitive_length = 1
+                elif op == '=':
+                    primitive_type = PrimitiveType.EQUAL
+                    primitive_length = 1
+                elif op == '<>':
+                    primitive_type = PrimitiveType.INEQUAL
+                    primitive_length = 1
+                elif op == '<':
+                    primitive_type = PrimitiveType.LE
+                    primitive_length = 1
+                elif op == '>':
+                    primitive_type = PrimitiveType.GE
+                    primitive_length = 1
+                elif op == '>=':
+                    primitive_type = PrimitiveType.GE_EQ
+                    primitive_length = 1
+                elif op == 'in':
+                    primitive_type = PrimitiveType.IN
+                    primitive_length = defs.tree_node_in_length.get(node)
+                    if not primitive_length:
+                        primitive_length = len(model.thresholds[node].split(','))
+                        defs.tree_node_in_length[node] = primitive_length
+                elif op == '':
+                    primitive_type = PrimitiveType.OR
+                    primitive_length = defs.tree_node_or_length.get(node)
+                    if not primitive_length:
+                        primitive_length = len(model.features[node].split('OR'))
+                        defs.tree_node_or_length[node] = primitive_length
                      
-                    path_cost.set_cost(primitive_type, primitive_length)
+                path_cost.set_cost(primitive_type, primitive_length)
 
             path_cost.set_occurs(occurs_time)
             self.path_costs.append(path_cost)

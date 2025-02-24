@@ -1492,7 +1492,23 @@ class CON_C_CAT(SQLOperator):
                             op,
                             bin_edge[i],
                         )
-                pass
+            
+            elif op == "<>":
+                intervals = []
+                for i, category in enumerate(categoiry_list):
+                    if category != thr:
+                        intervals.append((bin_edge[i], bin_edge[i+1]))
+                merged_intervals = merge_intervals(intervals)
+                condition_sqls = []
+                for i in range(len(merged_intervals)):
+                    condition_sql = (
+                        f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} >= {merged_intervals[i][0]}"
+                        + " AND "
+                        + f"{DBMSUtils.get_delimited_col(defs.DBMS, feature)} < {merged_intervals[i][1]}"
+                    )
+                    condition_sqls.append(condition_sql)
+
+                return " OR ".join(condition_sqls), "", ""
 
             else:
                 pass

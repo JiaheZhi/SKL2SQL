@@ -66,7 +66,7 @@ def get_pg_sql_cost(sql: str):
 
 def get_craftsman_graph_cost(graph, data_rows):
     cost = 0
-    timer = True
+    timer = False
     
     if timer:
         t1 = time.time()
@@ -94,20 +94,33 @@ def get_craftsman_graph_cost(graph, data_rows):
         t1 = time.time()
     
     # tree cost
-    for feature in graph.model.input_features:
-        if graph.model.model_name in (
-            defs.ModelName.DECISIONTREECLASSIFIER,
-            defs.ModelName.RANDOMFORESTCLASSIFIER,
-            defs.ModelName.DECISIONTREEREGRESSOR,
-            defs.ModelName.RANDOMFORESTREGRESSOR,
-        ):
-            # if 'nom_5' in feature:
-            #     pass
-            tree_costs = graph.model.get_tree_costs_static(feature)
-            total_tree_cost = sum(
-                [tree_cost.calculate_tree_cost() for tree_cost in tree_costs]
-            )
-            cost += total_tree_cost
+    # for feature in graph.model.input_features:
+    #     if graph.model.model_name in (
+    #         defs.ModelName.DECISIONTREECLASSIFIER,
+    #         defs.ModelName.RANDOMFORESTCLASSIFIER,
+    #         defs.ModelName.DECISIONTREEREGRESSOR,
+    #         defs.ModelName.RANDOMFORESTREGRESSOR,
+    #     ):
+    #         # if 'nom_5' in feature:
+    #         #     pass
+    #         tree_costs = graph.model.get_tree_costs_static(feature)
+    #         total_tree_cost = sum(
+    #             [tree_cost.calculate_tree_cost() for tree_cost in tree_costs]
+    #         )
+    #         cost += total_tree_cost
+    
+    if graph.model.model_name in (
+        defs.ModelName.DECISIONTREECLASSIFIER,
+        defs.ModelName.RANDOMFORESTCLASSIFIER,
+        defs.ModelName.DECISIONTREEREGRESSOR,
+        defs.ModelName.RANDOMFORESTREGRESSOR,
+    ):
+
+        tree_costs = graph.model.get_tree_costs_static()
+        total_tree_cost = sum(
+            [tree_cost.calculate_tree_cost() for tree_cost in tree_costs]
+        )
+        cost += total_tree_cost
    
     if timer:
         t2 = time.time()

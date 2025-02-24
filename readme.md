@@ -1,35 +1,14 @@
-# Craftsman
+# Craftsman: Machine Learning Inference Pipeline Execution Using Pure SQL Based on Operator Fusion
 
-
-## From training a pipeline to executing the trained pipeline in database
-
-Take car dataset as an example. We briefly introduce how to build and train an ML pipeline, and how to translate the trained pipeline into pure SQL, to execute the pipeline in databases natively.
-
->**step1**: build a pipeline using craftsman `training_helper` tool and train the pipeline
->
- See `/experiments/pipelines/duckdb/car_price/dt8.py`
->**step2**: generating pure SQL query for the trained pipeline using craftsman `transform_manager` tool
->
-See `/experiments/sqls/duckdb/car_price/dt8.py`
-
-Parameters for manager.generate_query:
-- `pre_sql`: other SQL statements, like 'EXPLAIN ANALYZE'
-- `group`: the algorithm of the graph selection, 'enum' (i.e., Enumeration-based algorithm) / 'prune' (i.e., Greedy-based algorithm)
-- `max_process_num`: the parallelism of the Enumeration-based algorithm
-<!-- >**step3**: create table of dataset in database, and insert test data -->
->
->**step3**: execute the SQL query in the target database
+## Project Introduction
+Craftsman is a tool for ... (a brief description of the project's functionality and purpose).
 
 
 
 ## Quaik Start
 
-### Environment set-up
-```shell
-pip install -r requirements.txt
-# add project root path (which contains craftsman directory) to python path
-export PYTHONPATH=$(pwd)
-```
+### Generate SQL
+Please refer to `./tutorial.ipynb` for usage examples.
 
 ### Prepare dataset in database
 ```sql
@@ -54,16 +33,6 @@ CREATE TABLE car_price (
 COPY car_price FROM '/dataset/Car_price/test.csv' DELIMITERS ',' csv header;
 ```
 
-### Train a pipeline
-```shell
-python ./experiments/pipelines/duckdb/car_price/dt8.py
-```
-
-### Generate SQL query
-```shell
-python ./experiments/sqls/duckdb/car_price/dt8.py
-```
-
 ### Execute SQL in different database(duckdb, postgres, clickhouse, monetdb, tidb)
 ```shell
 # Example for duckdb
@@ -73,7 +42,17 @@ duckdb path/to/duckdb-file
 .read path/to/sql-file.sql
 ```
 
-## Datasets
+
+## Code Structure
+- `craftsman/base/` directory contains the definitions of the main data structures.
+- `craftsman/cost_model/` directory contains data structures related to the cost model.
+- `craftsman/model/` directory contains the definitions of supported machine learning models.
+- `craftsman/preprocess/` directory contains the definitions of supported preprocessing operators.
+- `craftsman/rule_based_optimize/` directory contains the logic for operator fusion.
+- `craftsman/utility/` directory contains utility functions and the definition of preprocessing operators wrapped by craftsman.
+- `craftsman/transformer_manager.py` file contains the entry function `TransformerManager.generate_query()`, which includes the SQL assembly logic.
+
+## Datasets Links
 
 | Dataset | Link |
 |:---:|:---:|
