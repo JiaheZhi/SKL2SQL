@@ -43,7 +43,7 @@ The structure of the built pipeline is as follows.
 
 
 ### Step3: Translate the trained pipeline into pure SQL query
-```
+```python
 from craftsman.transformer_manager import TransformerManager
 import os
 
@@ -65,7 +65,7 @@ query = manager.generate_query(
 
 The part of generated SQL is as follows, see `./tutorial/tutorial.sql` for the complete SQL.
 
-```
+```sql
 EXPLAIN ANALYZE
 SELECT
     CASE
