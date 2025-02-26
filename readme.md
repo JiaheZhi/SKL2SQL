@@ -33,7 +33,7 @@ COPY car_price FROM '/dataset/Car_price/test.csv' DELIMITERS ',' csv header;
 
 ###  Step2: Build and train a pipeline using API of Craftsman
 
-For detailed code on constructing and training pipelines, refer to `/tutorial.ipynb`.
+For detailed code on constructing and training pipelines, refer to `./tutorial.ipynb`.
 
 The structure of the built pipeline is as follows.
 
@@ -63,7 +63,7 @@ query = manager.generate_query(
 )
 ```
 
-The part of generated SQL is as follows, see `./experiments/sqls/duckdb/car_price/q5_dt8_prune.sql` for the complete SQL.
+The part of generated SQL is as follows, see `./tutorial/tutorial.sql` for the complete SQL.
 
 ```
 EXPLAIN ANALYZE
