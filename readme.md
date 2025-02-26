@@ -32,10 +32,15 @@ COPY car_price FROM '/dataset/Car_price/test.csv' DELIMITERS ',' csv header;
 ```
 
 ###  Step2: Build and train a pipeline using API of Craftsman
-See `/experiments/pipelines/duckdb/car_price/dt8.py`for the code to build and train a pipeline.
 
-The structure of the built pipeline is as follows 
-![craftsman_pipeline_define.jpg](craftsman_pipeline_define.jpg "/craftsman_pipeline_define.jpg")
+For detailed code on constructing and training pipelines, refer to `/tutorial.ipynb`.
+
+The structure of the built pipeline is as follows.
+
+<!-- ![craftsman_pipeline_define.jpg](craftsman_pipeline_define.jpg "/craftsman_pipeline_define.jpg") -->
+
+<img src="craftsman_pipeline_define.jpg" alt="craftsman_pipeline_define.jpg" title="/craftsman_pipeline_define.jpg" width="475"/>
+
 
 ### Step3: Translate the trained pipeline into pure SQL query
 ```
@@ -58,52 +63,41 @@ query = manager.generate_query(
 )
 ```
 
-The generated SQL is as follows, see `./experiments/sqls/duckdb/car_price/q5_dt8_prune.sql` for the complete SQL.
+The part of generated SQL is as follows, see `./experiments/sqls/duckdb/car_price/q5_dt8_prune.sql` for the complete SQL.
 
 ```
 EXPLAIN ANALYZE
 SELECT
-  CASE
-    WHEN "Power" <= 150.0 THEN CASE
-      WHEN "Engine" <= 1968.0 THEN CASE
-        WHEN "Year" <= 2014.0 THEN CASE
-          WHEN "Year" <= 2012.0 THEN CASE
-            WHEN "Brand" <= 58.5 THEN CASE
-              WHEN "Brand" <= 32.5 THEN 1.93909
-              ELSE 27.83
-            END
-            ELSE CASE
-              WHEN "Year" <= 2008.0 THEN 1.53485
-              ELSE 2.80284
-            END
-          END
-          ELSE CASE
-            WHEN "Power" <= 105.0 THEN CASE
-              WHEN "Engine" <= 1197.0 THEN 2.60431
-              ELSE 4.08556
-            END
-            ELSE CASE
-        ...
-        ...
-        FROM
-        (
-            SELECT
-            "Owner_Type",
-            "Location",
-            "Fuel_Type",
-            "Transmission",
-            "Name",
-            COALESCE("Year", 2014.0) AS "Year",
-            "Kilometers_Driven",
-            COALESCE("Engine", 1197.0) AS "Engine",
-            COALESCE("Power", 74.0) AS "Power",
-            "Mileage",
-            "Seats",
-            "Brand"
-            FROM
-            car_price
-        ) AS data
-    ) AS data
+    CASE
+        WHEN "Power" <= 150.0 THEN CASE
+            WHEN "Engine" <= 1999.0 THEN CASE
+                WHEN "Year" <= 2015.0 THEN CASE
+                    WHEN "Year" <= 2013.0 THEN CASE
+                        WHEN "Brand" <= 58.5 THEN CASE
+
+    ...
+    ...
+    ...
+
+      FROM
+      (
+          SELECT
+              "Owner_Type",
+              "Location",
+              "Fuel_Type",
+              "Transmission",
+              "Name",
+              COALESCE("Year", 2014.0) AS "Year",
+              "Kilometers_Driven",
+              COALESCE("Engine", 1197.0) AS "Engine",
+              COALESCE("Power", 74.0) AS "Power",
+              "Mileage",
+              "Seats",
+              "Brand"
+          FROM
+              car_price
+      ) AS data
+) AS data
 
 ```
 
@@ -130,3 +124,13 @@ duckdb path/to/duckdb-file
 | Price | https://www.kaggle.com/datasets/avikasliwal/used-cars-price-prediction |
 | Cat | https://www.kaggle.com/c/cat-in-the-dat/data |
 | Criteo | https://ailab.criteo.com/ressources/ |
+
+
+## Code Structure
+- `craftsman/base/` directory contains the definitions of the main data structures.
+- `craftsman/cost_model/` directory contains data structures related to the cost model.
+- `craftsman/model/` directory contains the definitions of supported machine learning models.
+- `craftsman/preprocess/` directory contains the definitions of supported preprocessing operators.
+- `craftsman/rule_based_optimize/` directory contains the logic for operator fusion.
+- `craftsman/utility/` directory contains utility functions and the definition of preprocessing operators wrapped by craftsman.
+- `craftsman/transformer_manager.py` file contains the entry function `TransformerManager.generate_query()`, which includes the SQL assembly logic.
