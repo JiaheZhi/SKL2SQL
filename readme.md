@@ -39,7 +39,7 @@ The structure of the built pipeline is as follows.
 
 <!-- ![craftsman_pipeline_define.jpg](craftsman_pipeline_define.jpg "/craftsman_pipeline_define.jpg") -->
 
-<img src="craftsman_pipeline_define.jpg" alt="craftsman_pipeline_define.jpg" title="/craftsman_pipeline_define.jpg" width="475"/>
+<img src="./tutorial/craftsman_pipeline_define.jpg" alt="craftsman_pipeline_define.jpg" title="craftsman_pipeline_define.jpg" width="475"/>
 
 
 ### Step3: Translate the trained pipeline into pure SQL query
