@@ -33,13 +33,13 @@ COPY car_price FROM '/dataset/Car_price/test.csv' DELIMITERS ',' csv header;
 
 ###  Step2: Build and train a pipeline using API of Craftsman
 
-For detailed code on constructing and training pipelines, refer to `./tutorial.ipynb`.
+For detailed code on constructing and training pipelines, refer to `./tutorial/tutorial.ipynb`.
 
 The structure of the built pipeline is as follows.
 
 <!-- ![craftsman_pipeline_define.jpg](craftsman_pipeline_define.jpg "/craftsman_pipeline_define.jpg") -->
 
-<img src="./tutorial/craftsman_pipeline_define.jpg" alt="craftsman_pipeline_define.jpg" title="craftsman_pipeline_define.jpg" width="475"/>
+<img src="./tutorial/craftsman_pipeline_define.png" alt="craftsman_pipeline_define.png" title="craftsman_pipeline_define.png" width="475"/>
 
 
 ### Step3: Translate the trained pipeline into pure SQL query
@@ -120,10 +120,13 @@ duckdb path/to/duckdb-file
 | Dataset | Link |
 |:---:|:---:|
 | Credit Card | https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud |
+| Adult | https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data |
+| Crypto | https://www.kaggle.com/competitions/g-research-crypto-forecasting/data |
 | Hospital | https://github.com/Microsoft/r-server-hospital-length-of-stay |
 | Price | https://www.kaggle.com/datasets/avikasliwal/used-cars-price-prediction |
 | Cat | https://www.kaggle.com/c/cat-in-the-dat/data |
 | Criteo | https://ailab.criteo.com/ressources/ |
+
 
 
 ## Code Structure
