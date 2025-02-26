@@ -39,7 +39,9 @@ The structure of the built pipeline is as follows.
 
 <!-- ![craftsman_pipeline_define.jpg](craftsman_pipeline_define.jpg "/craftsman_pipeline_define.jpg") -->
 
-<img src="./tutorial/craftsman_pipeline_define.png" alt="craftsman_pipeline_define.png" title="craftsman_pipeline_define.png" width="475"/>
+<!-- <img src="./tutorial/craftsman_pipeline_define.png" alt="craftsman_pipeline_define.png" title="craftsman_pipeline_define.png" width="475"/> -->
+
+<img src="https://github.com/DBRookie/Craftsman/raw/main/tutorial/craftsman_pipeline_define.png" alt="craftsman_pipeline_define.png" title="craftsman_pipeline_define.png" width="475"/>
 
 
 ### Step3: Translate the trained pipeline into pure SQL query
